@@ -1,0 +1,27 @@
+# GENERATED from manifest/tools.yaml by scripts/gen-package-list.py — do not edit
+aircrack-ng
+arp-scan
+bind9-dnsutils
+bmon
+curl
+ethtool
+fping
+hping3
+iftop
+iperf3
+kismet
+lldpd
+mtr-tiny
+netcat-openbsd
+netdiscover
+ngrep
+nload
+nmap
+openjdk-21-jre
+socat
+speedtest-cli
+tcpdump
+tshark
+wireshark
+wpasupplicant
+zenmap
