@@ -55,7 +55,6 @@ if [ $DIRECT = 1 ]; then
     xorriso -osirrox on -indev "$ISO" -extract /live/vmlinuz "$B/direct/vmlinuz" \
             -extract /live/initrd.img "$B/direct/initrd.img" >/dev/null 2>&1
   fi
-  [ -n "$DISK" ] && Q+=(-drive "file=$ISO,media=cdrom,readonly=on")   # live-boot also needs to find /live
   BASE_APPEND="$(sed -n 's/^LB_BOOTAPPEND_LIVE="\(.*\)"$/\1/p' "$ROOT/live/config/binary" 2>/dev/null)"
   [ -n "$BASE_APPEND" ] || BASE_APPEND="boot=live components quiet persistence"
   Q+=(-kernel "$B/direct/vmlinuz" -initrd "$B/direct/initrd.img" -append "$BASE_APPEND $APPEND")

@@ -34,4 +34,5 @@ sync
 echo NETTOOLKIT-SELFTEST-DONE
 } > "$LOG" 2>&1
 [ -c /dev/ttyS0 ] && cat "$LOG" > /dev/ttyS0
+grep -qw nettoolkit.poweroff /proc/cmdline && { sleep 2; systemctl poweroff; }
 exit 0

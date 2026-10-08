@@ -54,7 +54,7 @@ test-uefi:
 test-usb-img:
 	scripts/mkusb.sh --image build/test-usb.img --size $(SIZE) --yes
 
-test-persist: test-usb-img
+test-persist:
 	scripts/test-persist.sh
 
 mkusb:

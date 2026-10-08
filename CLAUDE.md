@@ -37,7 +37,8 @@ make manifest      # regenerate package list + /etc/nettoolkit/tools.yaml includ
 make fetch         # download/verify upstream debs + keys
 make build         # full ISO → build/nettoolkit.iso (log: build/logs/build.log)
 make test-bios / test-uefi / test-persist
-make mkusb DEV=/dev/sdX [SIZE=5G]
+make mkusb DEV=/dev/sdX [SIZE=5G]   # sudo; refuses disks > 256G without --force
+make test-usb-img                  # build/test-usb.img (8G sparse) with persistence partition
 make release
 ```
 
@@ -63,3 +64,7 @@ make release
   lists it explicitly. Debug a running VM without rebuilding: `scripts/test-qemu.sh --keep-alive 150`
   in the background, then `scripts/qemu-type.sh 'cmd > /dev/ttyS0\n'` (switch tty with
   `echo "sendkey ctrl-alt-f2" | socat - UNIX-CONNECT:build/qemu-mon.sock`).
+- (phase 3) ISO is an MBR isohybrid (p1 = ISO9660, p2 = EFI nested inside p1); `sfdisk --append`
+  adds p3. Image mode formats via `mkfs.ext4 -E offset=... -d <dir>` so no root/loop needed.
+  live-boot finds the `persistence`-labelled partition on any disk, including with `toram`.
+  `scripts/test-persist.sh` = 6 boots (bios/uefi x normal,normal,toram) on a fresh image.
