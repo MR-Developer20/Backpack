@@ -27,3 +27,6 @@ touchmode/edex/src/node_modules/
 touchmode/edex/dist/
 live/config/packages.chroot/edex-ui_*.deb
 build/release/
+live/chroot.packages.install
+live/chroot.packages.live
+live/chroot.files
