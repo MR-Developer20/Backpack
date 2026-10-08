@@ -99,3 +99,11 @@ make release
   (BIOS desktop 21.1s vs 21.4s before). `splash` added to bootappend.
 - `make release` -> build/release/nettoolkit-live-<UTCdate>-amd64.iso + SHA256SUMS (scripts/release.sh).
 - Final ISO: 1023 MiB (target < 1.5 GB). README.md documents build/test/USB/add-a-tool/persistence.
+
+- (ventoy diagnosis) Reproduced the user's failure with REAL Ventoy 1.1.17 in QEMU UEFI.
+  Per Ventoy boot mode: Normal mode FAILS ("error: cannot load image / you need to load the
+  kernel first"); Grub2 mode FAILS (guest resets); Memdisk mode BOOTS to the desktop.
+  Root cause: Ventoy's bundled GRUB cannot load the Debian trixie kernel's EFI image; memdisk
+  loads the whole ISO to RAM and uses the ISO's own bootloader. Not an ISO defect (direct boot
+  and `make mkusb` work). Repro tooling: build/tmpl/make-ventoy-usb.sh (+ ventoy-copy4.sh).
+  QEMU needs -m 2G here (host ~3 GB free).
