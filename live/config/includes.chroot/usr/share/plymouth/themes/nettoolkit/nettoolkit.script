@@ -1,0 +1,23 @@
+# NetToolkit Live plymouth splash: centered logo on dark background + progress dots
+Window.SetBackgroundTopColor(0.043, 0.063, 0.086);     # #0b1016
+Window.SetBackgroundBottomColor(0.059, 0.106, 0.133);  # #0f1b22
+
+logo.image = Image("splash.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetWidth()  / 2 - logo.image.GetWidth()  / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2);
+
+progress = 0;
+fun refresh_cb() {
+    progress++;
+    dot = Math.Int(progress / 10) % 4;
+}
+Plymouth.SetRefreshFunction(refresh_cb);
+
+fun message_cb(text) {
+    msg = Image.Text(text, 0.55, 0.61, 0.69);
+    msg.sprite = Sprite(msg);
+    msg.sprite.SetX(Window.GetWidth() / 2 - msg.GetWidth() / 2);
+    msg.sprite.SetY(Window.GetHeight() * 0.75);
+}
+Plymouth.SetMessageFunction(message_cb);

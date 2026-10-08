@@ -90,3 +90,12 @@ make release
     Hardware tablet taps via the monitor are flaky under nested virt; not a product defect —
     libinput enumerates the touch device under sway, so real touchscreens deliver events.
   * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.
+- (phase 5) Branding + splash: assets generated in branding/ (ImageMagick via nettoolkit-edex),
+  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/nettoolkit.png + LXQt skel,
+  greeter bg via lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd). Boot menus branded:
+  syslinux stdmenu.cfg colors + splash.png + "NetToolkit Live" title; GRUB background_image.
+  Plymouth theme "nettoolkit" (script module, splash.png) set in hook 0300 + update-initramfs.
+  Plymouth cost: +74 MiB (plymouth-label pulls pango/cairo/fonts) but **no boot-time regression**
+  (BIOS desktop 21.1s vs 21.4s before). `splash` added to bootappend.
+- `make release` -> build/release/nettoolkit-live-<UTCdate>-amd64.iso + SHA256SUMS (scripts/release.sh).
+- Final ISO: 1023 MiB (target < 1.5 GB). README.md documents build/test/USB/add-a-tool/persistence.

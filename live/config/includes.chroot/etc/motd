@@ -1,0 +1,7 @@
+
+  NetToolkit Live - network discovery & testing
+
+  Tools:    nmap, arp-scan, tcpdump, tshark, iperf3, kismet, aircrack-ng, ... (see /etc/nettoolkit/tools.yaml)
+  Touch UI: boot the "Touch Mode" entry, or start it with:  nettoolkit-touch-session
+  Persist:  mount a partition labelled 'persistence' (see README)
+

@@ -35,3 +35,5 @@ keyboard-configuration
 live-tools
 rsync
 uuid-runtime
+plymouth
+plymouth-label
