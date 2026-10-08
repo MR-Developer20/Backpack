@@ -25,3 +25,4 @@ touchmode/edex/
 touchmode/edex/node_modules/
 touchmode/edex/src/node_modules/
 touchmode/edex/dist/
+live/config/packages.chroot/edex-ui_*.deb

@@ -89,6 +89,18 @@ class System(QObject):
         QProcess.startDetached("sh", ["-c",
             f"swaymsg fullscreen disable; swaymsg splith; swaymsg exec {shlex.quote(TERMINAL)}"])
 
+    @Slot(result=bool)
+    def edexAvailable(self):
+        import shutil
+        return shutil.which("edex-ui") is not None
+
+    @Slot()
+    def launchEdex(self):
+        # eDEX-UI is itself full-screen; let sway give it the whole output. --no-sandbox is only
+        # needed as root; harmless for the live 'user'. Returns to the launcher when eDEX exits.
+        QProcess.startDetached("sh", ["-c",
+            "swaymsg fullscreen disable; swaymsg exec 'edex-ui --no-sandbox'"])
+
     @Slot()
     def poweroff(self):
         QProcess.startDetached("sh", ["-c", "systemctl poweroff || sudo -n systemctl poweroff"])

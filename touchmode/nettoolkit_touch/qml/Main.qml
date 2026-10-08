@@ -53,6 +53,12 @@ ApplicationWindow {
             Item { Layout.fillWidth: true }
             TouchButton { text: "Terminal"; onClicked: system.openTerminal() }
             TouchButton { text: "Split"; onClicked: system.splitTerminal() }
+            TouchButton {
+                text: "eDEX"
+                color: "#13303a"
+                visible: system.edexAvailable()
+                onClicked: system.launchEdex()
+            }
             TouchButton { text: "Reboot"; color: "#3a3f2a"; onClicked: confirmAction = "reboot" }
             TouchButton { text: "Shutdown"; color: "#4a2328"; onClicked: confirmAction = "poweroff" }
         }
