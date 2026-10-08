@@ -21,3 +21,7 @@ __pycache__/
 *.pyc
 live/config/includes.chroot/etc/nettoolkit/tools.yaml
 live/config/includes.chroot/usr/local/lib/nettoolkit/
+touchmode/edex/
+touchmode/edex/node_modules/
+touchmode/edex/src/node_modules/
+touchmode/edex/dist/
