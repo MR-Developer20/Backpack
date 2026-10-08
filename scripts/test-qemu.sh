@@ -4,19 +4,22 @@
 #                     [--disk FILE] [--iso FILE] [--timeout SEC] [--tag NAME] [--keep-alive SEC]
 #   --direct   boot kernel/initrd extracted from the ISO with `boot=live components <append>`;
 #              the way to select toram / nettoolkit.ui=touch without driving the boot menu
+#   --console  (with --direct) add console=ttyS0 so a login shell is reachable on the serial socket:
+#              scripts/qemu-serial.sh 'command' sends a line; output appears in the serial log
 #   --disk     boot from a raw disk image (e.g. build/test-usb.img) instead of the ISO; the guest
 #              is shut down gracefully so the persistence partition is flushed
 # Exit 0 when NETTOOLKIT-SELFTEST-DONE appears on the serial log before the timeout.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ISO="$ROOT/build/nettoolkit.iso"; DISK=""; UEFI=0; HEADLESS=0; TOUCH=0; DIRECT=0
-APPEND=""; TIMEOUT=300; TAG=""; KEEP=0
+APPEND=""; TIMEOUT=300; TAG=""; KEEP=0; CONSOLE=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --uefi) UEFI=1;; --headless) HEADLESS=1;; --touch) TOUCH=1;; --direct) DIRECT=1;;
     --append) APPEND="$2"; shift;; --disk) DISK="$2"; shift;; --iso) ISO="$2"; shift;;
     --timeout) TIMEOUT="$2"; shift;; --tag) TAG="$2"; shift;; --keep-alive) KEEP="$2"; shift;;
+    --console) CONSOLE=1;;
     *) echo "unknown arg: $1" >&2; exit 2;;
   esac; shift
 done
@@ -30,11 +33,15 @@ fi
 B="$ROOT/build"; LOG="$B/logs/serial-$TAG.log"; MON="$B/qemu-mon.sock"; SHOTS="$B/shots"
 mkdir -p "$B/logs" "$SHOTS" "$B/direct"; : > "$LOG"; rm -f "$MON"
 
+SER="$B/qemu-serial.sock"; rm -f "$SER"
+# serial port: unix socket (drive it with scripts/qemu-serial.sh) + logfile that the marker check reads
 Q=(qemu-system-x86_64 -m 3G -smp 2 -nic user,model=virtio-net-pci
-   -serial "file:$LOG" -monitor "unix:$MON,server,nowait" -no-reboot)
+   -chardev "socket,id=ser0,path=$SER,server=on,wait=off,logfile=$LOG" -serial chardev:ser0
+   -monitor "unix:$MON,server,nowait" -qmp "unix:$B/qemu-qmp.sock,server,nowait" -no-reboot)
 if [ -w /dev/kvm ]; then Q+=(-enable-kvm -cpu host); else Q+=(-cpu max); echo "warn: no KVM, using TCG (slow)"; fi
-[ $HEADLESS = 1 ] && Q+=(-display none) || Q+=(-display gtk)
-[ $TOUCH = 1 ] && Q+=(-device virtio-vga -device virtio-tablet-pci) || Q+=(-vga std)
+# headless still needs a display backend for monitor input injection (sendkey/mouse_move): loopback VNC
+[ $HEADLESS = 1 ] && Q+=(-display "vnc=127.0.0.1:${QEMU_VNC_DISPLAY:-9},to=99") || Q+=(-display gtk)
+[ $TOUCH = 1 ] && Q+=(-device virtio-vga -device virtio-tablet-pci,id=tablet0 -machine vmport=off) || Q+=(-vga std)
 
 if [ $UEFI = 1 ]; then
   CODE=""; VARS=""
@@ -57,6 +64,7 @@ if [ $DIRECT = 1 ]; then
   fi
   BASE_APPEND="$(sed -n 's/^LB_BOOTAPPEND_LIVE="\(.*\)"$/\1/p' "$ROOT/live/config/binary" 2>/dev/null)"
   [ -n "$BASE_APPEND" ] || BASE_APPEND="boot=live components quiet persistence"
+  [ $CONSOLE = 1 ] && APPEND="$APPEND console=tty0 console=ttyS0,115200"   # getty on the serial socket
   Q+=(-kernel "$B/direct/vmlinuz" -initrd "$B/direct/initrd.img" -append "$BASE_APPEND $APPEND")
 fi
 
@@ -85,5 +93,5 @@ fi
 wait $QPID 2>/dev/null || true
 
 echo "== $TAG: $([ $rc = 0 ] && echo PASS || echo FAIL) (${SECONDS}s elapsed, log: ${LOG#$ROOT/})"
-grep -E '^(STATE|BOOTTIME|TOOLS|MISSING|FAILED-UNIT|LIVE-USER|DESKTOP-SESSION|PERSIST-MARKER|HOME-MOUNT|CMDLINE)' "$LOG" || tail -n 5 "$LOG"
+grep -E '^(STATE|BOOTTIME|TOOLS|MISSING|FAILED-UNIT|LIVE-USER|DESKTOP-SESSION|TOUCH-SESSION|TOUCH-CONF|SWAY-INPUT|SWAY-LOG|PERSIST-MARKER|HOME-MOUNT|CMDLINE)' "$LOG" || tail -n 5 "$LOG"
 exit $rc

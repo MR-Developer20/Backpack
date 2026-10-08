@@ -27,7 +27,8 @@ scripts/fetch-upstream.sh      upstream .debs → live/config/packages.chroot, k
 scripts/test-qemu.sh           boot ISO in QEMU (BIOS/UEFI/direct-kernel), waits for selftest marker
 scripts/mkusb.sh               write USB or test image + persistence partition
 live/auto/{config,build,clean} live-build config
-touchmode/                     PySide6 Touch Mode app (phase 4)
+touchmode/                     PySide6/QML Touch Mode app + sway config + session files (phase 4)
+scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/nettoolkit-touch_*.deb (run by make build)
 build/                         ignored: ISO, logs, cache, test images
 ```
 
@@ -68,3 +69,24 @@ make release
   adds p3. Image mode formats via `mkfs.ext4 -E offset=... -d <dir>` so no root/loop needed.
   live-boot finds the `persistence`-labelled partition on any disk, including with `toram`.
   `scripts/test-persist.sh` = 6 boots (bios/uefi x normal,normal,toram) on a fresh image.
+- (phase 4) Touch Mode = `nettoolkit-touch` deb: python package in /usr/lib/python3/dist-packages,
+  `/usr/bin/nettoolkit-touch-session` (sway -c /etc/nettoolkit/sway.config), wayland-sessions
+  entry `nettoolkit-touch`, unit `nettoolkit-ui.service` (ConditionKernelCommandLine
+  nettoolkit.ui=touch) writes lightdm.conf.d/60-nettoolkit-touch.conf before lightdm starts.
+  Test the app without an ISO: `docker run ... nettoolkit-qt` (build/tmpl/Dockerfile.qt) with
+  QT_QPA_PLATFORM=offscreen NETTOOLKIT_DEMO=<tool-id> NETTOOLKIT_SCREENSHOT=<png>
+  NETTOOLKIT_MANIFEST=manifest/tools.yaml PYTHONPATH=touchmode. In QEMU: `make test-touch`
+  (kernel params nettoolkit.ui=touch + nettoolkit.demo=<id> auto-open and run a tool).
+  Manifest extras: `tty: true` (run in foot), `sep: ""` (join flag+value), `gui: true`.
+- (phase 4 debug) sway config: `{ ... }` blocks (bar, input) MUST be multi-line; a one-line
+  `bar { mode invisible }` makes sway report "Error(s) loading config!" (the `}` is unmatched).
+  Validate inside a running session: `swaymsg exec 'sway -d -C -c FILE 2>&1 | grep config.c'`
+  (`sway -C` from a plain tty fails on seat/tty permissions, not a config error).
+- QEMU input injection for Touch Mode tests:
+  * harness adds `-machine vmport=off` in `--touch` so the virtio tablet keeps absolute focus;
+  * `--console` (with `--direct`) puts a getty on a serial *socket* — `scripts/qemu-serial.sh
+    --login` then `scripts/qemu-serial.sh 'cmd'` runs commands in-guest, output in the serial log;
+  * reliable tap = `scripts/qemu-tap.sh --sway X Y` (swaymsg cursor set/press/release in-guest).
+    Hardware tablet taps via the monitor are flaky under nested virt; not a product defect —
+    libinput enumerates the touch device under sway, so real touchscreens deliver events.
+  * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.

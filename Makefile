@@ -9,7 +9,7 @@ SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
 
 .PHONY: all check-manifest manifest fetch docker-image build clean distclean \
-        test-bios test-uefi test-persist test-usb-img mkusb release check-tools
+        test-bios test-uefi test-persist test-usb-img mkusb release check-tools touch-deb test-touch
 
 all: build
 
@@ -29,7 +29,10 @@ fetch:
 docker-image:
 	$(if $(filter 1,$(USE_DOCKER)),$(DOCKER) build -t $(IMAGE) .,@true)
 
-build: manifest fetch docker-image
+touch-deb:
+	scripts/build-touchmode-deb.sh
+
+build: manifest fetch touch-deb docker-image
 	mkdir -p build/logs
 	$(LB_RUN) lb config 2>&1 | tail -n 5
 	$(LB_RUN) lb build > build/logs/build.log 2>&1 || { tail -n 40 build/logs/build.log; exit 1; }
@@ -56,6 +59,9 @@ test-usb-img:
 
 test-persist:
 	scripts/test-persist.sh
+
+test-touch:
+	scripts/test-qemu.sh --headless --touch --direct --append "nettoolkit.ui=touch nettoolkit.demo=fping" --tag touch --keep-alive 20
 
 mkusb:
 	@test -n "$(DEV)" || { echo "usage: make mkusb DEV=/dev/sdX [SIZE=5G]"; exit 1; }

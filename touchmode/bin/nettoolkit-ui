@@ -1,0 +1,8 @@
+#!/bin/sh
+# Point LightDM autologin at the Touch Mode Wayland session (runs before lightdm.service).
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/60-nettoolkit-touch.conf <<CONF
+[Seat:*]
+user-session=nettoolkit-touch
+autologin-session=nettoolkit-touch
+CONF

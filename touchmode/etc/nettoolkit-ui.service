@@ -1,0 +1,12 @@
+[Unit]
+Description=NetToolkit: select Touch Mode session when nettoolkit.ui=touch is on the kernel command line
+ConditionKernelCommandLine=nettoolkit.ui=touch
+After=live-config.service local-fs.target
+Before=lightdm.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/nettoolkit/nettoolkit-ui
+
+[Install]
+WantedBy=multi-user.target

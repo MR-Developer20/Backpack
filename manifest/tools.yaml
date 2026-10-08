@@ -9,8 +9,9 @@
 #   packages    Debian package names (required; for upstream sources = extra deps)
 #   source      optional: {type: upstream, url, sha256, apt_repo, apt_key_url, apt_key_sha256}
 #   gui         optional bool; Touch Mode launches GUI tools detached instead of streaming output
-#   commands[]  {label, cmd, args[], needs_root}
-#   args[]      {name, type: string|int|flag|choice, default, required, flag, options}
+#   commands[]  {label, cmd, args[], needs_root, tty?}  tty: true = run inside foot (curses UIs)
+#   args[]      {name, type: string|int|flag|choice, default, required, flag, options, sep?}
+#               sep: "" joins flag and value with no space (e.g. dig @server)
 #               flag type emits `flag` when true; other types emit `flag value` if flag set,
 #               else the bare value; args are emitted in declared order.
 version: 1
@@ -50,7 +51,7 @@ tools:
       - label: Open Zenmap
         cmd: zenmap
         args: []
-        needs_root: true
+        needs_root: false
   - id: arp-scan
     name: ARP scan
     description: Finds every live host on the local Ethernet segment using ARP requests.
@@ -260,6 +261,7 @@ tools:
           - {name: interface, type: string, default: "wlan0", required: true}
         needs_root: true
       - label: Scan networks (airodump)
+        tty: true
         cmd: airodump-ng
         args:
           - {name: interface, type: string, default: "wlan0mon", required: true}
@@ -306,6 +308,7 @@ tools:
     packages: [iftop]
     commands:
       - label: Monitor interface
+        tty: true
         cmd: iftop
         args:
           - {name: interface, type: string, default: "eth0", required: true, flag: "-i"}
@@ -318,6 +321,7 @@ tools:
     packages: [nload]
     commands:
       - label: Monitor interface
+        tty: true
         cmd: nload
         args:
           - {name: interface, type: string, default: "eth0", required: true}
@@ -329,6 +333,7 @@ tools:
     packages: [bmon]
     commands:
       - label: Monitor
+        tty: true
         cmd: bmon
         args:
           - {name: policy, type: string, default: "", required: false, flag: "-p"}
@@ -354,7 +359,7 @@ tools:
       - label: dig
         cmd: dig
         args:
-          - {name: server, type: string, default: "", required: false, flag: "@"}
+          - {name: server, type: string, default: "", required: false, flag: "@", sep: ""}
           - {name: name, type: string, default: "example.com", required: true}
           - {name: type, type: choice, default: "A", options: ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA", "PTR", "ANY"], required: true}
         needs_root: false
