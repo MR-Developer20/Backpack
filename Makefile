@@ -20,6 +20,8 @@ manifest: check-manifest
 	python3 scripts/gen-package-list.py
 	mkdir -p live/config/includes.chroot/etc/nettoolkit
 	cp manifest/tools.yaml live/config/includes.chroot/etc/nettoolkit/tools.yaml
+	mkdir -p live/config/includes.chroot/usr/local/lib/nettoolkit
+	cp scripts/gen-package-list.py scripts/check-tools.sh live/config/includes.chroot/usr/local/lib/nettoolkit/
 
 fetch:
 	scripts/fetch-upstream.sh
@@ -64,3 +66,4 @@ check-tools:
 
 release:
 	scripts/release.sh
+

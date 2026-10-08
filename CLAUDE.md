@@ -44,3 +44,22 @@ make release
 ## Gotchas log
 - (phase 1) Ubuntu live-build unusable → Docker. Kismet has a trixie suite. ipscan deb depends
   on `openjdk-25-jre | openjdk-21-jre | java-runtime (>= 21)`; we ship openjdk-21-jre.
+- (phase 2) Run docker via `sg docker -c '...'` until the shell has the docker group. Never
+  poll a status file you are about to delete: `rm` it BEFORE starting the monitor.
+- live-build 20250505 script names have no `lb_` prefix (/usr/lib/live/build/<name>). Archives
+  accept `*.list` + `*.key`; preseed `*.cfg(.chroot)`; includes.chroot is applied before hooks.
+- Kismet's HTTPS repo needs ca-certificates inside the bootstrap: `--debootstrap-options
+  "--variant=minbase --include=ca-certificates,gnupg"`. Changing bootstrap options requires
+  deleting `live/cache/bootstrap` (root-owned; remove via a docker run).
+- `.dockerignore` excludes `live/` and `build/` (root-owned cache breaks `docker build`).
+- BIOS menu is syslinux/isolinux (template has `timeout 0`; overridden in
+  `live/config/bootloaders/{isolinux,syslinux}/`). UEFI menu is GRUB (`bootloaders/grub-pc/grub.cfg`).
+- Do NOT re-run `lb binary` alone: it re-enters the chroot and apt breaks (apt-utils/apt version skew). Use `make clean build` (package cache in live/cache makes it ~8 min).
+- QEMU: `scripts/test-qemu.sh [--uefi] [--headless] [--direct --append "..."] [--disk IMG] [--touch]`;
+  serial log `build/logs/serial-<tag>.log`, screenshots `build/shots/<tag>.png`. Selftest unit
+  (`nettoolkit-selftest`, VM-only, writes to ttyS0) prints BOOTTIME / TOOLS / MISSING / PERSIST-MARKER-*.
+- `--apt-recommends false` drops live-config's Recommends: **`user-setup` is required** or the
+  live user is never created (LightDM then shows a greeter, nothing autologs in). base.list.chroot
+  lists it explicitly. Debug a running VM without rebuilding: `scripts/test-qemu.sh --keep-alive 150`
+  in the background, then `scripts/qemu-type.sh 'cmd > /dev/ttyS0\n'` (switch tty with
+  `echo "sendkey ctrl-alt-f2" | socat - UNIX-CONNECT:build/qemu-mon.sock`).

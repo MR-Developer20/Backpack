@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+# Units a network-testing live USB does not need running. Masking a missing unit is harmless.
+systemctl mask ModemManager.service apt-daily.timer apt-daily-upgrade.timer \
+	e2scrub_all.timer fstrim.timer bluetooth.service \
+	cups.service cups.socket cups-browsed.service || true

@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+lb config noauto \
+	--distribution trixie \
+	--architectures amd64 \
+	--archive-areas "main contrib non-free non-free-firmware" \
+	--binary-images iso-hybrid \
+	--bootloaders "syslinux,grub-efi" \
+	--chroot-squashfs-compression-type zstd \
+	--apt-recommends false \
+	--apt-indices false \
+	--debian-installer none \
+	--firmware-chroot false \
+	--debootstrap-options "--variant=minbase --include=ca-certificates,gnupg" \
+	--memtest none \
+	--iso-application "NetToolkit Live" \
+	--iso-volume "NETTOOLKIT" \
+	--bootappend-live "boot=live components quiet hostname=nettoolkit username=user user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,wireshark persistence" \
+	"${@}"

@@ -1,0 +1,36 @@
+label live-@FLAVOUR@-desktop
+	menu label ^Desktop (LXQt)
+	menu default
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@
+
+label live-@FLAVOUR@-terminal
+	menu label ^Terminal
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ systemd.unit=multi-user.target
+
+label live-@FLAVOUR@-touch
+	menu label Touch ^Mode
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ nettoolkit.ui=touch
+
+label live-@FLAVOUR@-desktop-toram
+	menu label Desktop (LXQt) - copy to ^RAM
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ toram
+
+label live-@FLAVOUR@-terminal-toram
+	menu label Terminal - copy to RAM
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ systemd.unit=multi-user.target toram
+
+label live-@FLAVOUR@-touch-toram
+	menu label Touch Mode - copy to RAM
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ nettoolkit.ui=touch toram

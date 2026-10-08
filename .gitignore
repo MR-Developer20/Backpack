@@ -19,3 +19,5 @@ live/config/common
 live/config/source
 __pycache__/
 *.pyc
+live/config/includes.chroot/etc/nettoolkit/tools.yaml
+live/config/includes.chroot/usr/local/lib/nettoolkit/
