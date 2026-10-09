@@ -73,3 +73,6 @@ check-tools:
 release:
 	scripts/release.sh
 
+
+ventoy: ## build the no-persistence variant for Ventoy
+	scripts/make-ventoy-iso.sh

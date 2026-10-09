@@ -107,3 +107,9 @@ make release
   loads the whole ISO to RAM and uses the ISO's own bootloader. Not an ISO defect (direct boot
   and `make mkusb` work). Repro tooling: build/tmpl/make-ventoy-usb.sh (+ ventoy-copy4.sh).
   QEMU needs -m 2G here (host ~3 GB free).
+
+- (ventoy variant) `make ventoy` (scripts/make-ventoy-iso.sh) strips the `persistence` boot param
+  from grub.cfg + isolinux/live.cfg and repacks build/nettoolkit.iso -> build/nettoolkit-ventoy.iso
+  via `xorriso -boot_image any replay` (seconds, no full rebuild; El Torito/isohybrid preserved).
+  For Ventoy use (memdisk mode); does NOT fix Ventoy normal/grub2 mode (that is the Ventoy GRUB
+  vs trixie-kernel issue). Verified: boot structure identical to the source ISO; BIOS boot runs.
