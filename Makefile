@@ -74,5 +74,5 @@ release:
 	scripts/release.sh
 
 
-ventoy: ## build the no-persistence variant for Ventoy
+ventoy: ## build the Ventoy deliverable (ISO + auto_memdisk ventoy.json + README)
 	scripts/make-ventoy-iso.sh
