@@ -73,8 +73,13 @@ if [ $YES = 0 ] && [ $DRY = 0 ]; then
 fi
 run_sh "dd if='$ISO' of='$TARGET' bs=4M conv=fsync status=progress"
 run_sh "echo ',$SIZE,L' | sfdisk --quiet --append '$TARGET'"
-run partprobe "$TARGET"
-run udevadm settle
+# Re-read the partition table. partprobe warns + exits non-zero on an isohybrid ISO's fake
+# 2048-byte block descriptor, which is harmless (sfdisk already wrote the table) — tolerate it.
+echo "+ partprobe $TARGET (re-read partition table)"
+if [ $DRY = 0 ]; then
+  partprobe "$TARGET" 2>/dev/null || partx -u "$TARGET" 2>/dev/null || blockdev --rereadpt "$TARGET" 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
+fi
 if [ $DRY = 0 ]; then
   PART="$(sfdisk --json "$TARGET" | python3 -c 'import json,sys; print(json.load(sys.stdin)["partitiontable"]["partitions"][-1]["node"])')"
   for _ in $(seq 1 10); do [ -b "$PART" ] && break; sleep 1; done
