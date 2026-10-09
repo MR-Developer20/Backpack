@@ -21,12 +21,21 @@ __pycache__/
 *.pyc
 live/config/includes.chroot/etc/nettoolkit/tools.yaml
 live/config/includes.chroot/usr/local/lib/nettoolkit/
-touchmode/edex/
-touchmode/edex/node_modules/
-touchmode/edex/src/node_modules/
-touchmode/edex/dist/
 live/config/packages.chroot/edex-ui_*.deb
 build/release/
 live/chroot.packages.install
 live/chroot.packages.live
 live/chroot.files
+
+# vendored eDEX-UI fork: source is tracked, build output and upstream marketing media are not
+touchmode/edex/node_modules/
+touchmode/edex/src/node_modules/
+touchmode/edex/prebuild-src/
+touchmode/edex/dist/
+touchmode/edex/media/screenshot_*.png
+touchmode/edex/media/*.gif
+touchmode/edex/media/*.jpg
+*.orig
+*.bak
+live/.lock
+live/chroot.installed_tmp_pkgs

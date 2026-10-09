@@ -1,0 +1,8 @@
+FROM debian:trixie
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      nodejs npm python3 python3-setuptools build-essential ca-certificates git \
+      libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libgtk-3-0t64 libgbm1 libasound2t64 \
+      libxss1 libx11-xcb1 xvfb x11-utils imagemagick xdotool rsync fakeroot dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work/touchmode/edex
