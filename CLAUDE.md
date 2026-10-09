@@ -151,3 +151,10 @@ make release
   The eDEX fork source is tracked (its node_modules/dist/prebuild-src and upstream screenshots are
   not); rebuild its deb with scripts/build-edex-deb.sh. CI (.github/workflows/ci.yml) validates
   the manifest, syntax, and that the touch deb builds — it does not build the ISO.
+- (touch mode v2 verified, QEMU) landscape icon+label bar; keyboard shows and the launcher shrinks
+  above it; Wi-Fi overlay opens (VM has no Wi-Fi adapter, so scan/connect are untested on real HW);
+  split tiles foot beside (640/640) and Exit split restores; portrait boot
+  (`QEMU_RES=800x1280 scripts/test-qemu.sh --touch ...`) stacks the panes and split puts foot
+  BELOW (800x640 each); copy-to-RAM shows the plymouth bar (frames at 64% and 100%).
+  Don't put `pkill ... qemu-system` at the top of a Bash call that also starts a VM: its non-zero
+  exit (no process) or the kill aborts the rest of the call. Kill in a separate call.

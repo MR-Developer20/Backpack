@@ -41,7 +41,9 @@ Q=(qemu-system-x86_64 -m 3G -smp 2 -nic user,model=virtio-net-pci
 if [ -w /dev/kvm ]; then Q+=(-enable-kvm -cpu host); else Q+=(-cpu max); echo "warn: no KVM, using TCG (slow)"; fi
 # headless still needs a display backend for monitor input injection (sendkey/mouse_move): loopback VNC
 [ $HEADLESS = 1 ] && Q+=(-display "vnc=127.0.0.1:${QEMU_VNC_DISPLAY:-9},to=99") || Q+=(-display gtk)
-[ $TOUCH = 1 ] && Q+=(-device virtio-vga -device virtio-tablet-pci,id=tablet0 -machine vmport=off) || Q+=(-vga std)
+# QEMU_RES=WxH sets the virtio-vga native mode (e.g. 800x1280 to boot a portrait screen)
+VGA=virtio-vga; [ -n "${QEMU_RES:-}" ] && VGA="virtio-vga,xres=${QEMU_RES%x*},yres=${QEMU_RES#*x}"
+[ $TOUCH = 1 ] && Q+=(-device "$VGA" -device virtio-tablet-pci,id=tablet0 -machine vmport=off) || Q+=(-vga std)
 
 if [ $UEFI = 1 ]; then
   CODE=""; VARS=""

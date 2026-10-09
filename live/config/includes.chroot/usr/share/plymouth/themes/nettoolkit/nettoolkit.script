@@ -1,4 +1,5 @@
-# NetToolkit Live plymouth splash: centered logo on dark background + progress dots
+# NetToolkit Live plymouth splash: centered logo on dark background; a progress bar for the
+# copy-to-RAM phase (live-boot sends "toram:<pct>" messages); other messages shown as text.
 Window.SetBackgroundTopColor(0.043, 0.063, 0.086);     # #0b1016
 Window.SetBackgroundBottomColor(0.059, 0.106, 0.133);  # #0f1b22
 
@@ -7,14 +8,49 @@ logo.sprite = Sprite(logo.image);
 logo.sprite.SetX(Window.GetWidth()  / 2 - logo.image.GetWidth()  / 2);
 logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2);
 
-progress = 0;
-fun refresh_cb() {
-    progress++;
-    dot = Math.Int(progress / 10) % 4;
+bar.width  = Math.Int(Window.GetWidth() * 0.4);
+bar.height = 14;
+bar.x = Window.GetWidth() / 2 - bar.width / 2;
+bar.y = Window.GetHeight() / 2 + logo.image.GetHeight() / 2 + 40;
+bar.bg = Image("barbg.png").Scale(bar.width, bar.height);
+bar.fg = Image("bar.png");
+bar.bgsprite = Sprite();
+bar.fgsprite = Sprite();
+bar.label = Sprite();
+bar.shown = 0;
+
+fun show_bar(pct) {
+    if (bar.shown == 0) {
+        bar.bgsprite.SetImage(bar.bg);
+        bar.bgsprite.SetPosition(bar.x, bar.y, 10);
+        bar.shown = 1;
+    }
+    w = Math.Int(bar.width * pct / 100);
+    if (w < 1) w = 1;
+    bar.fgsprite.SetImage(bar.fg.Scale(w, bar.height));
+    bar.fgsprite.SetPosition(bar.x, bar.y, 11);
+    t = Image.Text("Copying to memory  " + pct + "%", 0.55, 0.61, 0.69);
+    bar.label.SetImage(t);
+    bar.label.SetPosition(Window.GetWidth() / 2 - t.GetWidth() / 2, bar.y + bar.height + 14, 11);
 }
-Plymouth.SetRefreshFunction(refresh_cb);
+
+fun parse_pct(text) {   # digits after "toram:" -> number
+    n = 0;
+    for (i = 6; i < text.Length(); i++) {
+        c = text.CharAt(i);
+        d = -1;
+        if (c == "0") d = 0; if (c == "1") d = 1; if (c == "2") d = 2; if (c == "3") d = 3; if (c == "4") d = 4;
+        if (c == "5") d = 5; if (c == "6") d = 6; if (c == "7") d = 7; if (c == "8") d = 8; if (c == "9") d = 9;
+        if (d >= 0) n = n * 10 + d;
+    }
+    return n;
+}
 
 fun message_cb(text) {
+    if (text.SubString(0, 6) == "toram:") {
+        show_bar(parse_pct(text));
+        return;
+    }
     msg = Image.Text(text, 0.55, 0.61, 0.69);
     msg.sprite = Sprite(msg);
     msg.sprite.SetX(Window.GetWidth() / 2 - msg.GetWidth() / 2);

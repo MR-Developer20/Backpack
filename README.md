@@ -10,11 +10,14 @@ Three ways to use it, chosen from the boot menu:
 - **Desktop (LXQt)** — a full graphical desktop with NetworkManager and the tools installed.
 - **Terminal** — boots to a multi-user console, no X.
 - **Touch Mode** — a full-screen, touch-friendly tile launcher (PySide6/QML under sway) that
-  builds a form for each tool and streams its output. Includes a terminal, split view, and an
-  optional [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal.
+  builds a form for each tool and streams its output. Top bar: full-screen terminal, split view
+  (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
+  a phone-style on-screen keyboard, a Wi-Fi scan/connect overlay, and an optional
+  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal. When the launcher is narrow
+  (split view or portrait) the top bar collapses to icons.
 
 Each entry also has a **copy to RAM** (`toram`) variant that runs entirely from memory so the
-USB stick can be removed after boot.
+USB stick can be removed after boot; the boot splash shows a progress bar while it copies.
 
 ## Screenshots
 
@@ -26,9 +29,17 @@ USB stick can be removed after boot.
 |---|---|
 | ![touch mode](docs/screenshots/touch-mode-v2.png) | ![touch run](docs/screenshots/touch-mode-run.png) |
 
-| Portrait + Wi-Fi overlay | eDEX-UI |
+| On-screen keyboard | Wi-Fi overlay |
 |---|---|
-| ![portrait](docs/screenshots/touch-mode-portrait-wifi.png) | ![edex](docs/screenshots/edex-ui.png) |
+| ![keyboard](docs/screenshots/touch-mode-keyboard.png) | ![wifi](docs/screenshots/touch-mode-wifi.png) |
+
+| Portrait | Copy-to-RAM progress |
+|---|---|
+| ![portrait](docs/screenshots/touch-mode-portrait.png) | ![toram](docs/screenshots/copy-to-ram-progress.png) |
+
+| eDEX-UI | |
+|---|---|
+| ![edex](docs/screenshots/edex-ui.png) | |
 
 ## Tools
 

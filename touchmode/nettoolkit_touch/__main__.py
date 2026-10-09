@@ -8,7 +8,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow  # noqa: F401  (makes rootObjects() return QQuickWindow)
 
 from . import manifest
-from .runner import Runner, System
+from .runner import Runner, System, Wifi
 
 
 class Manifest(QObject):
@@ -46,11 +46,13 @@ def main():
     tools = manifest.load()
     engine = QQmlApplicationEngine()
     ctx = engine.rootContext()
-    mf, runner, system = Manifest(tools), Runner(tools), System()
+    mf, runner, system, wifi = Manifest(tools), Runner(tools), System(), Wifi()
     ctx.setContextProperty("manifest", mf)
     ctx.setContextProperty("runner", runner)
     ctx.setContextProperty("system", system)
+    ctx.setContextProperty("wifi", wifi)
     ctx.setContextProperty("demoTool", demo_tool() or "")
+    ctx.setContextProperty("demoWifi", bool(os.environ.get("NETTOOLKIT_DEMO_WIFI")))
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
@@ -59,7 +61,8 @@ def main():
     if shot:  # test hook: grab the window after the demo has run, then exit
         root = engine.rootObjects()[0]
         root.setVisibility(QQuickWindow.Windowed)
-        root.resize(1280, 800)
+        w, _, h = os.environ.get("NETTOOLKIT_SIZE", "1280x800").partition("x")
+        root.resize(int(w), int(h))
         def grab():
             engine.rootObjects()[0].grabWindow().save(shot)
             app.quit()

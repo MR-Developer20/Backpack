@@ -1,11 +1,17 @@
-"""Run manifest commands and stream their output to QML."""
+"""Run manifest commands and stream their output to QML; session controls (split, keyboard, Wi-Fi)."""
+import json
 import os
 import shlex
-from PySide6.QtCore import QObject, QProcess, Property, Signal, Slot
+import signal
+import subprocess
+from PySide6.QtCore import QObject, QProcess, QTimer, Property, Signal, Slot
 
 from . import manifest
 
 TERMINAL = os.environ.get("NETTOOLKIT_TERMINAL", "foot")
+SPLIT_APP_ID = "nettoolkit-split"   # the one foot window the Split button owns
+TERM_APP_ID = "nettoolkit-term"     # Terminal button: fullscreen foot (sway rule in sway.config)
+KEYBOARD_PROC = "wvkbd-mobintl"
 
 
 class Runner(QObject):
@@ -76,18 +82,84 @@ class Runner(QObject):
                 self._proc.waitForFinished(1000)
 
 
+def _sway_tree_has_app_id(app_id):
+    try:
+        out = subprocess.run(["swaymsg", "-t", "get_tree"], capture_output=True, text=True, timeout=2).stdout
+        return f'"app_id": "{app_id}"' in out
+    except Exception:
+        return False
+
+
+def _pkill_signal(proc_name, sig):
+    try:
+        subprocess.run(["pkill", f"-{sig}", "-x", proc_name], timeout=2)
+    except Exception:
+        pass
+
+
 class System(QObject):
-    """Terminal / split / power buttons."""
+    """Terminal / split / keyboard / power buttons. Split state is polled from the sway tree so the
+    button stays correct even if the user closes the terminal with `exit`."""
+    splitActiveChanged = Signal()
+    keyboardVisibleChanged = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._split = False
+        self._kbd = False
+        self._poll = QTimer(self)
+        self._poll.setInterval(1500)
+        self._poll.timeout.connect(self._refresh)
+        self._poll.start()
+        QTimer.singleShot(300, self._refresh)
+
+    def _refresh(self):
+        s = _sway_tree_has_app_id(SPLIT_APP_ID)
+        if s != self._split:
+            self._split = s
+            self.splitActiveChanged.emit()
+
+    @Property(bool, notify=splitActiveChanged)
+    def splitActive(self):
+        return self._split
+
+    @Property(bool, notify=keyboardVisibleChanged)
+    def keyboardVisible(self):
+        return self._kbd
 
     @Slot()
     def openTerminal(self):
+        # fullscreen foot over everything (sway for_window rule); `exit` returns to the launcher
         QProcess.startDetached("sh", ["-c",
-            f"swaymsg fullscreen disable; swaymsg exec {shlex.quote(TERMINAL)}"])
+            f"swaymsg fullscreen disable; swaymsg exec '{TERMINAL} --app-id {TERM_APP_ID}'"])
+
+    @Slot(bool)
+    def toggleSplit(self, portrait):
+        if self._split:
+            QProcess.startDetached("swaymsg", [f"[app_id={SPLIT_APP_ID}] kill"])
+            self._split = False
+            self.splitActiveChanged.emit()
+            return
+        direction = "splitv" if portrait else "splith"   # portrait: terminal below; landscape: beside
+        QProcess.startDetached("sh", ["-c",
+            f"swaymsg fullscreen disable; swaymsg {direction}; swaymsg exec '{TERMINAL} --app-id {SPLIT_APP_ID}'"])
+        QTimer.singleShot(800, self._refresh)
 
     @Slot()
-    def splitTerminal(self):
-        QProcess.startDetached("sh", ["-c",
-            f"swaymsg fullscreen disable; swaymsg splith; swaymsg exec {shlex.quote(TERMINAL)}"])
+    def showKeyboard(self):
+        _pkill_signal(KEYBOARD_PROC, "USR2")
+        self._kbd = True
+        self.keyboardVisibleChanged.emit()
+
+    @Slot()
+    def hideKeyboard(self):
+        _pkill_signal(KEYBOARD_PROC, "USR1")
+        self._kbd = False
+        self.keyboardVisibleChanged.emit()
+
+    @Slot()
+    def toggleKeyboard(self):
+        self.hideKeyboard() if self._kbd else self.showKeyboard()
 
     @Slot(result=bool)
     def edexAvailable(self):
@@ -96,8 +168,6 @@ class System(QObject):
 
     @Slot()
     def launchEdex(self):
-        # eDEX-UI is itself full-screen; let sway give it the whole output. --no-sandbox is only
-        # needed as root; harmless for the live 'user'. Returns to the launcher when eDEX exits.
         QProcess.startDetached("sh", ["-c",
             "swaymsg fullscreen disable; swaymsg exec 'edex-ui --no-sandbox'"])
 
@@ -108,3 +178,143 @@ class System(QObject):
     @Slot()
     def reboot(self):
         QProcess.startDetached("sh", ["-c", "systemctl reboot || sudo -n systemctl reboot"])
+
+
+class Wifi(QObject):
+    """Wi-Fi discovery/connection via NetworkManager (nmcli). The live user is in `netdev`."""
+    networksChanged = Signal()
+    statusChanged = Signal()
+    busyChanged = Signal()
+    message = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._networks = []
+        self._status = "Checking Wi-Fi…"
+        self._device = ""
+        self._busy = False
+        self._procs = []
+
+    @Property("QVariantList", notify=networksChanged)
+    def networks(self):
+        return self._networks
+
+    @Property(str, notify=statusChanged)
+    def status(self):
+        return self._status
+
+    @Property(bool, notify=busyChanged)
+    def busy(self):
+        return self._busy
+
+    @Property(bool, notify=statusChanged)
+    def hasDevice(self):
+        return bool(self._device)
+
+    def _run(self, args, done):
+        p = QProcess(self)
+        p.setProcessChannelMode(QProcess.MergedChannels)
+        self._procs.append(p)
+        def _fin(code, _status):
+            out = bytes(p.readAllStandardOutput().data()).decode("utf-8", "replace")
+            self._procs.remove(p)
+            done(code, out)
+        p.finished.connect(_fin)
+        p.errorOccurred.connect(lambda e: (p in self._procs) and _fin(-1, "nmcli not available"))
+        p.start("nmcli", args)
+
+    def _set_busy(self, b):
+        self._busy = b
+        self.busyChanged.emit()
+
+    def _set_status(self, s):
+        self._status = s
+        self.statusChanged.emit()
+
+    @Slot()
+    def refreshStatus(self):
+        def done_dev(code, out):
+            dev = ""
+            state = ""
+            for line in out.splitlines():
+                parts = line.split(":")
+                if len(parts) >= 3 and parts[1] == "wifi":
+                    dev, state = parts[0], parts[2]
+                    break
+            self._device = dev
+            if not dev:
+                self._set_status("No Wi-Fi device found")
+                return
+            def done_act(code2, out2):
+                for line in out2.splitlines():
+                    p = line.split(":")
+                    if len(p) >= 3 and p[2] == dev:
+                        self._set_status(f"Connected to {p[0]} on {dev}")
+                        return
+                self._set_status(f"Not connected ({dev}: {state})")
+            self._run(["-t", "-f", "NAME,TYPE,DEVICE", "con", "show", "--active"], done_act)
+        self._run(["-t", "-f", "DEVICE,TYPE,STATE", "dev"], done_dev)
+
+    @Slot()
+    def scan(self):
+        if self._busy:
+            return
+        self._set_busy(True)
+        self.refreshStatus()
+        def done(code, out):
+            best = {}
+            for line in out.splitlines():
+                # IN-USE:SSID:SIGNAL:SECURITY  (SSID may contain escaped colons "\:")
+                parts = line.replace("\\:", "\x00").split(":")
+                if len(parts) < 4:
+                    continue
+                inuse, ssid, signal_, sec = parts[0], parts[1].replace("\x00", ":"), parts[2], parts[3]
+                if not ssid:
+                    continue
+                try:
+                    sig = int(signal_)
+                except ValueError:
+                    sig = 0
+                cur = best.get(ssid)
+                if cur is None or sig > cur["signal"]:
+                    best[ssid] = {"ssid": ssid, "signal": sig, "security": sec.strip() or "open",
+                                  "secured": bool(sec.strip()) and sec.strip() != "--", "inUse": inuse.strip() == "*"}
+            self._networks = sorted(best.values(), key=lambda n: (-int(n["inUse"]), -n["signal"]))
+            self.networksChanged.emit()
+            self._set_busy(False)
+            if code != 0 and not self._networks:
+                self.message.emit(out.strip().splitlines()[-1] if out.strip() else "scan failed")
+        self._run(["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi", "list", "--rescan", "yes"], done)
+
+    @Slot(str, str)
+    def connectTo(self, ssid, password):
+        if self._busy:
+            return
+        self._set_busy(True)
+        self._set_status(f"Connecting to {ssid}…")
+        args = ["dev", "wifi", "connect", ssid]
+        if password:
+            args += ["password", password]
+        def done(code, out):
+            self._set_busy(False)
+            msg = out.strip().splitlines()[-1] if out.strip() else ("connected" if code == 0 else "failed")
+            self.message.emit(msg)
+            self.refreshStatus()
+            QTimer.singleShot(1500, self.scan)
+        self._run(args, done)
+
+    @Slot()
+    def disconnect(self):
+        if not self._device:
+            return
+        def done(code, out):
+            self.message.emit("disconnected" if code == 0 else out.strip())
+            self.refreshStatus()
+        self._run(["dev", "disconnect", self._device], done)
+
+    @Slot(str)
+    def forget(self, ssid):
+        def done(code, out):
+            self.message.emit(f"forgot {ssid}" if code == 0 else out.strip())
+            self.refreshStatus()
+        self._run(["con", "delete", "id", ssid], done)

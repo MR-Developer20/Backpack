@@ -1,12 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 
+// Large touch target. With `iconSource` set and `compact` true it collapses to a square icon-only
+// button (used when the launcher is narrow: split view or portrait).
 Button {
     id: b
     property color color: Theme.panelAlt
     property color textColor: Theme.text
+    property string iconSource: ""
+    property bool compact: false
+    readonly property bool iconOnly: compact && iconSource !== ""
     implicitHeight: Theme.touch
-    implicitWidth: Math.max(Theme.touch * 2, label.implicitWidth + 36)
+    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + 36)
     font.pixelSize: Theme.fontSize
     background: Rectangle {
         radius: 10
@@ -14,13 +19,29 @@ Button {
         border.color: Theme.border
         border.width: 1
     }
-    contentItem: Text {
-        id: label
-        text: b.text
-        font: b.font
-        color: b.textColor
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
+    contentItem: Item {
+        Row {
+            id: row
+            anchors.centerIn: parent
+            spacing: 10
+            Image {
+                visible: b.iconSource !== ""
+                source: b.iconSource
+                width: 34; height: 34
+                sourceSize.width: 96; sourceSize.height: 96
+                fillMode: Image.PreserveAspectFit
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: b.enabled ? 1 : 0.4
+            }
+            Text {
+                visible: !b.iconOnly
+                text: b.text
+                font: b.font
+                color: b.textColor
+                verticalAlignment: Text.AlignVCenter
+                anchors.verticalCenter: parent.verticalCenter
+                elide: Text.ElideRight
+            }
+        }
     }
 }

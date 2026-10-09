@@ -7,18 +7,22 @@ ApplicationWindow {
     id: win
     visible: true
     // Windowed, not FullScreen: sway tiles this borderless window to fill the screen, so the
-    // Split/Terminal buttons can tile a foot terminal beside it. (Qt-on-Wayland may still mark
-    // the toplevel fullscreen when its size matches the output, so those handlers also run
+    // Split button can tile a foot terminal beside/below it. (Qt-on-Wayland may still mark the
+    // toplevel fullscreen when its size matches the output, so handlers run
     // `swaymsg fullscreen disable` before spawning foot.)
     visibility: Window.Windowed
     width: 1280; height: 800
     color: Theme.bg
     title: "NetToolkit Live"
 
+    // layout modes: narrow (split view or portrait) -> icon-only top bar; portrait -> stacked panes
+    readonly property bool portrait: height > width
+    readonly property bool compact: width < 1100   // icon-only tool buttons when narrow
     property string category: (manifest && manifest.categories.length) ? manifest.categories[0].id : ""
     property var tool: null
     property int cmdIndex: 0
     property string confirmAction: ""
+    property bool wifiOpen: false
 
     function selectTool(t) { tool = t; cmdIndex = 0; status.text = "" }
     function toolById(id) {
@@ -47,35 +51,51 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent
             anchors.margins: 10
-            spacing: 10
-            Text { text: "NetToolkit Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
-            Text { text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
+            spacing: win.compact ? 6 : 10
+            Text { text: win.compact ? "NTK" : "NetToolkit Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
+            Text { visible: win.width >= 1400; text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
             Item { Layout.fillWidth: true }
-            TouchButton { text: "Terminal"; onClicked: system.openTerminal() }
-            TouchButton { text: "Split"; onClicked: system.splitTerminal() }
+            TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
             TouchButton {
-                text: "eDEX"
+                text: (system && system.splitActive) ? "Exit split" : "Split"
+                iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
+                color: (system && system.splitActive) ? "#3a2a2a" : Theme.panelAlt
+                compact: win.compact
+                onClicked: system.toggleSplit(win.portrait)
+            }
+            TouchButton {
+                text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
+                color: (system && system.keyboardVisible) ? Theme.accent : Theme.panelAlt
+                textColor: (system && system.keyboardVisible) ? Theme.bg : Theme.text
+                onClicked: system.toggleKeyboard()
+            }
+            TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
+            TouchButton {
+                text: "eDEX"; iconSource: "../icons/edex.png"; compact: win.compact
                 color: "#13303a"
-                visible: system.edexAvailable()
+                visible: system ? system.edexAvailable() : false
                 onClicked: system.launchEdex()
             }
-            TouchButton { text: "Reboot"; color: "#3a3f2a"; onClicked: confirmAction = "reboot" }
-            TouchButton { text: "Shutdown"; color: "#4a2328"; onClicked: confirmAction = "poweroff" }
+            TouchButton { text: "Reboot"; iconSource: "../icons/reboot.png"; compact: true; color: "#3a3f2a"; onClicked: confirmAction = "reboot" }
+            TouchButton { text: "Shutdown"; iconSource: "../icons/power.png"; compact: true; color: "#4a2328"; onClicked: confirmAction = "poweroff" }
         }
     }
 
-    // ---------------------------------------------------------------- body
-    RowLayout {
+    // ---------------------------------------------------------------- body (2 columns, or stacked in portrait)
+    GridLayout {
         anchors.fill: parent
         anchors.margins: 10
-        spacing: 10
+        columns: win.portrait ? 1 : 2
+        rowSpacing: 10; columnSpacing: 10
 
-        // left: categories + tiles
+        // tiles pane
         ColumnLayout {
-            Layout.preferredWidth: Math.round(win.width * 0.5)
-            Layout.maximumWidth: Math.round(win.width * 0.5)
+            Layout.fillWidth: win.portrait
+            Layout.fillHeight: !win.portrait
+            Layout.preferredWidth: win.portrait ? -1 : Math.round(win.width * 0.5)
+            Layout.maximumWidth: win.portrait ? 1000000 : Math.round(win.width * 0.5)
+            Layout.preferredHeight: win.portrait ? Math.round(win.height * 0.42) : -1
             Layout.minimumWidth: 0
-            Layout.fillHeight: true
             spacing: 10
             Flow {
                 Layout.fillWidth: true
@@ -111,11 +131,13 @@ ApplicationWindow {
             }
         }
 
-        // right: tool panel
+        // tool pane
         Rectangle {
+            id: toolPane
             Layout.fillWidth: true
-            Layout.minimumWidth: 0
             Layout.fillHeight: true
+            Layout.minimumWidth: 0
+            Layout.minimumHeight: 0
             radius: 14
             color: Theme.panel
             border.color: Theme.border
@@ -160,7 +182,7 @@ ApplicationWindow {
                 }
                 Flickable {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(form.implicitHeight, win.height * 0.35)
+                    Layout.preferredHeight: Math.min(form.implicitHeight, toolPane.height * 0.4)
                     contentHeight: form.implicitHeight
                     clip: true
                     ToolForm {
@@ -175,10 +197,10 @@ ApplicationWindow {
                     TouchButton {
                         text: win.tool && win.tool.gui ? "Open" : "Run"
                         color: Theme.accent; textColor: Theme.bg
-                        enabled: !runner.running
+                        enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
                     }
-                    TouchButton { text: "Stop"; color: Theme.danger; enabled: runner.running; onClicked: runner.stop() }
+                    TouchButton { text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
                     TouchButton { text: "Clear"; onClicked: output.clear() }
                     Text {
                         visible: win.tool && win.tool.commands[win.cmdIndex].needs_root
@@ -200,7 +222,13 @@ ApplicationWindow {
         }
     }
 
-    // ---------------------------------------------------------------- confirm overlay
+    // ---------------------------------------------------------------- overlays
+    WifiOverlay {
+        visible: win.wifiOpen
+        anchors.fill: parent
+        onClosed: { win.wifiOpen = false; system.hideKeyboard() }
+    }
+
     Rectangle {
         visible: confirmAction !== ""
         anchors.fill: parent
@@ -208,7 +236,7 @@ ApplicationWindow {
         MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
         Rectangle {
             anchors.centerIn: parent
-            width: 520; height: 220; radius: 16
+            width: Math.min(520, parent.width - 40); height: 220; radius: 16
             color: Theme.panel; border.color: Theme.border
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: 24; spacing: 20
@@ -238,4 +266,5 @@ ApplicationWindow {
         onTriggered: { var t = toolById(demoTool); if (t) { category = t.category; selectTool(t); runTimer.start() } }
     }
     Timer { id: runTimer; interval: 1500; onTriggered: runCurrent() }
+    Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
 }

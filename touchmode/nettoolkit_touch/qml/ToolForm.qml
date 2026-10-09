@@ -60,6 +60,7 @@ ColumnLayout {
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
                 onTextChanged: if (row) row.value = text
+                onActiveFocusChanged: if (activeFocus) system.showKeyboard()
             }
         }
     }
