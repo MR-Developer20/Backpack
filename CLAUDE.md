@@ -113,3 +113,13 @@ make release
   via `xorriso -boot_image any replay` (seconds, no full rebuild; El Torito/isohybrid preserved).
   For Ventoy use (memdisk mode); does NOT fix Ventoy normal/grub2 mode (that is the Ventoy GRUB
   vs trixie-kernel issue). Verified: boot structure identical to the source ISO; BIOS boot runs.
+
+- (ventoy SOLUTION) `make ventoy` (scripts/make-ventoy-iso.sh) now produces build/ventoy-dist/:
+  the persistence-stripped ISO + `ventoy/ventoy.json` with Ventoy's **auto_memdisk** plugin
+  (`{"auto_memdisk":["/nettoolkit-ventoy.iso"]}`) + README-VENTOY.txt. The user copies BOTH to
+  the Ventoy drive root; Ventoy then boots this ISO straight into memdisk mode (no manual menu),
+  which is the only mode that loads the trixie kernel. VERIFIED in real Ventoy 1.1.17 (QEMU UEFI):
+  selecting the ISO goes directly to "memdisk mode boot ... Loading ISO file to memory"; memdisk
+  then boots the live system (SELFTEST-DONE confirmed separately). Full combined boot needs
+  guest RAM for a 1 GB ISO-to-RAM load (fine on real HW; this host's ~3 GB free is marginal).
+  Ventoy repro tooling: build/tmpl/make-ventoy-usb.sh, ventoy-addjson.sh (both gitignored under build/).
