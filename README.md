@@ -88,6 +88,8 @@ Without it the image still builds; the eDEX button simply does not appear.
 ```bash
 make mkusb DEV=/dev/sdX            # writes the ISO + a 5 GB persistence partition
 make mkusb DEV=/dev/sdX SIZE=10G   # larger persistence
+make mkusb DEV=/dev/sdX KEEP=1     # update the system only, keep the existing persistence
+make mkusb-gui                     # same thing in a small GTK4 window (password via pkexec)
 scripts/mkusb.sh --dry-run /dev/sdX   # print every command without touching the disk
 ```
 
