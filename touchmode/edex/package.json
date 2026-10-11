@@ -65,7 +65,7 @@
       ],
       "category": "System",
       "icon": "media/linuxIcons",
-      "maintainer": "NetToolkit Live <nettoolkit@localhost>",
+      "maintainer": "Backpack Live <backpack@localhost>",
       "synopsis": "Sci-fi terminal emulator and system monitor",
       "executableName": "edex-ui"
     },

@@ -1,4 +1,4 @@
-# NetToolkit Live — Claude Code build prompt
+# Backpack Live — Claude Code build prompt
 
 Build a bootable Debian live USB for network discovery/testing ("Hiren's BootCD, but Linux + network tools"). Work phase by phase in the order below. Stop at each phase gate and wait for my approval before continuing.
 
@@ -8,7 +8,7 @@ Build a bootable Debian live USB for network discovery/testing ("Hiren's BootCD,
 - Touch Mode: PySide6 / Qt Quick (QML) tile launcher, run as its own Wayland session under **sway** with a locked-down config (tiling gives split-screen). Terminal button spawns `foot`. Later phase: fork and modernize eDEX-UI as an optional full-screen view launched from Touch Mode.
 - Boot menu entries: Terminal (`systemd.unit=multi-user.target`), Desktop (LXQt), Touch Mode, plus a "copy to RAM" (`toram`) variant of each.
 - Squashfs compression: zstd. `--apt-recommends false`. No LibreOffice, no installer, no task-* metapackages.
-- Persistence: ~5 GB ext4 partition labelled `persistence` with `persistence.conf`. Targeted entries (`/home`, `/var/lib/nettoolkit`, `/etc/NetworkManager`), not `/ union`. Boot param `persistence`.
+- Persistence: ~5 GB ext4 partition labelled `persistence` with `persistence.conf`. Targeted entries (`/home`, `/var/lib/backpack`, `/etc/NetworkManager`), not `/ union`. Boot param `persistence`.
 - Tools (Debian packages unless noted): nmap zenmap arp-scan netdiscover lldpd mtr-tiny fping iperf3 bind9-dnsutils curl tcpdump tshark wireshark ethtool wpasupplicant socat netcat-openbsd ngrep hping3 iftop nload bmon speedtest-cli aircrack-ng. Kismet from the upstream Kismet apt repo. Angry IP Scanner from the upstream `.deb` (needs a JRE ≥ 21; include `openjdk-21-jre`).
 
 ## Token rules (apply throughout)
@@ -25,7 +25,7 @@ Build a bootable Debian live USB for network discovery/testing ("Hiren's BootCD,
 
 ## Repo layout
 ```
-nettoolkit/
+backpack/
   CLAUDE.md
   Makefile                 # build, clean, test-bios, test-uefi, mkusb
   manifest/tools.yaml      # phase 1
@@ -36,7 +36,7 @@ nettoolkit/
 ```
 
 ## Phase 1 — Tool manifest
-Create `manifest/tools.yaml`. One entry per tool: `id`, `name`, `description` (one sentence, plain English), `category` (discovery / connectivity / capture / wireless / throughput / dns-http), `packages` (Debian names) or `source: upstream` with URL, `commands`: list of `{label, cmd, args: [{name, type, default, required}], needs_root}`. This file drives the apt package list, Touch Mode tiles, and docs. Generate `live/config/package-lists/nettoolkit.list.chroot` from it with a script; don't hand-maintain both.
+Create `manifest/tools.yaml`. One entry per tool: `id`, `name`, `description` (one sentence, plain English), `category` (discovery / connectivity / capture / wireless / throughput / dns-http), `packages` (Debian names) or `source: upstream` with URL, `commands`: list of `{label, cmd, args: [{name, type, default, required}], needs_root}`. This file drives the apt package list, Touch Mode tiles, and docs. Generate `live/config/package-lists/backpack.list.chroot` from it with a script; don't hand-maintain both.
 Gate: show the YAML schema and two example entries, not the whole file.
 
 ## Phase 2 — Minimal live image
@@ -49,11 +49,11 @@ Gate: sizes, boot time, missing tools, any package not in trixie.
 Gate: test results only.
 
 ## Phase 4 — Touch Mode
-4a. `touchmode/` PySide6 + QML app: tile grid by category, large touch targets, each tile opens a form built from the manifest's `args`, runs the command, streams output into a pane. Buttons: open terminal (`foot`), split view (sway keybind + on-screen button), shutdown/reboot. Runs full-screen. Reads `/etc/nettoolkit/tools.yaml` (installed from the manifest).
-4b. sway config: no title bars, no floating, tiling only, bar hidden, keybindings for split/focus/close, `foot` as terminal, autostart the launcher. Install as a Wayland session `.desktop` so LightDM lists "Touch Mode"; the boot entry selects it via a kernel param (`nettoolkit.ui=touch`) handled by a small systemd unit that sets LightDM autologin + session.
+4a. `touchmode/` PySide6 + QML app: tile grid by category, large touch targets, each tile opens a form built from the manifest's `args`, runs the command, streams output into a pane. Buttons: open terminal (`foot`), split view (sway keybind + on-screen button), shutdown/reboot. Runs full-screen. Reads `/etc/backpack/tools.yaml` (installed from the manifest).
+4b. sway config: no title bars, no floating, tiling only, bar hidden, keybindings for split/focus/close, `foot` as terminal, autostart the launcher. Install as a Wayland session `.desktop` so LightDM lists "Touch Mode"; the boot entry selects it via a kernel param (`backpack.ui=touch`) handled by a small systemd unit that sets LightDM autologin + session.
 4c. eDEX-UI: clone `GitSquared/edex-ui` (archived Oct 2021) into `touchmode/edex/` as a git submodule or vendored fork, update Electron/Node deps to current, fix breakage, add a touch-friendly layout tweak, package so Touch Mode can launch it full-screen and return. If updating Electron proves disproportionate, stop and report the effort estimate before continuing.
 Verify in QEMU with a virtual touchscreen (`-device virtio-tablet`). Package the app as a Debian package built in a hook so it lands in the image.
 Gate: screenshot per view, package size impact on the ISO.
 
 ## Phase 5 — Polish
-Boot splash, consistent branding "NetToolkit Live", `CLAUDE.md` + `README.md` (build, test, write-to-USB, add a tool), `make release` that outputs the ISO plus SHA256.
+Boot splash, consistent branding "Backpack Live", `CLAUDE.md` + `README.md` (build, test, write-to-USB, add a tool), `make release` that outputs the ISO plus SHA256.

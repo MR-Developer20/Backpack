@@ -11,7 +11,7 @@ mkdir -p /mnt/vtoy/ventoy
 cat > /mnt/vtoy/ventoy/ventoy.json <<'JSON'
 {
     "auto_memdisk": [
-        "/nettoolkit.iso"
+        "/backpack.iso"
     ]
 }
 JSON

@@ -1,19 +1,19 @@
 #!/bin/sh
-# Build the Ventoy deliverable for NetToolkit Live.
+# Build the Ventoy deliverable for Backpack Live.
 #
 # Ventoy's normal/grub2 modes cannot load the Debian trixie kernel's EFI image
 # ("error: cannot load image"); only Ventoy memdisk mode works (it loads the whole ISO into
 # RAM and boots the ISO's own bootloader). This script produces, under build/ventoy/:
-#   1. nettoolkit-ventoy.iso  - the ISO with the `persistence` boot param stripped (memdisk runs
+#   1. backpack-ventoy.iso  - the ISO with the `persistence` boot param stripped (memdisk runs
 #      from RAM, so persistence does not apply), repacked fast with xorriso (boot records kept).
 #   2. ventoy/ventoy.json     - a Ventoy auto_memdisk plugin config so the ISO boots straight into
 #      memdisk mode with no manual menu picking.
 #   3. README-VENTOY.txt      - drop-both-on-the-drive instructions.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SRC="${1:-$ROOT/build/nettoolkit.iso}"
+SRC="${1:-$ROOT/build/backpack.iso}"
 OUT="$ROOT/build/ventoy-dist"
-ISONAME="nettoolkit-ventoy.iso"
+ISONAME="backpack-ventoy.iso"
 DST="$OUT/$ISONAME"
 [ -f "$SRC" ] || { echo "source ISO not found: $SRC (run make build first)" >&2; exit 1; }
 mkdir -p "$OUT/ventoy"
@@ -41,12 +41,12 @@ JSON
 
 # 3. instructions
 cat > "$OUT/README-VENTOY.txt" <<TXT
-NetToolkit Live - Ventoy instructions
+Backpack Live - Ventoy instructions
 =====================================
 
 Ventoy's normal and grub2 boot modes cannot load this image's kernel
 ("error: cannot load image"). Ventoy *memdisk* mode works. These files make
-Ventoy boot NetToolkit in memdisk mode automatically.
+Ventoy boot Backpack in memdisk mode automatically.
 
 Copy BOTH of these onto your Ventoy USB drive, keeping the paths:
 
@@ -56,7 +56,7 @@ Copy BOTH of these onto your Ventoy USB drive, keeping the paths:
 (If you already have a ventoy/ventoy.json with other plugins, merge the
 "auto_memdisk" array into it instead of overwriting.)
 
-Then boot the drive and pick NetToolkit. It goes straight to
+Then boot the drive and pick Backpack. It goes straight to
 "memdisk mode boot ... Loading ISO file to memory" and boots the desktop.
 Your laptop needs ~1.5 GB of free RAM (the ISO is loaded into memory).
 

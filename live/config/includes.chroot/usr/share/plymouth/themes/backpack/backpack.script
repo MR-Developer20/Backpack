@@ -1,4 +1,4 @@
-# NetToolkit Live plymouth splash: centered logo on dark background; a progress bar for the
+# Backpack Live plymouth splash: centered logo on dark background; a progress bar for the
 # copy-to-RAM phase (live-boot sends "toram:<pct>" messages); other messages shown as text.
 Window.SetBackgroundTopColor(0.043, 0.063, 0.086);     # #0b1016
 Window.SetBackgroundBottomColor(0.059, 0.106, 0.133);  # #0f1b22

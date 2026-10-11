@@ -64,7 +64,7 @@ def validate(doc):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--manifest", default="manifest/tools.yaml")
-    ap.add_argument("--out", default="live/config/package-lists/nettoolkit.list.chroot")
+    ap.add_argument("--out", default="live/config/package-lists/backpack.list.chroot")
     ap.add_argument("--check", action="store_true", help="validate only")
     ap.add_argument("--print-cmds", action="store_true", help="print 'id cmd' pairs")
     args = ap.parse_args()

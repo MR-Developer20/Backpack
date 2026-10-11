@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Backpack Live
+Description=Backpack Live boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/backpack
+ScriptFile=/usr/share/plymouth/themes/backpack/backpack.script

@@ -19,8 +19,8 @@ live/config/common
 live/config/source
 __pycache__/
 *.pyc
-live/config/includes.chroot/etc/nettoolkit/tools.yaml
-live/config/includes.chroot/usr/local/lib/nettoolkit/
+live/config/includes.chroot/etc/backpack/tools.yaml
+live/config/includes.chroot/usr/local/lib/backpack/
 live/config/packages.chroot/edex-ui_*.deb
 build/release/
 live/chroot.packages.install

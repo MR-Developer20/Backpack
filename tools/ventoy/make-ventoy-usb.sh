@@ -22,7 +22,7 @@ echo "=== partitions:"; lsblk -o NAME,SIZE,FSTYPE,LABEL "$LOOP" 2>/dev/null || p
 # mount the Ventoy data partition (p1, exFAT) and copy the ISO
 mkdir -p /mnt/vtoy
 mount "${LOOP}p1" /mnt/vtoy 2>&1 || mount -t exfat "${LOOP}p1" /mnt/vtoy
-cp /work/build/nettoolkit.iso /mnt/vtoy/
+cp /work/build/backpack.iso /mnt/vtoy/
 sync
 echo "=== copied ISO:"; ls -l /mnt/vtoy/
 umount /mnt/vtoy

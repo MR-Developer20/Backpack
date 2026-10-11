@@ -11,11 +11,11 @@ jobs:
       - name: manifest schema + generated package list
         run: |
           python3 scripts/gen-package-list.py --check
-          python3 scripts/gen-package-list.py --out /tmp/nettoolkit.list.chroot
-          diff <(grep -v '^#' /tmp/nettoolkit.list.chroot) <(grep -v '^#' live/config/package-lists/nettoolkit.list.chroot)
+          python3 scripts/gen-package-list.py --out /tmp/backpack.list.chroot
+          diff <(grep -v '^#' /tmp/backpack.list.chroot) <(grep -v '^#' live/config/package-lists/backpack.list.chroot)
       - name: shell + python syntax
         run: |
           for f in scripts/*.sh tools/*/*.sh live/auto/* live/config/hooks/normal/*.chroot; do sh -n "$f" || bash -n "$f"; done
-          python3 -m py_compile touchmode/nettoolkit_touch/*.py scripts/*.py
+          python3 -m py_compile touchmode/backpack_touch/*.py scripts/*.py
       - name: touch-mode deb builds
-        run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/nettoolkit-touch_*.deb | head -5
+        run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/backpack-touch_*.deb | head -5

@@ -2,9 +2,9 @@
 
 #set -e
 
-# NetToolkit: copy with progress reported to plymouth ("toram:<pct>" messages drawn as a bar by
-# the nettoolkit theme) or, without plymouth, to the console.
-nettoolkit_copy_progress ()
+# Backpack: copy with progress reported to plymouth ("toram:<pct>" messages drawn as a bar by
+# the backpack theme) or, without plymouth, to the console.
+backpack_copy_progress ()
 {
 	dst="$1"; shift
 	total=0
@@ -109,9 +109,9 @@ copy_live_to ()
 	else
 		if [ -n "${MODULETORAMFILE}" ]
 		then
-			nettoolkit_copy_progress "${copyto}" "${MODULETORAMFILE}"   # copy only the filesystem module
+			backpack_copy_progress "${copyto}" "${MODULETORAMFILE}"   # copy only the filesystem module
 		else
-			nettoolkit_copy_progress "${copyto}" ${copyfrom}/*
+			backpack_copy_progress "${copyto}" ${copyfrom}/*
 			if [ -e ${copyfrom}/${LIVE_MEDIA_PATH}/.disk ]
 			then
 				cp -a ${copyfrom}/${LIVE_MEDIA_PATH}/.disk ${copyto}

@@ -1,17 +1,17 @@
 #!/bin/bash
-# Boot the NetToolkit ISO (or a USB disk image) in QEMU and wait for the in-guest self-test marker.
+# Boot the Backpack ISO (or a USB disk image) in QEMU and wait for the in-guest self-test marker.
 # Usage: test-qemu.sh [--uefi] [--headless] [--touch] [--direct] [--append "params"]
 #                     [--disk FILE] [--iso FILE] [--timeout SEC] [--tag NAME] [--keep-alive SEC]
 #   --direct   boot kernel/initrd extracted from the ISO with `boot=live components <append>`;
-#              the way to select toram / nettoolkit.ui=touch without driving the boot menu
+#              the way to select toram / backpack.ui=touch without driving the boot menu
 #   --console  (with --direct) add console=ttyS0 so a login shell is reachable on the serial socket:
 #              scripts/qemu-serial.sh 'command' sends a line; output appears in the serial log
 #   --disk     boot from a raw disk image (e.g. build/test-usb.img) instead of the ISO; the guest
 #              is shut down gracefully so the persistence partition is flushed
-# Exit 0 when NETTOOLKIT-SELFTEST-DONE appears on the serial log before the timeout.
+# Exit 0 when BACKPACK-SELFTEST-DONE appears on the serial log before the timeout.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ISO="$ROOT/build/nettoolkit.iso"; DISK=""; UEFI=0; HEADLESS=0; TOUCH=0; DIRECT=0
+ISO="$ROOT/build/backpack.iso"; DISK=""; UEFI=0; HEADLESS=0; TOUCH=0; DIRECT=0
 APPEND=""; TIMEOUT=300; TAG=""; KEEP=0; CONSOLE=0
 
 while [ $# -gt 0 ]; do
@@ -81,7 +81,7 @@ shot() { # shot NAME
 QPID=$!
 rc=1; start=$SECONDS
 while kill -0 $QPID 2>/dev/null && [ $((SECONDS-start)) -lt "$TIMEOUT" ]; do
-  if grep -q NETTOOLKIT-SELFTEST-DONE "$LOG"; then rc=0; break; fi
+  if grep -q BACKPACK-SELFTEST-DONE "$LOG"; then rc=0; break; fi
   sleep 2
 done
 if [ $rc = 0 ]; then sleep 3; shot "$TAG"; [ "$KEEP" -gt 0 ] && sleep "$KEEP"; shot "$TAG-final"; else shot "$TAG-FAIL"; fi

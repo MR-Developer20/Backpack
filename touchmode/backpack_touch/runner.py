@@ -8,9 +8,9 @@ from PySide6.QtCore import QObject, QProcess, QTimer, Property, Signal, Slot
 
 from . import manifest
 
-TERMINAL = os.environ.get("NETTOOLKIT_TERMINAL", "foot")
-SPLIT_APP_ID = "nettoolkit-split"   # the one foot window the Split button owns
-TERM_APP_ID = "nettoolkit-term"     # Terminal button: fullscreen foot (sway rule in sway.config)
+TERMINAL = os.environ.get("BACKPACK_TERMINAL", "foot")
+SPLIT_APP_ID = "backpack-split"   # the one foot window the Split button owns
+TERM_APP_ID = "backpack-term"     # Terminal button: fullscreen foot (sway rule in sway.config)
 KEYBOARD_PROC = "wvkbd-mobintl"
 
 

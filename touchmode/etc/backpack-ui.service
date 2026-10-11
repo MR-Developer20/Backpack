@@ -1,0 +1,12 @@
+[Unit]
+Description=Backpack: select Touch Mode session when backpack.ui=touch is on the kernel command line
+ConditionKernelCommandLine=backpack.ui=touch
+After=live-config.service local-fs.target
+Before=lightdm.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/backpack/backpack-ui
+
+[Install]
+WantedBy=multi-user.target

@@ -15,7 +15,7 @@ label live-@FLAVOUR@-touch
 	menu label Touch ^Mode
 	linux @LINUX@
 	initrd @INITRD@
-	append @APPEND_LIVE@ nettoolkit.ui=touch
+	append @APPEND_LIVE@ backpack.ui=touch
 
 label live-@FLAVOUR@-desktop-toram
 	menu label Desktop (LXQt) - copy to ^RAM
@@ -33,4 +33,4 @@ label live-@FLAVOUR@-touch-toram
 	menu label Touch Mode - copy to RAM
 	linux @LINUX@
 	initrd @INITRD@
-	append @APPEND_LIVE@ nettoolkit.ui=touch toram
+	append @APPEND_LIVE@ backpack.ui=touch toram

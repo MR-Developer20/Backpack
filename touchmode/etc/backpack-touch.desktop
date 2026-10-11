@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Touch Mode
+Comment=Backpack Live touch launcher (sway)
+Exec=/usr/bin/backpack-touch-session
+Type=Application
+DesktopNames=sway

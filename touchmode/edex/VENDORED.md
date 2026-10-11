@@ -14,7 +14,7 @@ Original is GPL-3.0; see LICENSE.
 - `src/_boot.js`: removed `enableRemoteModule`; added `@electron/remote/main` `.enable(win.webContents)`
   after window creation. (Env-guarded EDEX_CAPTURE test hook for headless screenshots.)
 - `src/_renderer.js`: `electron.remote.*` -> `remote.*` (14 refs; `remote` was already imported).
-- Build: `scripts/build-edex.sh` in the `nettoolkit-edex` container; node-pty must be rebuilt
+- Build: `scripts/build-edex.sh` in the `backpack-edex` container; node-pty must be rebuilt
   with `electron-rebuild --version <electron version>` (auto-detect picks the wrong version).
 - Runs under `--no-sandbox` only when launched as root (the live ISO runs it as the `user`).
 Verified: launches on Electron 37.2.0, node-pty terminal backend initialized, full UI renders
@@ -24,7 +24,7 @@ Verified: launches on Electron 37.2.0, node-pty terminal backend initialized, fu
 - `package.json` build target set to Debian `deb` (x64); `deb.depends` use trixie t64 names
   (libgtk-3-0t64, libatspi2.0-0t64) — electron-builder's defaults use the pre-t64 names that
   do not exist in trixie, so the deb would fail to install.
-- Build: `scripts/build-edex-deb.sh` in the nettoolkit-edex container -> dist/edex-ui_*_amd64.deb,
+- Build: `scripts/build-edex-deb.sh` in the backpack-edex container -> dist/edex-ui_*_amd64.deb,
   repacked into live/config/packages.chroot/ with corrected Depends.
 - Touch tweak: default termFontSize 15 -> 18 (written on first run).
 - Touch Mode gains an "eDEX" top-bar button (shown when edex-ui is on PATH) that unfullscreens

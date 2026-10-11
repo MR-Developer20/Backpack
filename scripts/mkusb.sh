@@ -1,5 +1,5 @@
 #!/bin/bash
-# Write the NetToolkit ISO to a USB disk (or a raw image file) and add an ext4 persistence partition.
+# Write the Backpack ISO to a USB disk (or a raw image file) and add an ext4 persistence partition.
 #
 # Usage:
 #   sudo mkusb.sh [--size 5G] [--dry-run] [--force] [--yes] [--iso FILE] /dev/sdX
@@ -15,7 +15,7 @@
 #                 existing `persistence` partition at its old position WITHOUT formatting it
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ISO="$ROOT/build/nettoolkit.iso"; SIZE=5G; DRY=0; FORCE=0; YES=0; IMAGE=""; IMAGE_SIZE=8G; TARGET=""; KEEP=0
+ISO="$ROOT/build/backpack.iso"; SIZE=5G; DRY=0; FORCE=0; YES=0; IMAGE=""; IMAGE_SIZE=8G; TARGET=""; KEEP=0
 MAX_BYTES=$((256*1024*1024*1024))
 
 while [ $# -gt 0 ]; do
@@ -35,7 +35,7 @@ run_sh() { echo "+ $1"; [ $DRY = 1 ] || bash -c "$1"; }
 
 # persistence.conf: targeted union directories (not "/ union")
 CONF_DIR="$(mktemp -d)"; trap 'rm -rf "$CONF_DIR"' EXIT
-printf '%s\n' /home /var/lib/nettoolkit /etc/NetworkManager > "$CONF_DIR/persistence.conf"
+printf '%s\n' /home /var/lib/backpack /etc/NetworkManager > "$CONF_DIR/persistence.conf"
 
 if [ -n "$IMAGE" ]; then
   # ---------------------------------------------------------------- image mode

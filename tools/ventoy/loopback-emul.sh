@@ -13,11 +13,11 @@ insmod loopback
 insmod search
 insmod echo
 insmod normal
-search --no-floppy --set=vtroot --file /nettoolkit.iso
+search --no-floppy --set=vtroot --file /backpack.iso
 echo "vtroot=$vtroot"
-loopback loop ($vtroot)/nettoolkit.iso
+loopback loop ($vtroot)/backpack.iso
 set root=(loop)
-set iso_path=/nettoolkit.iso
+set iso_path=/backpack.iso
 export iso_path
 echo "sourcing loopback.cfg from (loop)..."
 source (loop)/boot/grub/loopback.cfg
@@ -34,5 +34,5 @@ truncate -s 1400M "$IMG"
 mkfs.vfat -F 32 -n VENTOY "$IMG" >/dev/null
 mmd -i "$IMG" ::/EFI ::/EFI/BOOT
 mcopy -i "$IMG" BOOTX64.EFI ::/EFI/BOOT/BOOTX64.EFI
-mcopy -i "$IMG" nettoolkit.iso ::/nettoolkit.iso
+mcopy -i "$IMG" backpack.iso ::/backpack.iso
 echo "image built:"; mdir -i "$IMG" :: | tail -n 5

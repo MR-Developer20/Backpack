@@ -7,7 +7,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; IMG="$ROOT/build/test-usb.img"; T="$ROOT/scripts/test-qemu.sh"
 pass=0; fail=0
 check() { # check TAG EXPECT
-  if grep -q "$2" "$ROOT/build/logs/serial-$1.log" && grep -q NETTOOLKIT-SELFTEST-DONE "$ROOT/build/logs/serial-$1.log"; then
+  if grep -q "$2" "$ROOT/build/logs/serial-$1.log" && grep -q BACKPACK-SELFTEST-DONE "$ROOT/build/logs/serial-$1.log"; then
     echo "PASS $1: $2 ($(grep -o 'HOME-MOUNT: .*' "$ROOT/build/logs/serial-$1.log"))"; pass=$((pass+1))
   else echo "FAIL $1: expected $2"; grep -E 'PERSIST|HOME-MOUNT|STATE' "$ROOT/build/logs/serial-$1.log" | head -n 4; fail=$((fail+1)); fi
 }

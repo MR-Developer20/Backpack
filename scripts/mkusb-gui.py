@@ -18,7 +18,7 @@ from gi.repository import Gio, GLib, Gtk, Pango  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MKUSB = os.path.join(ROOT, "scripts", "mkusb.sh")
-DEFAULT_ISO = os.path.join(ROOT, "build", "nettoolkit.iso")
+DEFAULT_ISO = os.path.join(ROOT, "build", "backpack.iso")
 
 
 def human(n):
@@ -66,7 +66,7 @@ def usb_disks():
 
 class Win(Gtk.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title="NetToolkit USB Writer")
+        super().__init__(application=app, title="Backpack USB Writer")
         self.set_default_size(640, 520)
         self.iso = DEFAULT_ISO if os.path.isfile(DEFAULT_ISO) else ""
         self.disks = []
@@ -148,7 +148,7 @@ class Win(Gtk.ApplicationWindow):
 
     def on_device(self):
         d = self.device()
-        # default to "keep" when the stick already carries a NetToolkit persistence partition
+        # default to "keep" when the stick already carries a Backpack persistence partition
         if d and d["has_persistence"]:
             self.keep.set_active(True)
         else:
@@ -164,11 +164,11 @@ class Win(Gtk.ApplicationWindow):
         self.write_btn.set_sensitive(bool(d and self.iso) and not busy)
         if not busy:
             if not self.iso:
-                self.status.set_text("Choose an ISO image (run `make build` to create build/nettoolkit.iso).")
+                self.status.set_text("Choose an ISO image (run `make build` to create build/backpack.iso).")
             elif not d:
                 self.status.set_text("No USB drive detected.")
             elif d["has_persistence"]:
-                self.status.set_text("This drive already has a NetToolkit persistence partition.")
+                self.status.set_text("This drive already has a Backpack persistence partition.")
             else:
                 self.status.set_text("")
 
@@ -290,7 +290,7 @@ class Win(Gtk.ApplicationWindow):
 
 
 def main():
-    app = Gtk.Application(application_id="live.nettoolkit.UsbWriter")
+    app = Gtk.Application(application_id="live.backpack.UsbWriter")
     app.connect("activate", lambda a: Win(a).present())
     return app.run(sys.argv[:1])
 

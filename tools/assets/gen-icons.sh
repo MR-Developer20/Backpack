@@ -1,9 +1,9 @@
 #!/bin/sh
 # Generate the Touch Mode top-bar icons (96x96 PNG, white on transparent) and the plymouth
-# progress-bar pixels. Run inside the nettoolkit-edex container (has ImageMagick):
-#   docker run --rm -v "$PWD":/work nettoolkit-edex sh /work/tools/assets/gen-icons.sh
+# progress-bar pixels. Run inside the backpack-edex container (has ImageMagick):
+#   docker run --rm -v "$PWD":/work backpack-edex sh /work/tools/assets/gen-icons.sh
 set -e
-cd /work/touchmode/nettoolkit_touch/icons
+cd /work/touchmode/backpack_touch/icons
 S=96; C='#e6edf3'
 # terminal: rounded frame + prompt
 convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 6 -fill none -draw "roundrectangle 10,16 86,80 8,8" \
@@ -43,7 +43,7 @@ convert -size 96x96 xc:none -stroke '#e6edf3' -strokewidth 5 -fill none -draw "r
   -draw "rectangle 18,34 24,40" -draw "rectangle 30,34 36,40" -draw "rectangle 42,34 48,40" -draw "rectangle 54,34 60,40" -draw "rectangle 66,34 72,40" \
   -draw "rectangle 18,46 24,52" -draw "rectangle 30,46 36,52" -draw "rectangle 42,46 48,52" -draw "rectangle 54,46 60,52" -draw "rectangle 66,46 72,52" \
   -draw "rectangle 26,58 70,64" keyboard.png
-P=/work/live/config/includes.chroot/usr/share/plymouth/themes/nettoolkit
+P=/work/live/config/includes.chroot/usr/share/plymouth/themes/backpack
 convert -size 1x1 xc:'#2ec4b6' "$P/bar.png"
 convert -size 1x1 xc:'#223038' "$P/barbg.png"
 ls -l *.png "$P"/bar*.png | awk '{print $5, $9}'

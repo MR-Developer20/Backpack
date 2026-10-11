@@ -27,12 +27,12 @@ class Manifest(QObject):
 
 
 def demo_tool():
-    """nettoolkit.demo[=tool-id] on the kernel command line, or NETTOOLKIT_DEMO env: auto-open a tool."""
-    val = os.environ.get("NETTOOLKIT_DEMO")
+    """backpack.demo[=tool-id] on the kernel command line, or BACKPACK_DEMO env: auto-open a tool."""
+    val = os.environ.get("BACKPACK_DEMO")
     if val is None:
         try:
             for p in Path("/proc/cmdline").read_text().split():
-                if p.startswith("nettoolkit.demo"):
+                if p.startswith("backpack.demo"):
                     val = p.partition("=")[2] or "nmap"
         except OSError:
             pass
@@ -42,7 +42,7 @@ def demo_tool():
 def main():
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
     app = QGuiApplication(sys.argv)
-    app.setApplicationName("NetToolkit Touch")
+    app.setApplicationName("Backpack Touch")
     tools = manifest.load()
     engine = QQmlApplicationEngine()
     ctx = engine.rootContext()
@@ -52,21 +52,21 @@ def main():
     ctx.setContextProperty("system", system)
     ctx.setContextProperty("wifi", wifi)
     ctx.setContextProperty("demoTool", demo_tool() or "")
-    ctx.setContextProperty("demoWifi", bool(os.environ.get("NETTOOLKIT_DEMO_WIFI")))
+    ctx.setContextProperty("demoWifi", bool(os.environ.get("BACKPACK_DEMO_WIFI")))
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
         sys.exit(1)
-    shot = os.environ.get("NETTOOLKIT_SCREENSHOT")
+    shot = os.environ.get("BACKPACK_SCREENSHOT")
     if shot:  # test hook: grab the window after the demo has run, then exit
         root = engine.rootObjects()[0]
         root.setVisibility(QQuickWindow.Windowed)
-        w, _, h = os.environ.get("NETTOOLKIT_SIZE", "1280x800").partition("x")
+        w, _, h = os.environ.get("BACKPACK_SIZE", "1280x800").partition("x")
         root.resize(int(w), int(h))
         def grab():
             engine.rootObjects()[0].grabWindow().save(shot)
             app.quit()
-        QTimer.singleShot(int(os.environ.get("NETTOOLKIT_SCREENSHOT_DELAY", "6000")), grab)
+        QTimer.singleShot(int(os.environ.get("BACKPACK_SCREENSHOT_DELAY", "6000")), grab)
     sys.exit(app.exec())
 
 

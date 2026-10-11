@@ -1,14 +1,14 @@
 #!/bin/sh
-# Writes a report to /var/log/nettoolkit-selftest.log and copies it to ttyS0 (QEMU -serial file:).
-LOG=/var/log/nettoolkit-selftest.log
+# Writes a report to /var/log/backpack-selftest.log and copies it to ttyS0 (QEMU -serial file:).
+LOG=/var/log/backpack-selftest.log
 {
-echo "NETTOOLKIT-SELFTEST-BEGIN"
+echo "BACKPACK-SELFTEST-BEGIN"
 echo "CMDLINE: $(cat /proc/cmdline)"
 timeout 150 systemctl is-system-running --wait >/dev/null 2>&1
 echo "STATE: $(systemctl is-system-running 2>&1)"
 echo "BOOTTIME: $(systemd-analyze 2>&1 | head -1)"
 systemctl --failed --no-legend --plain 2>/dev/null | sed 's/^/FAILED-UNIT: /'
-/usr/local/lib/nettoolkit/check-tools.sh
+/usr/local/lib/backpack/check-tools.sh
 if getent passwd user >/dev/null; then echo "LIVE-USER: present ($(id -nG user | tr " " ","))"; else echo "LIVE-USER: absent"; fi
 if systemctl is-active --quiet lightdm 2>/dev/null; then
 	for _ in $(seq 1 25); do pgrep -x lxqt-session >/dev/null && break; sleep 2; done
@@ -23,14 +23,14 @@ if systemctl is-active --quiet lightdm 2>/dev/null; then
 		journalctl -b --no-pager -q _COMM=lightdm 2>&1 | grep -i 'session\|pam\|fail\|error' | tail -n 15
 	fi
 fi
-if grep -qw 'nettoolkit.ui=touch' /proc/cmdline; then
-	for _ in $(seq 1 30); do pgrep -f nettoolkit_touch >/dev/null && break; sleep 2; done
-	echo "TOUCH-SESSION: sway=$(pgrep -x sway >/dev/null && echo running || echo absent) launcher=$(pgrep -f nettoolkit_touch >/dev/null && echo running || echo absent) foot=$(pgrep -x foot >/dev/null && echo running || echo absent)"
-	grep -h '' /etc/lightdm/lightdm.conf.d/60-nettoolkit-touch.conf 2>/dev/null | sed 's/^/TOUCH-CONF: /'
+if grep -qw 'backpack.ui=touch' /proc/cmdline; then
+	for _ in $(seq 1 30); do pgrep -f backpack_touch >/dev/null && break; sleep 2; done
+	echo "TOUCH-SESSION: sway=$(pgrep -x sway >/dev/null && echo running || echo absent) launcher=$(pgrep -f backpack_touch >/dev/null && echo running || echo absent) foot=$(pgrep -x foot >/dev/null && echo running || echo absent)"
+	grep -h '' /etc/lightdm/lightdm.conf.d/60-backpack-touch.conf 2>/dev/null | sed 's/^/TOUCH-CONF: /'
 	SOCK=$(ls /run/user/1000/sway-ipc.* 2>/dev/null | head -1)
 	[ -n "$SOCK" ] && sudo -u user SWAYSOCK="$SOCK" swaymsg -t get_inputs 2>&1 | grep -E '"identifier"|"type"' | paste - - | sed 's/^/SWAY-INPUT: /'
 	[ -f /home/user/.xsession-errors ] && grep -iE 'error|warn|fail|input|seat|xkb' /home/user/.xsession-errors | tail -n 15 | sed 's/^/SWAY-LOG: /'
-	if ! pgrep -f nettoolkit_touch >/dev/null; then
+	if ! pgrep -f backpack_touch >/dev/null; then
 		journalctl -b --no-pager -q -u lightdm 2>&1 | tail -n 8
 		for f in /home/user/.local/share/sway/log.txt /var/log/lightdm/seat0-greeter.log /home/user/.xsession-errors; do [ -f "$f" ] && { echo "--- $f:"; tail -n 20 "$f"; }; done
 		journalctl -b --no-pager -q _UID=1000 2>&1 | grep -iv 'debug' | tail -n 25
@@ -44,8 +44,8 @@ else
 	echo PERSIST-MARKER-CREATED
 fi
 sync
-echo NETTOOLKIT-SELFTEST-DONE
+echo BACKPACK-SELFTEST-DONE
 } > "$LOG" 2>&1
 [ -c /dev/ttyS0 ] && cat "$LOG" > /dev/ttyS0
-grep -qw nettoolkit.poweroff /proc/cmdline && { sleep 2; systemctl poweroff; }
+grep -qw backpack.poweroff /proc/cmdline && { sleep 2; systemctl poweroff; }
 exit 0

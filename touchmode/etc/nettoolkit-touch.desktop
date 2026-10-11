@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=Touch Mode
-Comment=NetToolkit Live touch launcher (sway)
-Exec=/usr/bin/nettoolkit-touch-session
-Type=Application
-DesktopNames=sway

@@ -1,4 +1,4 @@
-# NetToolkit Live tool manifest.
+# Backpack Live tool manifest.
 # Drives: apt package list (scripts/gen-package-list.py), Touch Mode tiles, docs.
 #
 # Schema (version 1):

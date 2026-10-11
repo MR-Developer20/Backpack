@@ -1,4 +1,4 @@
-# NetToolkit Live — project notes for Claude sessions
+# Backpack Live — project notes for Claude sessions
 
 Bootable Debian 13 (trixie) live USB with network discovery/testing tools. The original
 build spec with the fixed decisions is `docs/SPEC.md`. User-facing docs: `README.md`.
@@ -6,8 +6,8 @@ build spec with the fixed decisions is `docs/SPEC.md`. User-facing docs: `README
 ## Decisions (fixed)
 - Debian trixie amd64, `live-build`, zstd squashfs, `--apt-recommends false`, no installer.
 - Desktop: LXQt + LightDM (X11). Touch Mode: PySide6/QML under sway (Wayland), `foot` terminal.
-- Boot entries: Terminal / Desktop / Touch Mode, each also as `toram`. Touch = `nettoolkit.ui=touch`.
-- Persistence: 5 GB ext4 labelled `persistence`, targeted dirs `/home /var/lib/nettoolkit /etc/NetworkManager`.
+- Boot entries: Terminal / Desktop / Touch Mode, each also as `toram`. Touch = `backpack.ui=touch`.
+- Persistence: 5 GB ext4 labelled `persistence`, targeted dirs `/home /var/lib/backpack /etc/NetworkManager`.
 - Upstream: Kismet apt repo (trixie suite exists), Angry IP Scanner `.deb` 3.10.0 + `openjdk-21-jre`.
 
 ## Build host notes (the machine this was developed on; adapt as needed)
@@ -20,22 +20,22 @@ build spec with the fixed decisions is `docs/SPEC.md`. User-facing docs: `README
 ## Layout
 ```
 manifest/tools.yaml            single source of truth for tools (schema in file header)
-scripts/gen-package-list.py    validate YAML → live/config/package-lists/nettoolkit.list.chroot
+scripts/gen-package-list.py    validate YAML → live/config/package-lists/backpack.list.chroot
 scripts/check-tools.sh         command -v for every manifest cmd; prints MISSING: lines
 scripts/fetch-upstream.sh      upstream .debs → live/config/packages.chroot, keys → config/archives
 scripts/test-qemu.sh           boot ISO in QEMU (BIOS/UEFI/direct-kernel), waits for selftest marker
 scripts/mkusb.sh               write USB or test image + persistence partition
 live/auto/{config,build,clean} live-build config
 touchmode/                     PySide6/QML Touch Mode app + sway config + session files (phase 4)
-scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/nettoolkit-touch_*.deb (run by make build)
+scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/backpack-touch_*.deb (run by make build)
 build/                         ignored: ISO, logs, cache, test images
 ```
 
 ## Commands
 ```
-make manifest      # regenerate package list + /etc/nettoolkit/tools.yaml include
+make manifest      # regenerate package list + /etc/backpack/tools.yaml include
 make fetch         # download/verify upstream debs + keys
-make build         # full ISO → build/nettoolkit.iso (log: build/logs/build.log)
+make build         # full ISO → build/backpack.iso (log: build/logs/build.log)
 make test-bios / test-uefi / test-persist
 make mkusb DEV=/dev/sdX [SIZE=5G]   # sudo; refuses disks > 256G without --force
 make test-usb-img                  # build/test-usb.img (8G sparse) with persistence partition
@@ -58,7 +58,7 @@ make release
 - Do NOT re-run `lb binary` alone: it re-enters the chroot and apt breaks (apt-utils/apt version skew). Use `make clean build` (package cache in live/cache makes it ~8 min).
 - QEMU: `scripts/test-qemu.sh [--uefi] [--headless] [--direct --append "..."] [--disk IMG] [--touch]`;
   serial log `build/logs/serial-<tag>.log`, screenshots `build/shots/<tag>.png`. Selftest unit
-  (`nettoolkit-selftest`, VM-only, writes to ttyS0) prints BOOTTIME / TOOLS / MISSING / PERSIST-MARKER-*.
+  (`backpack-selftest`, VM-only, writes to ttyS0) prints BOOTTIME / TOOLS / MISSING / PERSIST-MARKER-*.
 - `--apt-recommends false` drops live-config's Recommends: **`user-setup` is required** or the
   live user is never created (LightDM then shows a greeter, nothing autologs in). base.list.chroot
   lists it explicitly. Debug a running VM without rebuilding: `scripts/test-qemu.sh --keep-alive 150`
@@ -68,14 +68,14 @@ make release
   adds p3. Image mode formats via `mkfs.ext4 -E offset=... -d <dir>` so no root/loop needed.
   live-boot finds the `persistence`-labelled partition on any disk, including with `toram`.
   `scripts/test-persist.sh` = 6 boots (bios/uefi x normal,normal,toram) on a fresh image.
-- (phase 4) Touch Mode = `nettoolkit-touch` deb: python package in /usr/lib/python3/dist-packages,
-  `/usr/bin/nettoolkit-touch-session` (sway -c /etc/nettoolkit/sway.config), wayland-sessions
-  entry `nettoolkit-touch`, unit `nettoolkit-ui.service` (ConditionKernelCommandLine
-  nettoolkit.ui=touch) writes lightdm.conf.d/60-nettoolkit-touch.conf before lightdm starts.
-  Test the app without an ISO: `docker run ... nettoolkit-qt` (tools/docker/Dockerfile.qt) with
-  QT_QPA_PLATFORM=offscreen NETTOOLKIT_DEMO=<tool-id> NETTOOLKIT_SCREENSHOT=<png>
-  NETTOOLKIT_MANIFEST=manifest/tools.yaml PYTHONPATH=touchmode. In QEMU: `make test-touch`
-  (kernel params nettoolkit.ui=touch + nettoolkit.demo=<id> auto-open and run a tool).
+- (phase 4) Touch Mode = `backpack-touch` deb: python package in /usr/lib/python3/dist-packages,
+  `/usr/bin/backpack-touch-session` (sway -c /etc/backpack/sway.config), wayland-sessions
+  entry `backpack-touch`, unit `backpack-ui.service` (ConditionKernelCommandLine
+  backpack.ui=touch) writes lightdm.conf.d/60-backpack-touch.conf before lightdm starts.
+  Test the app without an ISO: `docker run ... backpack-qt` (tools/docker/Dockerfile.qt) with
+  QT_QPA_PLATFORM=offscreen BACKPACK_DEMO=<tool-id> BACKPACK_SCREENSHOT=<png>
+  BACKPACK_MANIFEST=manifest/tools.yaml PYTHONPATH=touchmode. In QEMU: `make test-touch`
+  (kernel params backpack.ui=touch + backpack.demo=<id> auto-open and run a tool).
   Manifest extras: `tty: true` (run in foot), `sep: ""` (join flag+value), `gui: true`.
 - (phase 4 debug) sway config: `{ ... }` blocks (bar, input) MUST be multi-line; a one-line
   `bar { mode invisible }` makes sway report "Error(s) loading config!" (the `}` is unmatched).
@@ -89,14 +89,14 @@ make release
     Hardware tablet taps via the monitor are flaky under nested virt; not a product defect —
     libinput enumerates the touch device under sway, so real touchscreens deliver events.
   * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.
-- (phase 5) Branding + splash: assets generated in branding/ by tools/assets/gen-branding.sh (ImageMagick via nettoolkit-edex),
-  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/nettoolkit.png + LXQt skel,
+- (phase 5) Branding + splash: assets generated in branding/ by tools/assets/gen-branding.sh (ImageMagick via backpack-edex),
+  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png + LXQt skel,
   greeter bg via lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd). Boot menus branded:
-  syslinux stdmenu.cfg colors + splash.png + "NetToolkit Live" title; GRUB background_image.
-  Plymouth theme "nettoolkit" (script module, splash.png) set in hook 0300 + update-initramfs.
+  syslinux stdmenu.cfg colors + splash.png + "Backpack Live" title; GRUB background_image.
+  Plymouth theme "backpack" (script module, splash.png) set in hook 0300 + update-initramfs.
   Plymouth cost: +74 MiB (plymouth-label pulls pango/cairo/fonts) but **no boot-time regression**
   (BIOS desktop 21.1s vs 21.4s before). `splash` added to bootappend.
-- `make release` -> build/release/nettoolkit-live-<UTCdate>-amd64.iso + SHA256SUMS (scripts/release.sh).
+- `make release` -> build/release/backpack-live-<UTCdate>-amd64.iso + SHA256SUMS (scripts/release.sh).
 - Final ISO: 1023 MiB (target < 1.5 GB). README.md documents build/test/USB/add-a-tool/persistence.
 
 - (ventoy diagnosis) Reproduced the user's failure with REAL Ventoy 1.1.17 in QEMU UEFI.
@@ -108,14 +108,14 @@ make release
   QEMU needs -m 2G here (host ~3 GB free).
 
 - (ventoy variant) `make ventoy` (scripts/make-ventoy-iso.sh) strips the `persistence` boot param
-  from grub.cfg + isolinux/live.cfg and repacks build/nettoolkit.iso -> build/nettoolkit-ventoy.iso
+  from grub.cfg + isolinux/live.cfg and repacks build/backpack.iso -> build/backpack-ventoy.iso
   via `xorriso -boot_image any replay` (seconds, no full rebuild; El Torito/isohybrid preserved).
   For Ventoy use (memdisk mode); does NOT fix Ventoy normal/grub2 mode (that is the Ventoy GRUB
   vs trixie-kernel issue). Verified: boot structure identical to the source ISO; BIOS boot runs.
 
 - (ventoy SOLUTION) `make ventoy` (scripts/make-ventoy-iso.sh) now produces build/ventoy-dist/:
   the persistence-stripped ISO + `ventoy/ventoy.json` with Ventoy's **auto_memdisk** plugin
-  (`{"auto_memdisk":["/nettoolkit-ventoy.iso"]}`) + README-VENTOY.txt. The user copies BOTH to
+  (`{"auto_memdisk":["/backpack-ventoy.iso"]}`) + README-VENTOY.txt. The user copies BOTH to
   the Ventoy drive root; Ventoy then boots this ISO straight into memdisk mode (no manual menu),
   which is the only mode that loads the trixie kernel. VERIFIED in real Ventoy 1.1.17 (QEMU UEFI):
   selecting the ISO goes directly to "memdisk mode boot ... Loading ISO file to memory"; memdisk
@@ -124,23 +124,23 @@ make release
   Ventoy repro tooling: tools/ventoy/ (make-ventoy-usb.sh, add-auto-memdisk-json.sh, loopback-emul.sh).
 
 - (touch mode v2) Top bar is responsive: `compact` (width < 1100) collapses the tool buttons to
-  icon-only (icons in touchmode/nettoolkit_touch/icons/, generated by tools/assets/gen-icons.sh; the
+  icon-only (icons in touchmode/backpack_touch/icons/, generated by tools/assets/gen-icons.sh; the
   eDEX one is the vendored project's 128x128 icon); Reboot/Shutdown are always icon-only; the
   "Touch Mode" subtitle needs >= 1400 px. `portrait` (height > width) stacks tiles over the tool
   pane (GridLayout columns 1) and makes Split use `splitv` (terminal BELOW) instead of `splith`.
-  Split is single-instance: foot is launched with `--app-id nettoolkit-split`; System polls
+  Split is single-instance: foot is launched with `--app-id backpack-split`; System polls
   `swaymsg -t get_tree` every 1.5 s for that app_id, so the button reads "Exit split" (kills it)
   and reverts if the user closes the terminal themselves. Terminal button = fullscreen foot
-  (`--app-id nettoolkit-term`, sway `for_window ... fullscreen enable`); `exit` returns.
+  (`--app-id backpack-term`, sway `for_window ... fullscreen enable`); `exit` returns.
   On-screen keyboard = `wvkbd-mobintl` started hidden by sway.config; SIGUSR2 shows / SIGUSR1
   hides (System.showKeyboard/hideKeyboard); text fields call showKeyboard on focus. It uses the
   wlroots virtual-keyboard protocol so it types into foot/eDEX too (it is NOT a Qt IM).
   Wi-Fi overlay (WifiOverlay.qml + Wifi QObject) drives `nmcli` async: scan (-t fields
   IN-USE,SSID,SIGNAL,SECURITY), connect (dev wifi connect SSID password PW), disconnect, forget.
-  Test hooks: NETTOOLKIT_SIZE=WxH (offscreen window size), NETTOOLKIT_DEMO_WIFI=1 (open overlay).
+  Test hooks: BACKPACK_SIZE=WxH (offscreen window size), BACKPACK_DEMO_WIFI=1 (open overlay).
 - (toram progress) includes.chroot/lib/live/boot/9990-toram-todisk.sh overrides live-boot's copy:
-  `nettoolkit_copy_progress` runs `cp -a` in the background and polls `du -sk` of the tmpfs,
-  sending `plymouth message --text=toram:<pct>` once per percent; the nettoolkit plymouth theme
+  `backpack_copy_progress` runs `cp -a` in the background and polls `du -sk` of the tmpfs,
+  sending `plymouth message --text=toram:<pct>` once per percent; the backpack plymouth theme
   draws those as a bar (bar.png/barbg.png scaled) + "Copying to memory NN%". Non-toram messages
   still render as text. Verify with scripts/test-toram-progress.sh (frames in build/shots/toram-*.png).
   The override must be re-derived if live-boot's script changes (it is a patched copy).

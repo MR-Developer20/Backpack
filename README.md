@@ -1,4 +1,4 @@
-# NetToolkit Live
+# Backpack Live
 
 [![ci](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
@@ -47,7 +47,7 @@ Discovery, connectivity, capture, wireless, throughput, and DNS/HTTP tools — n
 netdiscover, tcpdump, tshark/wireshark, iperf3, mtr, hping3, kismet, aircrack-ng, Angry IP
 Scanner, and more. The full list with per-tool commands lives in
 [`manifest/tools.yaml`](manifest/tools.yaml) and is installed on the image at
-`/etc/nettoolkit/tools.yaml`.
+`/etc/backpack/tools.yaml`.
 
 Default login: user **`user`**, password **`live`**, passwordless `sudo`.
 
@@ -57,7 +57,7 @@ The build runs `live-build` inside a privileged `debian:trixie` Docker container
 so it works on any host with Docker. QEMU and OVMF are used from the host for testing.
 
 ```bash
-make build          # -> build/nettoolkit.iso   (full log: build/logs/build.log)
+make build          # -> build/backpack.iso   (full log: build/logs/build.log)
 make test-bios      # boot the ISO in QEMU (BIOS) and wait for the in-guest self-test
 make test-uefi      # same, UEFI (OVMF)
 make test-persist   # persistence matrix (BIOS/UEFI x normal/toram)
@@ -77,7 +77,7 @@ modernized fork in `touchmode/edex/` (Electron 37). It is not built by `make bui
 once and it is picked up by the next `make build`:
 
 ```bash
-docker build -t nettoolkit-edex -f tools/docker/Dockerfile.edex tools/docker
+docker build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
 scripts/build-edex-deb.sh        # -> live/config/packages.chroot/edex-ui_*.deb
 ```
 
@@ -111,7 +111,7 @@ The writer adds a 5 GB ext4 partition labelled `persistence` holding a `persiste
 unions these directories across reboots (targeted, not a full `/` overlay):
 
 - `/home` — your files and app settings
-- `/var/lib/nettoolkit` — tool data
+- `/var/lib/backpack` — tool data
 - `/etc/NetworkManager` — saved network connections
 
 Persistence works with the `toram` boot entries too. Boot with the `persistence` parameter
@@ -126,7 +126,7 @@ Everything is driven by one file, `manifest/tools.yaml`. To add a tool:
 2. Regenerate the package list and the installed manifest:
 
    ```bash
-   make manifest      # rewrites live/config/package-lists/nettoolkit.list.chroot
+   make manifest      # rewrites live/config/package-lists/backpack.list.chroot
    ```
 
 3. `make build`. For an upstream `.deb` or apt key, `make fetch` downloads and checksum-verifies
@@ -141,7 +141,7 @@ second place to edit.
 |---|---|
 | Desktop (LXQt) | *(default)* |
 | Terminal | `systemd.unit=multi-user.target` |
-| Touch Mode | `nettoolkit.ui=touch` |
+| Touch Mode | `backpack.ui=touch` |
 | … copy to RAM | the above plus `toram` |
 
 ## Layout

@@ -1,9 +1,9 @@
-# NetToolkit Live
+# Backpack Live
 # USE_DOCKER=1 (default) runs live-build inside a privileged debian:trixie container.
 USE_DOCKER ?= 1
 DOCKER     ?= docker
-IMAGE      ?= nettoolkit-build
-ISO        := build/nettoolkit.iso
+IMAGE      ?= backpack-build
+ISO        := build/backpack.iso
 DEV        ?=
 SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
@@ -18,10 +18,10 @@ check-manifest:
 
 manifest: check-manifest
 	python3 scripts/gen-package-list.py
-	mkdir -p live/config/includes.chroot/etc/nettoolkit
-	cp manifest/tools.yaml live/config/includes.chroot/etc/nettoolkit/tools.yaml
-	mkdir -p live/config/includes.chroot/usr/local/lib/nettoolkit
-	cp scripts/gen-package-list.py scripts/check-tools.sh live/config/includes.chroot/usr/local/lib/nettoolkit/
+	mkdir -p live/config/includes.chroot/etc/backpack
+	cp manifest/tools.yaml live/config/includes.chroot/etc/backpack/tools.yaml
+	mkdir -p live/config/includes.chroot/usr/local/lib/backpack
+	cp scripts/gen-package-list.py scripts/check-tools.sh live/config/includes.chroot/usr/local/lib/backpack/
 
 fetch:
 	scripts/fetch-upstream.sh
@@ -61,7 +61,7 @@ test-persist:
 	scripts/test-persist.sh
 
 test-touch:
-	scripts/test-qemu.sh --headless --touch --direct --append "nettoolkit.ui=touch nettoolkit.demo=fping" --tag touch --keep-alive 20
+	scripts/test-qemu.sh --headless --touch --direct --append "backpack.ui=touch backpack.demo=fping" --tag touch --keep-alive 20
 
 mkusb:
 	@test -n "$(DEV)" || { echo "usage: make mkusb DEV=/dev/sdX [SIZE=5G] [KEEP=1]"; exit 1; }

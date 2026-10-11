@@ -7,7 +7,7 @@ rm -f build/qemu-*.sock build/logs/serial-toram.log build/shots/toram-*.png
 nohup scripts/test-qemu.sh --headless --direct --append "toram" --tag toram --timeout 300 --keep-alive 10 > build/logs/toram-run.out 2>&1 &
 until [ -S build/qemu-mon.sock ]; do sleep 1; done
 i=0
-while ! grep -q NETTOOLKIT-SELFTEST-DONE build/logs/serial-toram.log 2>/dev/null && [ $i -lt 60 ]; do
+while ! grep -q BACKPACK-SELFTEST-DONE build/logs/serial-toram.log 2>/dev/null && [ $i -lt 60 ]; do
   i=$((i+1)); n=$(printf '%02d' $i)
   echo "screendump $ROOT/build/shots/toram-$n.ppm" | socat -t3 - UNIX-CONNECT:build/qemu-mon.sock >/dev/null 2>&1
   sleep 2

@@ -1,4 +1,4 @@
-"""Load /etc/nettoolkit/tools.yaml and build command lines from arg values."""
+"""Load /etc/backpack/tools.yaml and build command lines from arg values."""
 import os
 import shlex
 import yaml
@@ -8,11 +8,11 @@ CATEGORY_LABELS = {
     "discovery": "Discovery", "connectivity": "Connectivity", "capture": "Capture",
     "wireless": "Wireless", "throughput": "Throughput", "dns-http": "DNS / HTTP",
 }
-DEFAULT_PATH = "/etc/nettoolkit/tools.yaml"
+DEFAULT_PATH = "/etc/backpack/tools.yaml"
 
 
 def manifest_path():
-    return os.environ.get("NETTOOLKIT_MANIFEST", DEFAULT_PATH)
+    return os.environ.get("BACKPACK_MANIFEST", DEFAULT_PATH)
 
 
 def load(path=None):

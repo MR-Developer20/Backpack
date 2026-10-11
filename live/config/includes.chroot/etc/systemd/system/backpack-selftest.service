@@ -1,12 +1,12 @@
 [Unit]
-Description=NetToolkit boot self-test (reports to serial port when run in a VM)
+Description=Backpack boot self-test (reports to serial port when run in a VM)
 ConditionVirtualization=vm
 ConditionPathExists=/dev/ttyS0
 After=live-config.service network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/nettoolkit-selftest
+ExecStart=/usr/local/sbin/backpack-selftest
 
 [Install]
 WantedBy=multi-user.target

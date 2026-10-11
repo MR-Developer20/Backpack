@@ -1,4 +1,4 @@
-# Build container for NetToolkit Live (live-build needs a Debian trixie userland; run --privileged).
+# Build container for Backpack Live (live-build needs a Debian trixie userland; run --privileged).
 FROM debian:trixie
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \

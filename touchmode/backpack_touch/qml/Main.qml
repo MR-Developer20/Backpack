@@ -13,7 +13,7 @@ ApplicationWindow {
     visibility: Window.Windowed
     width: 1280; height: 800
     color: Theme.bg
-    title: "NetToolkit Live"
+    title: "Backpack Live"
 
     // layout modes: narrow (split view or portrait) -> icon-only top bar; portrait -> stacked panes
     readonly property bool portrait: height > width
@@ -52,7 +52,7 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 10
             spacing: win.compact ? 6 : 10
-            Text { text: win.compact ? "NTK" : "NetToolkit Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
+            Text { text: win.compact ? "NTK" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
             Text { visible: win.width >= 1400; text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
             Item { Layout.fillWidth: true }
             TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }

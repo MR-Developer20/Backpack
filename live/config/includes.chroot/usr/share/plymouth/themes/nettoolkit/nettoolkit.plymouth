@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=NetToolkit Live
-Description=NetToolkit Live boot splash
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/nettoolkit
-ScriptFile=/usr/share/plymouth/themes/nettoolkit/nettoolkit.script
