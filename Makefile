@@ -9,7 +9,7 @@ SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
 
 .PHONY: all check-manifest manifest fetch docker-image build clean distclean \
-        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui release check-tools touch-deb test-touch ventoy
+        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui usb-writer release check-tools touch-deb test-touch ventoy
 
 all: build
 
@@ -69,6 +69,9 @@ mkusb:
 
 mkusb-gui:
 	scripts/mkusb-gui.py
+
+usb-writer: ## package the GUI as .deb + AppImage -> build/dist/ (VERSION=1.2.0 optional)
+	scripts/build-usb-writer.sh
 
 check-tools:
 	scripts/check-tools.sh manifest/tools.yaml

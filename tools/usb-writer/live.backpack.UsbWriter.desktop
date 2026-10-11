@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Backpack USB Writer
+Comment=Write the Backpack Live ISO to a USB drive with a persistence partition
+Exec=backpack-usb-writer
+Icon=backpack-usb-writer
+Terminal=false
+Categories=System;Utility;
+Keywords=usb;iso;live;backpack;persistence;

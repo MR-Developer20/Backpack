@@ -1,0 +1,15 @@
+#!/bin/sh
+# AppImage entry point for the Backpack USB Writer (scripts/mkusb-gui.py + scripts/mkusb.sh).
+# The GUI uses the host's python3-gi + GTK 4 (not bundled). mkusb.sh runs as root via pkexec,
+# and root cannot read the user's FUSE-mounted AppImage, so the scripts are copied out first.
+HERE="$(dirname "$(readlink -f "$0")")"
+if ! python3 -c 'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk' 2>/dev/null; then
+  MSG="Backpack USB Writer needs python3-gi and GTK 4.10+ (Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-4.0)."
+  echo "$MSG" >&2
+  command -v notify-send >/dev/null && notify-send "Backpack USB Writer" "$MSG"
+  exit 1
+fi
+RUN="$(mktemp -d "${TMPDIR:-/tmp}/backpack-usb-writer.XXXXXX")" || exit 1
+trap 'rm -rf "$RUN"' EXIT INT TERM
+cp -r "$HERE/usr/share/backpack-usb-writer/." "$RUN/"
+python3 "$RUN/scripts/mkusb-gui.py" "$@"
