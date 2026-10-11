@@ -1,5 +1,10 @@
 # Backpack Live — Claude Code build prompt
 
+> **Revision (2026-10):** the LXQt "Desktop" mode described below was removed. The image now has two
+> boot modes: **GUI Mode** (formerly "Touch Mode", the sway/PySide6 launcher) and **CLI Mode**
+> (formerly "Terminal"). Internal names (`backpack.ui=touch`, `backpack-touch`, `touchmode/`) are unchanged.
+
+
 Build a bootable Debian live USB for network discovery/testing ("Hiren's BootCD, but Linux + network tools"). Work phase by phase in the order below. Stop at each phase gate and wait for my approval before continuing.
 
 ## Decisions (fixed — do not re-research or propose alternatives)

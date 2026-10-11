@@ -1,5 +1,5 @@
 #!/bin/sh
-# Wayland session entry for LightDM: locked-down sway running the Touch Mode launcher.
+# Wayland session entry for LightDM: locked-down sway running the GUI Mode launcher.
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=sway
 export QT_QPA_PLATFORM=wayland QT_QUICK_CONTROLS_STYLE=Basic
 export WLR_RENDERER_ALLOW_SOFTWARE=1

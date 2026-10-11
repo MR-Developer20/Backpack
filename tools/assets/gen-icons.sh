@@ -1,5 +1,5 @@
 #!/bin/sh
-# Generate the Touch Mode top-bar icons (96x96 PNG, white on transparent) and the plymouth
+# Generate the GUI Mode top-bar icons (96x96 PNG, white on transparent) and the plymouth
 # progress-bar pixels. Run inside the backpack-edex container (has ImageMagick):
 #   docker run --rm -v "$PWD":/work backpack-edex sh /work/tools/assets/gen-icons.sh
 set -e

@@ -18,3 +18,8 @@ foot
 xwayland
 libgl1-mesa-dri
 wvkbd
+lightdm
+lightdm-gtk-greeter
+fonts-dejavu-core
+xdg-utils
+xdg-user-dirs

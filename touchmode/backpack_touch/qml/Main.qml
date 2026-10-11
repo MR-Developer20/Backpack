@@ -53,7 +53,7 @@ ApplicationWindow {
             anchors.margins: 10
             spacing: win.compact ? 6 : 10
             Text { text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
-            Text { visible: win.width >= 1400; text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
+            Text { visible: win.width >= 1400; text: "GUI Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
             Item { Layout.fillWidth: true }
             TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
             TouchButton {
