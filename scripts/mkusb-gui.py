@@ -4,21 +4,43 @@
 Runs mkusb.sh through pkexec (graphical password prompt) and streams its output.
 Only USB / hot-pluggable whole disks are offered; the disk holding / is never listed.
 Needs python3-gi + GTK 4.10+ (stock on Ubuntu 24.04+/Debian trixie desktops).
+
+Works from a repo checkout (uses ../scripts/mkusb.sh and ../build/backpack.iso) and when
+installed from the backpack-mkusb .deb (uses /usr/libexec/backpack/mkusb.sh and offers the
+newest backpack*.iso found in ~/Downloads). BACKPACK_MKUSB overrides the helper path.
 """
+import glob
 import json
 import os
 import re
 import subprocess
 import sys
 
-import gi
+__version__ = "0.1.0"
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_MKUSB = os.path.join(ROOT, "scripts", "mkusb.sh")
+MKUSB = os.environ.get("BACKPACK_MKUSB") or (
+    _REPO_MKUSB if os.path.isfile(_REPO_MKUSB) else "/usr/libexec/backpack/mkusb.sh")
+
+
+def default_iso():
+    """build/backpack.iso of a checkout, else the newest backpack*.iso in ~/Downloads, else ''."""
+    repo_iso = os.path.join(ROOT, "build", "backpack.iso")
+    if os.path.isfile(repo_iso):
+        return repo_iso
+    found = glob.glob(os.path.expanduser("~/Downloads/backpack*.iso"))
+    return max(found, key=os.path.getmtime) if found else ""
+
+
+if "--version" in sys.argv[1:]:
+    print(f"backpack-mkusb-gui {__version__}")
+    sys.exit(0)
+
+import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, Gtk, Pango  # noqa: E402
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MKUSB = os.path.join(ROOT, "scripts", "mkusb.sh")
-DEFAULT_ISO = os.path.join(ROOT, "build", "backpack.iso")
 
 
 def human(n):
@@ -68,7 +90,7 @@ class Win(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="Backpack USB Writer")
         self.set_default_size(640, 520)
-        self.iso = DEFAULT_ISO if os.path.isfile(DEFAULT_ISO) else ""
+        self.iso = default_iso()
         self.disks = []
         self.proc = None
         self.buf = ""
@@ -161,10 +183,12 @@ class Win(Gtk.ApplicationWindow):
         self.iso_label.set_text(self.iso or "(none selected)")
         self.keep.set_sensitive(bool(d and d["has_persistence"]) and not busy)
         self.size.set_sensitive(self.fresh.get_active() and not busy)
-        self.write_btn.set_sensitive(bool(d and self.iso) and not busy)
+        self.write_btn.set_sensitive(bool(d and self.iso and os.path.isfile(MKUSB)) and not busy)
         if not busy:
-            if not self.iso:
-                self.status.set_text("Choose an ISO image (run `make build` to create build/backpack.iso).")
+            if not os.path.isfile(MKUSB):
+                self.status.set_text(f"Helper not found: {MKUSB} (install backpack-mkusb or run from a checkout).")
+            elif not self.iso:
+                self.status.set_text("Choose an ISO image (a Backpack release download, or build/backpack.iso from `make build`).")
             elif not d:
                 self.status.set_text("No USB drive detected.")
             elif d["has_persistence"]:

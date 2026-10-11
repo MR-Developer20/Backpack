@@ -25,6 +25,11 @@ scripts/check-tools.sh         command -v for every manifest cmd; prints MISSING
 scripts/fetch-upstream.sh      upstream .debs → live/config/packages.chroot, keys → config/archives
 scripts/test-qemu.sh           boot ISO in QEMU (BIOS/UEFI/direct-kernel), waits for selftest marker
 scripts/mkusb.sh               write USB or test image + persistence partition
+scripts/mkusb-gui.py           GTK4 front-end for mkusb.sh (pkexec); works from checkout or installed
+scripts/build-mkusb-deb.sh     dpkg-deb -> build/backpack-mkusb_*.deb (mkusb.sh + GUI + .desktop + polkit policy)
+mkusb/                         backpack-mkusb.desktop + live.backpack.mkusb.policy for that deb
+.github/workflows/ci.yml       every push/PR: manifest, syntax, both debs build (no ISO)
+.github/workflows/build-iso.yml manual or tag v*: make build/release/ventoy in Docker + mkusb deb; tag -> GitHub Release
 live/auto/{config,build,clean} live-build config
 touchmode/                     PySide6/QML Touch Mode app + sway config + session files (phase 4)
 scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/backpack-touch_*.deb (run by make build)
@@ -40,6 +45,7 @@ make test-bios / test-uefi / test-persist
 make mkusb DEV=/dev/sdX [SIZE=5G]   # sudo; refuses disks > 256G without --force
 make test-usb-img                  # build/test-usb.img (8G sparse) with persistence partition
 make release
+make mkusb-deb     # installable USB writer (CLI + GUI) -> build/backpack-mkusb_*.deb
 ```
 
 ## Gotchas log
@@ -161,3 +167,14 @@ make release
   BELOW (800x640 each); copy-to-RAM shows the plymouth bar (frames at 64% and 100%).
   Don't put `pkill ... qemu-system` at the top of a Bash call that also starts a VM: its non-zero
   exit (no process) or the kill aborts the rest of the call. Kill in a separate call.
+
+- (ci/release) `build-iso.yml`: `make build` works unchanged on ubuntu-latest (docker + --privileged);
+  caches live/cache/packages.chroot + build/cache (chown'd back to the runner user after the
+  build, the container writes them as root). `VERSION` env (set from the tag) is honoured by
+  scripts/release.sh and scripts/build-mkusb-deb.sh (leading `v` stripped). The Ventoy zip is made
+  from inside build/ventoy-dist so unzipping on the Ventoy root places ventoy/ventoy.json.
+  The mkusb GUI, installed from the deb, finds the helper at /usr/libexec/backpack/mkusb.sh
+  (BACKPACK_MKUSB overrides) and offers ~/Downloads/backpack*.iso; the polkit action's
+  `exec.path` annotation only matches that installed path, so from a checkout pkexec shows its
+  generic prompt. This sandbox's proxy blocks deb.debian.org, so the deb's install + Xvfb GUI
+  smoke test runs only in CI (the mkusb-deb job), not locally.

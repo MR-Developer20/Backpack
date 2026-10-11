@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Backpack USB Writer
+GenericName=Live USB writer
+Comment=Write a Backpack Live ISO to a USB stick with a persistence partition
+Exec=backpack-mkusb-gui
+Icon=drive-removable-media
+Terminal=false
+Categories=System;Utility;
+Keywords=usb;iso;live;persistence;backpack;

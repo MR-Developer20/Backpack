@@ -19,3 +19,9 @@ jobs:
           python3 -m py_compile touchmode/backpack_touch/*.py scripts/*.py
       - name: touch-mode deb builds
         run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/backpack-touch_*.deb | head -5
+      - name: mkusb deb builds (USB writer CLI + GUI)
+        run: |
+          sudo apt-get install -y -qq --no-install-recommends desktop-file-utils
+          scripts/build-mkusb-deb.sh /tmp/mkusb && dpkg-deb -I /tmp/mkusb/backpack-mkusb_*.deb | head -5
+          desktop-file-validate mkusb/backpack-mkusb.desktop
+          python3 -c 'import xml.dom.minidom; xml.dom.minidom.parse("mkusb/live.backpack.mkusb.policy")'

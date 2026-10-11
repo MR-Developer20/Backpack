@@ -1,0 +1,190 @@
+# Build the Backpack Live ISO and the backpack-mkusb USB-writer package.
+#
+#   * Manually (Actions -> build-iso -> Run workflow): artifacts only, kept 14 days.
+#   * On a tag `v*`: same build, plus a GitHub Release with the ISO, SHA256SUMS,
+#     the Ventoy deliverable (zip) and the backpack-mkusb .deb attached.
+#
+# The ISO build is the same `make build` used locally: live-build inside the privileged
+# debian:trixie container from ./Dockerfile. A cold build takes ~25-40 min on a hosted runner;
+# the apt package cache (live/cache/packages.chroot) and upstream .deb cache (build/cache) are
+# kept between runs with actions/cache.
+name: build-iso
+
+on:
+  workflow_dispatch:
+    inputs:
+      ventoy:
+        description: "Also produce the Ventoy deliverable (persistence-less ISO + auto_memdisk ventoy.json)"
+        type: boolean
+        default: true
+      edex:
+        description: "Also build the eDEX-UI deb first so the Touch Mode eDEX button appears (experimental, +15-25 min)"
+        type: boolean
+        default: false
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # tag v1.2.3 -> package/ISO version 1.2.3; otherwise the scripts stamp the UTC date/time
+  VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+
+jobs:
+  mkusb-deb:
+    name: backpack-mkusb .deb (USB writer CLI + GTK4 GUI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: scripts/build-mkusb-deb.sh dist
+      - name: inspect
+        run: |
+          dpkg-deb -I dist/backpack-mkusb_*.deb
+          dpkg-deb -c dist/backpack-mkusb_*.deb
+      - name: install on the runner and run the CLI + GUI entry points
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ./dist/backpack-mkusb_*.deb desktop-file-utils xvfb xauth
+          backpack-mkusb-gui --version
+          backpack-mkusb --help
+          # the installed helper must demand an --iso argument instead of looking for a checkout
+          if backpack-mkusb /dev/null 2>/tmp/err; then exit 1; fi; grep -q 'pass --iso' /tmp/err
+          desktop-file-validate /usr/share/applications/backpack-mkusb.desktop
+          python3 -c 'import xml.dom.minidom; xml.dom.minidom.parse("/usr/share/polkit-1/actions/live.backpack.mkusb.policy")'
+          # GUI smoke test: the window must stay up for 8 s under Xvfb (timeout -> exit 124) without tracebacks
+          set +e; GSK_RENDERER=cairo timeout 8 xvfb-run -a -s "-screen 0 1280x800x24" backpack-mkusb-gui >gui.log 2>&1; rc=$?; set -e
+          cat gui.log; [ "$rc" = 124 ] && ! grep -q Traceback gui.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backpack-mkusb-deb
+          path: dist/backpack-mkusb_*.deb
+          retention-days: 14
+          if-no-files-found: error
+
+  iso:
+    name: ISO (live-build in Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: free disk space (toolchains the build does not need)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL || true
+          docker image prune -af >/dev/null 2>&1 || true
+          df -h / | tail -1
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: host tools (pyyaml for the manifest, xorriso for the Ventoy repack)
+        run: |
+          pip install pyyaml
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends xorriso zip
+
+      - name: restore package caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            live/cache/packages.chroot
+            build/cache
+          key: iso-pkgcache-${{ hashFiles('live/config/package-lists/*', 'manifest/tools.yaml', 'live/auto/config', 'Dockerfile') }}
+          restore-keys: iso-pkgcache-
+
+      - name: eDEX-UI deb (optional)
+        if: ${{ inputs.edex }}
+        run: |
+          docker build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
+          scripts/build-edex-deb.sh
+          ls -l live/config/packages.chroot/
+
+      - name: make build
+        run: make build
+
+      - name: stage release files (ISO + SHA256SUMS)
+        run: make release
+
+      - name: Ventoy deliverable
+        if: ${{ github.event_name == 'push' || inputs.ventoy }}
+        run: |
+          make ventoy
+          # zip the folder's contents (not the folder): unzipping on the Ventoy drive root puts the ISO and ventoy/ventoy.json in place
+          (cd build/ventoy-dist && zip -0 -r "../release/backpack-ventoy-${VERSION:-$(date -u +%Y%m%d)}.zip" .)
+          (cd build/release && sha256sum *.zip >> SHA256SUMS)
+
+      - name: summary
+        run: |
+          { echo '### Backpack Live build'; echo; echo '```'; ls -l build/release; echo; cat build/release/SHA256SUMS; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          df -h / | tail -1
+
+      - name: make caches readable by the cache action (files are written by root inside the container)
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" live/cache build/cache 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backpack-iso
+          path: build/release/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs
+          path: build/logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [iso, mkusb-deb]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: backpack-iso
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: backpack-mkusb-deb
+          path: dist
+      - name: assemble
+        run: |
+          cd dist
+          sha256sum backpack-mkusb_*.deb >> SHA256SUMS
+          sort -k2 -o SHA256SUMS SHA256SUMS
+          ls -l; cat SHA256SUMS
+      - name: release notes
+        run: |
+          {
+            echo "## Backpack Live ${{ github.ref_name }}"
+            echo
+            echo "| File | What it is |"
+            echo "|---|---|"
+            echo "| \`backpack-live-*-amd64.iso\` | the live image (BIOS + UEFI); write it with the USB writer below for persistence |"
+            echo "| \`backpack-ventoy-*.zip\` | Ventoy users: unzip to the Ventoy drive root (ISO + \`ventoy/ventoy.json\`, see README-VENTOY.txt inside) |"
+            echo "| \`backpack-mkusb_*_all.deb\` | USB writer for Debian/Ubuntu desktops: \`sudo apt install ./backpack-mkusb_*.deb\`, then **Backpack USB Writer** in the app menu or \`sudo backpack-mkusb --iso FILE /dev/sdX\` |"
+            echo "| \`SHA256SUMS\` | checksums: \`sha256sum -c SHA256SUMS\` |"
+            echo
+            echo "Default login: user \`user\`, password \`live\`. Tools are listed in \`manifest/tools.yaml\`."
+            echo
+            echo '```'; cat dist/SHA256SUMS; echo '```'
+          } > notes.md
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" \
+            --title "Backpack Live ${{ github.ref_name }}" --notes-file notes.md --generate-notes \
+            dist/*

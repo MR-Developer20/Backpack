@@ -28,7 +28,7 @@ while [ $# -gt 0 ]; do
     *) TARGET="$1";;
   esac; shift
 done
-[ -f "$ISO" ] || { echo "ISO not found: $ISO (run make build)" >&2; exit 2; }
+[ -f "$ISO" ] || { echo "ISO not found: $ISO (pass --iso FILE, or run make build)" >&2; exit 2; }
 
 run() { echo "+ $*"; [ $DRY = 1 ] || "$@"; }
 run_sh() { echo "+ $1"; [ $DRY = 1 ] || bash -c "$1"; }

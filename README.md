@@ -96,6 +96,39 @@ scripts/mkusb.sh --dry-run /dev/sdX   # print every command without touching the
 `mkusb.sh` refuses disks larger than 256 GB without `--force`, refuses the running system disk,
 and asks you to type the device name to confirm. **It erases the target disk.**
 
+### USB writer without a checkout (`backpack-mkusb` package)
+
+The writer and its GUI are also packaged for Debian/Ubuntu desktops, so a downloaded release
+ISO can be written without cloning this repo:
+
+```bash
+make mkusb-deb                                  # -> build/backpack-mkusb_<ver>_all.deb (also attached to releases)
+sudo apt install ./backpack-mkusb_*_all.deb     # pulls GTK 4, polkit, udisks2
+backpack-mkusb-gui                              # "Backpack USB Writer" in the app menu; offers ~/Downloads/backpack*.iso
+sudo backpack-mkusb --iso backpack-live-*.iso /dev/sdX [--size 10G | --keep-persistence]
+```
+
+The GUI lists only USB / removable whole disks, preselects *update, keep persistence* when the
+stick already carries a Backpack persistence partition, and asks for the password through
+polkit (`pkexec`) with a Backpack-specific prompt.
+
+## Releases (GitHub Actions)
+
+`.github/workflows/build-iso.yml` runs the same `make build` in a privileged `debian:trixie`
+container on a hosted runner (cold build 25-40 min; apt and upstream-deb caches are kept between
+runs):
+
+- **Run workflow** (Actions → build-iso) builds the ISO + `SHA256SUMS`, the Ventoy zip and the
+  `backpack-mkusb` deb as downloadable artifacts (14 days). Optional inputs: skip the Ventoy
+  deliverable; build the eDEX-UI deb first (experimental, slow).
+- **Push a tag `v*`** (`git tag v1.0 && git push origin v1.0`) does the same and publishes a
+  GitHub Release named after the tag with the ISO (`backpack-live-1.0-amd64.iso`), the Ventoy
+  zip, the deb and the combined `SHA256SUMS`.
+
+The `mkusb-deb` job also installs the package on the runner and starts the GUI under Xvfb, so a
+broken dependency or a GTK traceback fails the build. `ci.yml` (every push/PR) validates the
+manifest, shell/Python syntax and that both debs build; it never builds the ISO.
+
 ## Ventoy
 
 Ventoy's normal and grub2 modes cannot load this image's kernel (`error: cannot load image`);
