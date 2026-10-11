@@ -7,7 +7,8 @@ MANIFEST="${1:-/etc/backpack/tools.yaml}"
 GEN="$(dirname "$0")/gen-package-list.py"
 [ -f "$GEN" ] || GEN=/usr/local/lib/backpack/gen-package-list.py
 total=0; present=0
-for cmd in $(python3 "$GEN" --manifest "$MANIFEST" --print-cmds | awk '{print $2}' | sort -u); do
+CMDS="$(python3 "$GEN" --manifest "$MANIFEST" --print-cmds)" || { echo "MISSING: (cannot read manifest $MANIFEST)"; echo "TOOLS: 0/0 present"; exit 1; }
+for cmd in $(printf '%s\n' "$CMDS" | awk '{print $2}' | sort -u); do
   total=$((total+1))
   if command -v "$cmd" >/dev/null 2>&1 || [ -x "/usr/sbin/$cmd" ] || [ -x "/sbin/$cmd" ]; then
     present=$((present+1))

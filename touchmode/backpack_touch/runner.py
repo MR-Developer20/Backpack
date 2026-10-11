@@ -1,8 +1,6 @@
 """Run manifest commands and stream their output to QML; session controls (split, keyboard, Wi-Fi)."""
-import json
 import os
 import shlex
-import signal
 import subprocess
 from PySide6.QtCore import QObject, QProcess, QTimer, Property, Signal, Slot
 
@@ -50,7 +48,9 @@ class Runner(QObject):
             return
         if cmd["tty"]:
             script = manifest.display(argv) + '; echo; echo "[press Enter to close]"; read _'
-            QProcess.startDetached(TERMINAL, ["-e", "sh", "-c", script])
+            # like openTerminal/toggleSplit: leave fullscreen first or foot opens behind the launcher
+            QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec "
+                                          + shlex.join([TERMINAL, "sh", "-c", script])])
             self.output.emit(f"opened in terminal: {manifest.display(argv)}\n")
             return
         self.stop()
@@ -59,7 +59,13 @@ class Runner(QObject):
         p.readyReadStandardOutput.connect(lambda: self.output.emit(
             bytes(p.readAllStandardOutput().data()).decode("utf-8", "replace")))
         p.finished.connect(self._finished)
-        p.errorOccurred.connect(lambda e, prog=argv[0]: self.error.emit(f"{prog}: {e.name if hasattr(e, 'name') else e}"))
+
+        def _error(e, prog=argv[0]):
+            self.error.emit(f"{prog}: {e.name if hasattr(e, 'name') else e}")
+            if e == QProcess.ProcessError.FailedToStart:   # no finished() follows: release the Run button
+                self._proc = None
+                self.runningChanged.emit()
+        p.errorOccurred.connect(_error)
         p.setProgram(argv[0])
         p.setArguments(argv[1:])
         self._proc = p
@@ -180,6 +186,25 @@ class System(QObject):
         QProcess.startDetached("sh", ["-c", "systemctl reboot || sudo -n systemctl reboot"])
 
 
+def _nmcli_fields(line):
+    """Split one `nmcli -t` line into fields; nmcli escapes ':' and '\\' inside values as '\\:' and '\\\\'."""
+    fields, cur, i = [], [], 0
+    while i < len(line):
+        c = line[i]
+        if c == "\\" and i + 1 < len(line):
+            cur.append(line[i + 1])
+            i += 2
+            continue
+        if c == ":":
+            fields.append("".join(cur))
+            cur = []
+        else:
+            cur.append(c)
+        i += 1
+    fields.append("".join(cur))
+    return fields
+
+
 class Wifi(QObject):
     """Wi-Fi discovery/connection via NetworkManager (nmcli). The live user is in `netdev`."""
     networksChanged = Signal()
@@ -216,11 +241,14 @@ class Wifi(QObject):
         p.setProcessChannelMode(QProcess.MergedChannels)
         self._procs.append(p)
         def _fin(code, _status):
+            if p not in self._procs:   # errorOccurred (e.g. Crashed) may precede finished
+                return
             out = bytes(p.readAllStandardOutput().data()).decode("utf-8", "replace")
             self._procs.remove(p)
             done(code, out)
         p.finished.connect(_fin)
-        p.errorOccurred.connect(lambda e: (p in self._procs) and _fin(-1, "nmcli not available"))
+        # FailedToStart never gets a finished(); any other error (e.g. Crashed) does, with the real output
+        p.errorOccurred.connect(lambda e: e == QProcess.ProcessError.FailedToStart and _fin(-1, "nmcli not available"))
         p.start("nmcli", args)
 
     def _set_busy(self, b):
@@ -237,7 +265,7 @@ class Wifi(QObject):
             dev = ""
             state = ""
             for line in out.splitlines():
-                parts = line.split(":")
+                parts = _nmcli_fields(line)
                 if len(parts) >= 3 and parts[1] == "wifi":
                     dev, state = parts[0], parts[2]
                     break
@@ -247,7 +275,7 @@ class Wifi(QObject):
                 return
             def done_act(code2, out2):
                 for line in out2.splitlines():
-                    p = line.split(":")
+                    p = _nmcli_fields(line)
                     if len(p) >= 3 and p[2] == dev:
                         self._set_status(f"Connected to {p[0]} on {dev}")
                         return
@@ -264,11 +292,11 @@ class Wifi(QObject):
         def done(code, out):
             best = {}
             for line in out.splitlines():
-                # IN-USE:SSID:SIGNAL:SECURITY  (SSID may contain escaped colons "\:")
-                parts = line.replace("\\:", "\x00").split(":")
+                # IN-USE:SSID:SIGNAL:SECURITY  (SSID may contain escaped ":" and "\\")
+                parts = _nmcli_fields(line)
                 if len(parts) < 4:
                     continue
-                inuse, ssid, signal_, sec = parts[0], parts[1].replace("\x00", ":"), parts[2], parts[3]
+                inuse, ssid, signal_, sec = parts[0], parts[1], parts[2], parts[3]
                 if not ssid:
                     continue
                 try:

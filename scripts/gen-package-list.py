@@ -47,17 +47,31 @@ def validate(doc):
                 fail(f"{tid}: apt_repo needs apt_key_url + apt_key_sha256")
             if "url" not in src and "apt_repo" not in src:
                 fail(f"{tid}: source needs url or apt_repo")
-        if not t["commands"]:
-            fail(f"{tid}: commands must be non-empty")
+        if not isinstance(t.get("gui", False), bool):
+            fail(f"{tid}: gui must be a bool")
+        if not isinstance(t["commands"], list) or not t["commands"]:
+            fail(f"{tid}: commands must be a non-empty list")
         for c in t["commands"]:
             for k in ("label", "cmd", "args", "needs_root"):
                 if k not in c:
                     fail(f"{tid}: command missing {k}")
+            if not isinstance(c["needs_root"], bool) or not isinstance(c.get("tty", False), bool):
+                fail(f"{tid}/{c['label']}: needs_root and tty must be bools")
+            if not isinstance(c["args"], list):
+                fail(f"{tid}/{c['label']}: args must be a list")
             for a in c["args"]:
                 if "name" not in a or a.get("type") not in ARG_TYPES:
                     fail(f"{tid}/{c['label']}: bad arg {a}")
                 if a["type"] == "choice" and not a.get("options"):
                     fail(f"{tid}/{c['label']}: choice arg {a['name']} needs options")
+                if a["type"] == "choice" and a.get("default") not in a["options"]:
+                    fail(f"{tid}/{c['label']}: choice arg {a['name']} default not in options")
+                if a["type"] == "flag" and (not a.get("flag") or not isinstance(a.get("default", False), bool)):
+                    fail(f"{tid}/{c['label']}: flag arg {a['name']} needs a flag and a bool default")
+                if a["type"] == "int" and not isinstance(a.get("default", 0), int):
+                    fail(f"{tid}/{c['label']}: int arg {a['name']} default must be an int")
+                if a.get("sep", " ") not in ("", " "):
+                    fail(f"{tid}/{c['label']}: arg {a['name']} sep must be \"\" or \" \"")
     return tools
 
 

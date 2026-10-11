@@ -24,7 +24,7 @@ ApplicationWindow {
     property string confirmAction: ""
     property bool wifiOpen: false
 
-    function selectTool(t) { tool = t; cmdIndex = 0; status.text = "" }
+    function selectTool(t) { cmdIndex = 0; tool = t; status.text = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
     function toolById(id) {
         if (!manifest) return null
         for (var i = 0; i < manifest.tools.length; i++) if (manifest.tools[i].id === id) return manifest.tools[i]
@@ -52,7 +52,7 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 10
             spacing: win.compact ? 6 : 10
-            Text { text: win.compact ? "NTK" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
+            Text { text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
             Text { visible: win.width >= 1400; text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
             Item { Layout.fillWidth: true }
             TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
@@ -203,7 +203,7 @@ ApplicationWindow {
                     TouchButton { text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
                     TouchButton { text: "Clear"; onClicked: output.clear() }
                     Text {
-                        visible: win.tool && win.tool.commands[win.cmdIndex].needs_root
+                        visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
                         text: "runs as root"; color: Theme.warn; font.pixelSize: Theme.smallFont
                     }
                     Item { Layout.fillWidth: true }

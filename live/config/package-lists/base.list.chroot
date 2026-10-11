@@ -8,6 +8,7 @@ firmware-iwlwifi
 firmware-realtek
 firmware-atheros
 network-manager
+polkitd
 network-manager-gnome
 sudo
 less
@@ -16,6 +17,7 @@ openssh-client
 pciutils
 usbutils
 iw
+wireless-regdb
 wireless-tools
 rfkill
 bash-completion

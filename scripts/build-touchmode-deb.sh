@@ -7,7 +7,7 @@ VER="${BASEVER}+$(date -u +%Y%m%d%H%M%S)"
 STAGE="$ROOT/build/deb/backpack-touch"; OUT="$ROOT/live/config/packages.chroot"
 rm -rf "$STAGE"; mkdir -p "$STAGE/DEBIAN" "$OUT"
 install -d "$STAGE/usr/lib/python3/dist-packages" "$STAGE/usr/bin" "$STAGE/usr/lib/backpack" \
-  "$STAGE/etc/backpack" "$STAGE/usr/share/wayland-sessions" "$STAGE/lib/systemd/system" \
+  "$STAGE/etc/backpack" "$STAGE/usr/share/wayland-sessions" "$STAGE/usr/lib/systemd/system" \
   "$STAGE/etc/systemd/system/multi-user.target.wants"
 cp -r "$SRC/backpack_touch" "$STAGE/usr/lib/python3/dist-packages/"
 find "$STAGE/usr/lib/python3" -name __pycache__ -prune -exec rm -rf {} +
@@ -15,8 +15,8 @@ install -m755 "$SRC/bin/backpack-touch" "$SRC/bin/backpack-touch-session" "$STAG
 install -m755 "$SRC/bin/backpack-ui" "$STAGE/usr/lib/backpack/"
 install -m644 "$SRC/etc/sway.config" "$STAGE/etc/backpack/"
 install -m644 "$SRC/etc/backpack-touch.desktop" "$STAGE/usr/share/wayland-sessions/"
-install -m644 "$SRC/etc/backpack-ui.service" "$STAGE/lib/systemd/system/"
-ln -s /lib/systemd/system/backpack-ui.service "$STAGE/etc/systemd/system/multi-user.target.wants/backpack-ui.service"
+install -m644 "$SRC/etc/backpack-ui.service" "$STAGE/usr/lib/systemd/system/"
+ln -s /usr/lib/systemd/system/backpack-ui.service "$STAGE/etc/systemd/system/multi-user.target.wants/backpack-ui.service"
 cat > "$STAGE/DEBIAN/control" <<CTL
 Package: backpack-touch
 Version: $VER
@@ -24,7 +24,7 @@ Section: net
 Priority: optional
 Architecture: all
 Maintainer: Backpack Live <backpack@localhost>
-Depends: python3, python3-yaml, python3-pyside6.qtcore, python3-pyside6.qtgui, python3-pyside6.qtqml, python3-pyside6.qtquick, python3-pyside6.qtquickcontrols2, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qml6-module-qtqml, qml6-module-qtqml-workerscript, qt6-wayland, sway, foot, fonts-dejavu-core
+Depends: python3, python3-yaml, python3-pyside6.qtcore, python3-pyside6.qtgui, python3-pyside6.qtqml, python3-pyside6.qtquick, python3-pyside6.qtquickcontrols2, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qml6-module-qtqml, qml6-module-qtqml-workerscript, qt6-wayland, sway, foot, wvkbd, fonts-dejavu-core
 Description: Backpack Live Touch Mode launcher
  Full-screen tile launcher for the tools in /etc/backpack/tools.yaml, running
  as a locked-down sway Wayland session selected with backpack.ui=touch.

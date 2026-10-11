@@ -11,6 +11,7 @@ Button {
     property bool compact: false
     readonly property bool iconOnly: compact && iconSource !== ""
     implicitHeight: Theme.touch
+    opacity: enabled ? 1 : 0.45
     implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + 36)
     font.pixelSize: Theme.fontSize
     background: Rectangle {
@@ -31,7 +32,6 @@ Button {
                 sourceSize.width: 96; sourceSize.height: 96
                 fillMode: Image.PreserveAspectFit
                 anchors.verticalCenter: parent.verticalCenter
-                opacity: b.enabled ? 1 : 0.4
             }
             Text {
                 visible: !b.iconOnly
