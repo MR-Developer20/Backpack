@@ -10,6 +10,7 @@ qterminal
 lightdm
 lightdm-gtk-greeter
 xserver-xorg
+xserver-xorg-video-all
 xinit
 x11-xserver-utils
 dbus-x11

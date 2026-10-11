@@ -9,7 +9,7 @@ SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
 
 .PHONY: all check-manifest manifest fetch docker-image build clean distclean \
-        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui release check-tools touch-deb test-touch
+        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui release check-tools touch-deb test-touch ventoy
 
 all: build
 
@@ -35,7 +35,7 @@ touch-deb:
 build: manifest fetch touch-deb docker-image
 	mkdir -p build/logs
 	$(LB_RUN) lb config 2>&1 | tail -n 5
-	$(LB_RUN) lb build > build/logs/build.log 2>&1 || { tail -n 40 build/logs/build.log; exit 1; }
+	$(LB_RUN) lb build > $(CURDIR)/build/logs/build.log 2>&1 || { tail -n 40 $(CURDIR)/build/logs/build.log; exit 1; }
 	cp live/live-image-amd64.hybrid.iso $(ISO)
 	ls -l $(ISO)
 

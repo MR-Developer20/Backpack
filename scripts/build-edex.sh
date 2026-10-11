@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install deps, rebuild node-pty against the bundled Electron, for the vendored eDEX-UI fork.
-# Run inside the backpack-edex container (see build/tmpl/Dockerfile.edex).
+# Run inside the backpack-edex container (see tools/docker/Dockerfile.edex).
 #   docker run --rm -v $PWD:/work -w /work/touchmode/edex backpack-edex sh /work/scripts/build-edex.sh
 set -e
 cd "$(dirname "$0")/../touchmode/edex"

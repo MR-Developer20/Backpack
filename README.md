@@ -102,8 +102,8 @@ Ventoy's normal and grub2 modes cannot load this image's kernel (`error: cannot 
 only Ventoy's **memdisk** mode works. `make ventoy` produces `build/ventoy-dist/` with the ISO
 plus a `ventoy/ventoy.json` (`auto_memdisk`) that makes Ventoy boot it in memdisk mode
 automatically — copy both to the Ventoy drive. Memdisk runs from RAM, so there is no
-persistence that way; use a dedicated stick (`make mkusb`) for persistence. See `docs/`
-and `CLAUDE.md` for the full diagnosis.
+persistence that way; use a dedicated stick (`make mkusb`) for persistence. See `CLAUDE.md`
+for the full diagnosis.
 
 ## Persistence
 

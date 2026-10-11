@@ -52,6 +52,9 @@ make release
 - Kismet's HTTPS repo needs ca-certificates inside the bootstrap: `--debootstrap-options
   "--variant=minbase --include=ca-certificates,gnupg"`. Changing bootstrap options requires
   deleting `live/cache/bootstrap` (root-owned; remove via a docker run).
+- `lb config` symlinks live-build's own hooks into `live/config/hooks/{live,normal}/` (targets under
+  /usr/share/live/build, which only exists in the container). They are gitignored: tracking them
+  dangles on every other host and broke CI's syntax loop. Project hooks are `0xxx-*.hook.chroot`.
 - `.dockerignore` excludes `live/` and `build/` (root-owned cache breaks `docker build`).
 - BIOS menu is syslinux/isolinux (template has `timeout 0`; overridden in
   `live/config/bootloaders/{isolinux,syslinux}/`). UEFI menu is GRUB (`bootloaders/grub-pc/grub.cfg`).

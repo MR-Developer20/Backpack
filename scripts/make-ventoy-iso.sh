@@ -3,7 +3,7 @@
 #
 # Ventoy's normal/grub2 modes cannot load the Debian trixie kernel's EFI image
 # ("error: cannot load image"); only Ventoy memdisk mode works (it loads the whole ISO into
-# RAM and boots the ISO's own bootloader). This script produces, under build/ventoy/:
+# RAM and boots the ISO's own bootloader). This script produces, under build/ventoy-dist/:
 #   1. backpack-ventoy.iso  - the ISO with the `persistence` boot param stripped (memdisk runs
 #      from RAM, so persistence does not apply), repacked fast with xorriso (boot records kept).
 #   2. ventoy/ventoy.json     - a Ventoy auto_memdisk plugin config so the ISO boots straight into

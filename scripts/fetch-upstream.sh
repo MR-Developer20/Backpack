@@ -14,8 +14,8 @@ for t in yaml.safe_load(open(sys.argv[1]))["tools"]:
         open(f"{sys.argv[2]}/live/config/archives/{t['id']}.list", "w").write(s["apt_repo"] + "\n")
 PY
   f="$CACHE/$(basename "$url")"
-  [ -f "$f" ] || curl -sSLo "$f" "$url"
-  echo "$sha  $f" | sha256sum -c --quiet || { echo "sha256 mismatch for $f"; exit 1; }
+  [ -f "$f" ] || curl -fsSLo "$f" "$url" || { rm -f "$f"; exit 1; }
+  echo "$sha  $f" | sha256sum -c --quiet || { echo "sha256 mismatch for $f (removed from cache)" >&2; rm -f "$f"; exit 1; }
   case "$kind" in
     deb) cp "$f" "$ROOT/live/config/packages.chroot/"; echo "deb  $id -> packages.chroot/$(basename "$f")";;
     key) cp "$f" "$ROOT/live/config/archives/$id.key"; echo "key  $id -> archives/$id.key + $id.list";;

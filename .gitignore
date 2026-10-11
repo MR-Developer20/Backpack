@@ -39,3 +39,11 @@ touchmode/edex/media/*.jpg
 *.bak
 live/.lock
 live/chroot.installed_tmp_pkgs
+
+# live-build's own hooks: `lb config` symlinks them from /usr/share/live/build/hooks/* on every
+# run inside the build container; they are dangling on any other host, so never track them
+# (project hooks are 0xxx-*.hook.chroot in hooks/normal/)
+live/config/hooks/live/*
+live/config/hooks/normal/[1-9][0-9][0-9][0-9]-*.hook.chroot
+# written by `lb build` next to the other per-build lists
+live/*.modified_timestamps
