@@ -15,7 +15,7 @@ jobs:
           diff <(grep -v '^#' /tmp/backpack.list.chroot) <(grep -v '^#' live/config/package-lists/backpack.list.chroot)
       - name: shell + python syntax
         run: |
-          for f in scripts/*.sh tools/*/*.sh live/auto/* live/config/hooks/normal/*.chroot; do sh -n "$f" || bash -n "$f"; done
+          for f in scripts/*.sh tools/*/*.sh live/auto/* live/config/hooks/normal/*.chroot; do [ -f "$f" ] || continue; sh -n "$f" || bash -n "$f"; done
           python3 -m py_compile touchmode/backpack_touch/*.py scripts/*.py
       - name: touch-mode deb builds
         run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/backpack-touch_*.deb | head -5

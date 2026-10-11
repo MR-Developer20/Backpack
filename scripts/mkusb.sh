@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
     --size) SIZE="$2"; shift;; --dry-run) DRY=1;; --force) FORCE=1;; --yes) YES=1;;
     --iso) ISO="$2"; shift;; --image) IMAGE="$2"; shift;; --image-size) IMAGE_SIZE="$2"; shift;;
     --keep-persistence) KEEP=1;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0;;
     -*) echo "unknown option: $1" >&2; exit 2;;
     *) TARGET="$1";;
   esac; shift
@@ -41,6 +41,7 @@ if [ -n "$IMAGE" ]; then
   # ---------------------------------------------------------------- image mode
   [ -z "$TARGET" ] || { echo "--image and a device are mutually exclusive" >&2; exit 2; }
   echo "Target: image file $IMAGE ($IMAGE_SIZE), persistence $SIZE"
+  run mkdir -p "$(dirname "$IMAGE")"
   run rm -f "$IMAGE"
   run truncate -s "$IMAGE_SIZE" "$IMAGE"
   run_sh "dd if='$ISO' of='$IMAGE' bs=4M conv=notrunc status=none"

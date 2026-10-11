@@ -64,8 +64,8 @@ if [ $DIRECT = 1 ]; then
     xorriso -osirrox on -indev "$ISO" -extract /live/vmlinuz "$B/direct/vmlinuz" \
             -extract /live/initrd.img "$B/direct/initrd.img" >/dev/null 2>&1
   fi
-  BASE_APPEND="$(sed -n 's/^LB_BOOTAPPEND_LIVE="\(.*\)"$/\1/p' "$ROOT/live/config/binary" 2>/dev/null)"
-  [ -n "$BASE_APPEND" ] || BASE_APPEND="boot=live components quiet persistence"
+  BASE_APPEND="$(sed -n 's/^LB_BOOTAPPEND_LIVE="\(.*\)"$/\1/p' "$ROOT/live/config/binary" 2>/dev/null || true)"
+  [ -n "$BASE_APPEND" ] || BASE_APPEND="boot=live components quiet splash hostname=backpack username=user user-default-groups=audio,cdrom,dip,floppy,video,plugdev,netdev,sudo,wireshark persistence"
   [ $CONSOLE = 1 ] && APPEND="$APPEND console=tty0 console=ttyS0,115200"   # getty on the serial socket
   Q+=(-kernel "$B/direct/vmlinuz" -initrd "$B/direct/initrd.img" -append "$BASE_APPEND $APPEND")
 fi

@@ -13,10 +13,6 @@ convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 6 -fill none -draw "ro
 # exit split: one pane + X
 convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 6 -fill none -draw "roundrectangle 8,16 88,80 6,6" \
   -draw "line 36,36 60,60" -draw "line 60,36 36,60" exitsplit.png
-# keyboard: frame + key dots
-convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 5 -fill none -draw "roundrectangle 6,24 90,72 6,6" \
-  -fill "$C" -stroke none $(for y in 36 50; do for x in 18 30 42 54 66 78; do printf -- '-draw "rectangle %d,%d %d,%d" ' $x $y $((x+6)) $((y+6)); done; done | sed 's/"//g' | tr ' ' '\n' | paste -d' ' - - | sed 's/^/ /' | tr '\n' ' ') \
-  -draw "rectangle 24,60 72,66" keyboard.png
 # wifi: three arcs + dot (arcs drawn as circles then bottom half masked)
 convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 6 -fill none \
   -draw "arc 8,20 88,100 210,330" -draw "arc 22,34 74,86 210,330" -draw "arc 36,48 60,72 210,330" \
@@ -29,20 +25,13 @@ convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 7 -fill none -draw "ar
   -stroke "$C" -draw "line 48,10 48,46" power.png
 # eDEX: from the vendored project, scaled
 convert /work/touchmode/edex/media/linuxIcons/128x128.png -resize ${S}x${S} edex.png
-# plymouth progress bar pixels
-convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 6 -fill none \
-  -draw "arc 8,20 88,100 210,330" -draw "arc 22,34 74,86 210,330" -draw "arc 36,48 60,72 210,330" \
-  -fill "$C" -stroke none -draw "circle 48,78 48,84" wifi.png
-convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 7 -fill none -draw "arc 16,16 80,80 300,240" \
-  -fill "$C" -stroke none -draw "polygon 70,10 86,30 62,32" reboot.png
-convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 7 -fill none -draw "arc 16,20 80,84 300,240" \
-  -draw "line 48,10 48,46" power.png
-convert /work/touchmode/edex/media/linuxIcons/128x128.png -resize ${S}x${S} edex.png
+# keyboard: frame + key dots
 convert -size 96x96 xc:none -stroke '#e6edf3' -strokewidth 5 -fill none -draw "roundrectangle 6,24 90,72 6,6" \
   -fill '#e6edf3' -stroke none \
   -draw "rectangle 18,34 24,40" -draw "rectangle 30,34 36,40" -draw "rectangle 42,34 48,40" -draw "rectangle 54,34 60,40" -draw "rectangle 66,34 72,40" \
   -draw "rectangle 18,46 24,52" -draw "rectangle 30,46 36,52" -draw "rectangle 42,46 48,52" -draw "rectangle 54,46 60,52" -draw "rectangle 66,46 72,52" \
   -draw "rectangle 26,58 70,64" keyboard.png
+# plymouth progress bar pixels
 P=/work/live/config/includes.chroot/usr/share/plymouth/themes/backpack
 convert -size 1x1 xc:'#2ec4b6' "$P/bar.png"
 convert -size 1x1 xc:'#223038' "$P/barbg.png"
