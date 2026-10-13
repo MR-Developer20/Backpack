@@ -40,6 +40,6 @@ Rectangle {
             ctx.globalAlpha = 0.18; ctx.fillStyle = graph.lineColor; ctx.fill(); ctx.globalAlpha = 1
         }
     }
-    Text { anchors { right: parent.right; top: parent.top; margins: Theme.s(12) } text: "100%"; color: Theme.muted; font.pixelSize: Theme.s(12) }
-    Text { anchors { right: parent.right; bottom: parent.bottom; margins: Theme.s(12) } text: "60 s"; color: Theme.muted; font.pixelSize: Theme.s(12) }
+    Text { font.family: Theme.fontSans; anchors { right: parent.right; top: parent.top; margins: Theme.s(12) } text: "100%"; color: Theme.muted; font.pixelSize: Theme.s(12) }
+    Text { font.family: Theme.fontSans; anchors { right: parent.right; bottom: parent.bottom; margins: Theme.s(12) } text: "60 s"; color: Theme.muted; font.pixelSize: Theme.s(12) }
 }

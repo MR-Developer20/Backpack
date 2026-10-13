@@ -1,4 +1,4 @@
-"""GUI Mode settings popup: UI size (saved per user), Load to RAM, Switch to CLI Mode."""
+"""GUI Mode settings popup: UI size and look (saved per user), Load to RAM, Switch to CLI Mode."""
 import json
 import os
 import sys
@@ -26,6 +26,7 @@ def _clamp_scale(v):
 
 class Settings(QObject):
     uiScaleChanged = Signal()
+    fieldTerminalChanged = Signal()
     ramChanged = Signal()
 
     def __init__(self, parent=None):
@@ -37,6 +38,8 @@ class Settings(QObject):
             pass
         env = os.environ.get("BACKPACK_UI_SCALE")   # test hook
         self._scale = _clamp_scale(env if env else self._cfg.get("uiScale", 1.0))
+        style = os.environ.get("BACKPACK_UI_STYLE")   # test hook: "field" or "classic"
+        self._field = style != "classic" if style else bool(self._cfg.get("fieldTerminal", True))
         self._ram = toram.status()
         self._ram_busy = False
         self._ram_progress = 0
@@ -61,7 +64,12 @@ class Settings(QObject):
             return
         self._scale = v
         self.uiScaleChanged.emit()
-        self._cfg["uiScale"] = v
+        self._save("uiScale", v)
+
+    uiScale = Property(float, _get_scale, _set_scale, notify=uiScaleChanged)
+
+    def _save(self, key, value):
+        self._cfg[key] = value
         try:   # ~/.config is on the persistence partition when there is one
             p = config_path()
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -69,7 +77,20 @@ class Settings(QObject):
         except OSError:
             pass
 
-    uiScale = Property(float, _get_scale, _set_scale, notify=uiScaleChanged)
+    # ------------------------------------------------------------ look
+    # True = the Field Terminal design system; False = the launcher's previous look.
+    def _get_field(self):
+        return self._field
+
+    def _set_field(self, v):
+        v = bool(v)
+        if v == self._field:
+            return
+        self._field = v
+        self.fieldTerminalChanged.emit()
+        self._save("fieldTerminal", v)
+
+    fieldTerminal = Property(bool, _get_field, _set_field, notify=fieldTerminalChanged)
 
     # ------------------------------------------------------------ Load to RAM
     @Property(bool, notify=ramChanged)

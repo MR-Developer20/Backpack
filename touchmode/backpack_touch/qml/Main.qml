@@ -30,6 +30,7 @@ ApplicationWindow {
     property bool monitorOpen: false
 
     Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
+    Binding { target: Theme; property: "fieldTerminal"; value: settings ? settings.fieldTerminal : true }
 
     function sectionCategories(sec) {
         return manifest ? manifest.categories.filter(function (c) { return c.section === sec }) : []
@@ -65,8 +66,12 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: Theme.gap
             spacing: win.compact ? Theme.s(6) : Theme.gap
-            Text { visible: !win.portrait || win.width >= Theme.s(900); text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: Theme.s(28); font.bold: true }
-            Text { visible: win.width >= Theme.s(1600); text: "GUI Mode"; color: Theme.accent; font.pixelSize: Theme.s(18); Layout.leftMargin: Theme.s(4) }
+            Text {
+                visible: !win.portrait || win.width >= Theme.s(900); text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text
+                font.family: Theme.fontDisplay; font.pixelSize: Theme.s(28); font.bold: true
+                font.capitalization: Theme.upperLabels ? Font.AllUppercase : Font.MixedCase; font.letterSpacing: Theme.upperLabels ? Theme.s(1) : 0
+            }
+            Text { font.family: Theme.fontSans; visible: win.width >= Theme.s(1600); text: "GUI Mode"; color: Theme.accent; font.pixelSize: Theme.s(18); Layout.leftMargin: Theme.s(4) }
             // section tabs: Network / Data
             Repeater {
                 model: manifest ? manifest.sections : []
@@ -76,7 +81,10 @@ ApplicationWindow {
                     required property int index
                     text: win.compact ? modelData.label : modelData.label + "  " + modelData.count
                     color: win.section === modelData.id ? Theme.accent : Theme.panelAlt
-                    textColor: win.section === modelData.id ? Theme.bg : Theme.text
+                    textColor: win.section === modelData.id ? Theme.inkOnAccent : Theme.text
+                    font.capitalization: Theme.upperLabels ? Font.AllUppercase : Font.MixedCase
+                    font.letterSpacing: Theme.upperLabels ? Theme.s(2) : 0
+                    font.weight: Theme.upperLabels ? Font.DemiBold : Font.Normal
                     onClicked: win.selectSection(modelData.id)
                 }
             }
@@ -92,7 +100,7 @@ ApplicationWindow {
             TouchButton {
                 text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
                 color: (system && system.keyboardVisible) ? Theme.accent : Theme.panelAlt
-                textColor: (system && system.keyboardVisible) ? Theme.bg : Theme.text
+                textColor: (system && system.keyboardVisible) ? Theme.inkOnAccent : Theme.text
                 onClicked: system.toggleKeyboard()
             }
             TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
@@ -136,7 +144,7 @@ ApplicationWindow {
                         required property var modelData
                         text: modelData.label
                         color: win.category === modelData.id ? Theme.categoryColor(modelData.id) : Theme.panelAlt
-                        textColor: win.category === modelData.id ? Theme.bg : Theme.text
+                        textColor: win.category === modelData.id ? Theme.inkOnAccent : Theme.text
                         onClicked: win.category = modelData.id
                     }
                 }
@@ -166,11 +174,11 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.minimumWidth: 0
             Layout.minimumHeight: 0
-            radius: Theme.s(14)
+            radius: Theme.radiusLarge
             color: Theme.panel
             border.color: Theme.border
 
-            Text {
+            Text { font.family: Theme.fontSans
                 visible: !win.tool
                 anchors.centerIn: parent
                 text: "Tap a tool to begin"
@@ -184,8 +192,8 @@ ApplicationWindow {
                 anchors.margins: Theme.s(14)
                 spacing: Theme.gap
 
-                Text { text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
-                Text {
+                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
+                Text { font.family: Theme.fontSans
                     Layout.fillWidth: true
                     text: win.tool ? win.tool.description : ""
                     color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
@@ -203,7 +211,7 @@ ApplicationWindow {
                             required property var modelData
                             text: modelData.label
                             color: win.cmdIndex === index ? Theme.accent : Theme.panelAlt
-                            textColor: win.cmdIndex === index ? Theme.bg : Theme.text
+                            textColor: win.cmdIndex === index ? Theme.inkOnAccent : Theme.text
                             onClicked: win.cmdIndex = index
                         }
                     }
@@ -227,13 +235,13 @@ ApplicationWindow {
                     spacing: Theme.gap
                     TouchButton {
                         text: win.tool && win.tool.gui ? "Open" : "Run"
-                        color: Theme.accent; textColor: Theme.bg
+                        color: Theme.accent; textColor: Theme.inkOnAccent
                         enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
                     }
-                    TouchButton { visible: !win.appMode; text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
+                    TouchButton { visible: !win.appMode; text: "Stop"; color: Theme.danger; textColor: Theme.inkOnDanger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
                     TouchButton { visible: !win.appMode; text: "Clear"; onClicked: output.clear() }
-                    Text {
+                    Text { font.family: Theme.fontSans
                         visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
                         height: Theme.touch; verticalAlignment: Text.AlignVCenter
                         text: "runs as root"; color: Theme.warn; font.pixelSize: Theme.smallFont
@@ -242,7 +250,7 @@ ApplicationWindow {
                 Text {
                     id: status
                     Layout.fillWidth: true
-                    color: Theme.muted; font.pixelSize: Theme.s(13); font.family: "DejaVu Sans Mono"; elide: Text.ElideMiddle
+                    color: Theme.muted; font.pixelSize: Theme.s(13); font.family: Theme.fontMono; elide: Text.ElideMiddle
                 }
                 Item { visible: win.appMode; Layout.fillHeight: true }
                 OutputPane {
@@ -283,19 +291,19 @@ ApplicationWindow {
         MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
         Rectangle {
             anchors.centerIn: parent
-            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48); radius: Theme.s(16)
+            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48); radius: Theme.radiusPanel
             color: Theme.panel; border.color: Theme.border
             MouseArea { anchors.fill: parent }   // swallow clicks
             ColumnLayout {
                 id: confirmCol
                 anchors.fill: parent; anchors.margins: Theme.s(24); spacing: Theme.s(20)
-                Text {
+                Text { font.family: Theme.fontSans
                     Layout.fillWidth: true
                     text: confirmAction === "reboot" ? "Reboot the machine?"
                         : confirmAction === "cli" ? "Switch to CLI Mode?" : "Shut down the machine?"
                     color: Theme.text; font.pixelSize: Theme.titleFont; horizontalAlignment: Text.AlignHCenter
                 }
-                Text {
+                Text { font.family: Theme.fontSans
                     Layout.fillWidth: true
                     visible: confirmAction === "cli"
                     text: "GUI Mode closes, along with any running tools and terminals, and you get a text login on the console. Reboot to come back to GUI Mode."
@@ -308,7 +316,7 @@ ApplicationWindow {
                     TouchButton {
                         text: confirmAction === "reboot" ? "Reboot" : confirmAction === "cli" ? "Switch" : "Shut down"
                         color: confirmAction === "cli" ? Theme.warn : Theme.danger
-                        textColor: confirmAction === "cli" ? Theme.bg : Theme.text
+                        textColor: confirmAction === "cli" ? Theme.inkOnAccent : Theme.inkOnDanger
                         onClicked: {
                             var a = confirmAction; confirmAction = ""; win.settingsOpen = false
                             if (a === "reboot") system.reboot()

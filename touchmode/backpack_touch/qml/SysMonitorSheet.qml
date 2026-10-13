@@ -19,9 +19,9 @@ Rectangle {
         spacing: Theme.s(8)
         RowLayout {
             Layout.fillWidth: true
-            Text { text: sec.title; color: Theme.muted; font.pixelSize: Theme.s(14); font.bold: true; font.letterSpacing: Theme.s(2) }
+            Text { font.family: Theme.fontSans; text: sec.title; color: Theme.muted; font.pixelSize: Theme.s(14); font.bold: true; font.letterSpacing: Theme.s(2) }
             Item { Layout.fillWidth: true }
-            Text { text: sec.value; color: sec.lineColor; font.pixelSize: Theme.fontSize; font.bold: true }
+            Text { font.family: Theme.fontSans; text: sec.value; color: sec.lineColor; font.pixelSize: Theme.fontSize; font.bold: true }
         }
         UsageGraph {
             Layout.fillWidth: true
@@ -35,7 +35,7 @@ Rectangle {
             columns: 2; columnSpacing: Theme.s(14); rowSpacing: Theme.s(4)
             Repeater {
                 model: sec.facts.length * 2
-                Text {
+                Text { font.family: Theme.fontSans
                     required property int index
                     readonly property bool isLabel: index % 2 === 0
                     text: sec.facts[Math.floor(index / 2)][isLabel ? 0 : 1]
@@ -64,7 +64,7 @@ Rectangle {
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, Theme.s(760))
         height: Math.min(parent.height - 40, body.implicitHeight + Theme.s(48))
-        radius: Theme.s(16)
+        radius: Theme.radiusPanel
         color: Theme.panel; border.color: Theme.border
         MouseArea { anchors.fill: parent }   // swallow clicks
 
@@ -80,7 +80,7 @@ Rectangle {
                 spacing: Theme.s(18)
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: "System monitor"; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
+                    Text { font.family: Theme.fontSans; text: "System monitor"; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
                     Item { Layout.fillWidth: true }
                     TouchButton { text: "Close"; onClicked: sheet.closed() }
                 }

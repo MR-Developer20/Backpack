@@ -29,7 +29,7 @@ Rectangle {
             selectByMouse: true
             wrapMode: TextEdit.WrapAnywhere
             color: Theme.outputInk
-            font.family: "DejaVu Sans Mono"
+            font.family: Theme.fontMono
             font.pixelSize: Theme.smallFont
             text: ""
         }

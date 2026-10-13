@@ -198,6 +198,14 @@ make release
   tools whose command is missing (so the tab disappears without the deb) and `--print-cmds` /
   check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
   like the terminal buttons.
+- (field terminal look) Theme.qml carries two looks switched by `Theme.fieldTerminal` (bound to
+  settings.fieldTerminal, saved as `fieldTerminal` in ~/.config/backpack/gui.json, default on):
+  Field Terminal = the design system's Night tokens (palette, IBM Plex Sans Condensed / Plex Mono
+  from `fonts-ibm-plex`, caps tabs/wordmark, signal-edged selected tile); off = the launcher's
+  previous colours and DejaVu. Settings > Display has the "Field Terminal look" switch. QML takes
+  fonts from Theme.fontSans/fontMono/fontDisplay. Chakra Petch (display) is not in Debian, so the
+  wordmark falls back. Theme property names must not start with `on` + capital (QML reads them as
+  signal handlers): hence `inkOnAccent` / `inkOnDanger`. Test hook: BACKPACK_UI_STYLE=classic|field.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

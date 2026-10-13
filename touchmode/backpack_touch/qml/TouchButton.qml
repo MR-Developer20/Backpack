@@ -14,10 +14,11 @@ Button {
     opacity: enabled ? 1 : 0.45
     implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + Theme.s(36))
     font.pixelSize: Theme.fontSize
+    font.family: Theme.fontSans
     background: Rectangle {
-        radius: Theme.s(10)
+        radius: Theme.radius
         color: b.down ? Qt.lighter(b.color, 1.3) : b.color
-        border.color: Theme.border
+        border.color: Theme.borderStrong
         border.width: 1
     }
     contentItem: Item {

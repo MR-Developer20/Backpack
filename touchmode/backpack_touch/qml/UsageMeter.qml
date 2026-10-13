@@ -17,13 +17,13 @@ Rectangle {
         property real value
         property color barColor
         spacing: Theme.s(6)
-        Text { text: label; color: Theme.muted; font.pixelSize: Theme.s(13); font.bold: true; Layout.preferredWidth: Theme.s(32) }
+        Text { font.family: Theme.fontSans; text: label; color: Theme.muted; font.pixelSize: Theme.s(13); font.bold: true; Layout.preferredWidth: Theme.s(32) }
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: Theme.s(8); radius: height / 2
             color: Theme.bg
             Rectangle { width: parent.width * Math.min(1, value / 100); height: parent.height; radius: parent.radius; color: barColor }
         }
-        Text {
+        Text { font.family: Theme.fontSans
             visible: !meter.compact
             text: Math.round(value) + "%"; color: Theme.text; font.pixelSize: Theme.s(13)
             horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.s(40)

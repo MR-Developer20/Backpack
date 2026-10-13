@@ -29,7 +29,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.s(12)
 
-            Text {
+            Text { font.family: Theme.fontSans
                 text: modelData.name + (modelData.required ? " *" : "")
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
@@ -49,13 +49,13 @@ ColumnLayout {
         id: textC
         Rectangle {
             property var row
-            radius: Theme.s(8); color: Theme.panelAlt; border.color: Theme.border
+            radius: Theme.radius; color: Theme.panelAlt; border.color: Theme.borderStrong
             TextInput {
                 anchors.fill: parent; anchors.margins: Theme.s(12)
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
-                font.family: "DejaVu Sans Mono"
+                font.family: Theme.fontMono
                 inputMethodHints: row && row.modelData.type === "int" ? Qt.ImhDigitsOnly : Qt.ImhNone
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
@@ -83,7 +83,7 @@ ColumnLayout {
                         Behavior on x { NumberAnimation { duration: 80 } }
                     }
                 }
-                contentItem: Text {
+                contentItem: Text { font.family: Theme.fontSans
                     leftPadding: sw.indicator.width + Theme.s(12)
                     text: sw.checked ? (row ? row.modelData.flag : "on") : "off"
                     color: Theme.muted; font.pixelSize: Theme.fontSize
@@ -103,7 +103,7 @@ ColumnLayout {
                     required property var modelData
                     text: modelData
                     color: row && row.value === modelData ? Theme.accent : Theme.panelAlt
-                    textColor: row && row.value === modelData ? Theme.bg : Theme.text
+                    textColor: row && row.value === modelData ? Theme.inkOnAccent : Theme.text
                     onClicked: row.value = modelData
                 }
             }

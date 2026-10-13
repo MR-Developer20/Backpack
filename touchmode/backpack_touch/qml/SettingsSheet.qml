@@ -11,7 +11,7 @@ Rectangle {
     color: Theme.scrim
     MouseArea { anchors.fill: parent; onClicked: sheet.closed() }
 
-    component GroupLabel: Text {
+    component GroupLabel: Text { font.family: Theme.fontSans
         color: Theme.muted; font.pixelSize: Theme.s(14); font.bold: true; font.letterSpacing: Theme.s(2)
         font.capitalization: Font.AllUppercase
     }
@@ -21,7 +21,7 @@ Rectangle {
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, Theme.s(680))
         height: Math.min(parent.height - 40, body.implicitHeight + Theme.s(48))
-        radius: Theme.s(16)
+        radius: Theme.radiusPanel
         color: Theme.panel; border.color: Theme.border
         MouseArea { anchors.fill: parent }   // swallow clicks
 
@@ -40,7 +40,7 @@ Rectangle {
                 RowLayout {
                     Layout.fillWidth: true
                     Image { source: "../icons/settings.png"; Layout.preferredWidth: Theme.icon; Layout.preferredHeight: Theme.icon; sourceSize.width: 96; sourceSize.height: 96 }
-                    Text { text: "Settings"; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
+                    Text { font.family: Theme.fontSans; text: "Settings"; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
                     Item { Layout.fillWidth: true }
                     TouchButton { text: "Close"; onClicked: sheet.closed() }
                 }
@@ -50,7 +50,7 @@ Rectangle {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.s(14)
-                    Text { text: "UI size"; color: Theme.text; font.pixelSize: Theme.fontSize }
+                    Text { font.family: Theme.fontSans; text: "UI size"; color: Theme.text; font.pixelSize: Theme.fontSize }
                     TouchButton { text: "−"; implicitWidth: Theme.touch; onClicked: scaleSlider.value = Math.max(scaleSlider.from, scaleSlider.value - 0.05) }
                     Slider {
                         id: scaleSlider
@@ -81,7 +81,7 @@ Rectangle {
                         }
                     }
                     TouchButton { text: "+"; implicitWidth: Theme.touch; onClicked: scaleSlider.value = Math.min(scaleSlider.to, scaleSlider.value + 0.05) }
-                    Text {
+                    Text { font.family: Theme.fontSans
                         text: Math.round(scaleSlider.value * 100) + "%"
                         color: Theme.accent; font.pixelSize: Theme.fontSize; font.bold: true
                         Layout.preferredWidth: Theme.s(70); horizontalAlignment: Text.AlignRight
@@ -92,6 +92,46 @@ Rectangle {
                     text: "Reset to 100%"
                     onClicked: { settings.uiScale = 1.0; scaleSlider.value = 1.0 }
                 }
+                // Field Terminal look on/off; off is the launcher's previous look
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.touch
+                    spacing: Theme.s(14)
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.s(2)
+                        Text { font.family: Theme.fontSans; text: "Field Terminal look"; color: Theme.text; font.pixelSize: Theme.fontSize }
+                        Text {
+                            font.family: Theme.fontSans; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                            text: settings && settings.fieldTerminal ? "Neon on black, condensed type." : "Off: the previous look."
+                            color: Theme.muted; font.pixelSize: Theme.smallFont
+                        }
+                    }
+                    Text {
+                        font.family: Theme.fontSans; text: lookToggle.on ? "ON" : "OFF"
+                        color: lookToggle.on ? Theme.accent : Theme.muted
+                        font.pixelSize: Theme.s(14); font.bold: true; font.letterSpacing: Theme.s(2)
+                    }
+                    Rectangle {
+                        id: lookToggle
+                        readonly property bool on: settings ? settings.fieldTerminal : true
+                        implicitWidth: Theme.s(72); implicitHeight: Theme.s(36)
+                        radius: Theme.ft ? Theme.radius : height / 2
+                        color: on ? Theme.accentDim : Theme.outputBg
+                        border.color: on ? Theme.accent : Theme.borderStrong; border.width: 2
+                        Rectangle {
+                            width: parent.height - Theme.s(8); height: width
+                            x: lookToggle.on ? parent.width - width - Theme.s(4) : Theme.s(4)
+                            anchors.verticalCenter: parent.verticalCenter
+                            radius: Theme.ft ? Theme.s(4) : width / 2
+                            color: lookToggle.on ? Theme.accent : Theme.muted
+                        }
+                        MouseArea {   // a touch-sized hit area around the track
+                            anchors.fill: parent; anchors.margins: -Theme.s(14)
+                            onClicked: settings.fieldTerminal = !settings.fieldTerminal
+                        }
+                    }
+                }
 
                 // ------------------------------------------------ system
                 GroupLabel { text: "System"; Layout.topMargin: Theme.s(8) }
@@ -100,7 +140,7 @@ Rectangle {
                     spacing: Theme.gap
                     TouchButton {
                         text: settings && settings.inRam ? "Running from RAM" : (settings && settings.ramBusy ? "Loading… " + settings.ramProgress + "%" : "Load to RAM")
-                        color: Theme.accent; textColor: Theme.bg
+                        color: Theme.accent; textColor: Theme.inkOnAccent
                         enabled: settings ? settings.canLoadToRam : false
                         onClicked: settings.loadToRam()
                     }
@@ -118,7 +158,7 @@ Rectangle {
                     color: Theme.panelAlt
                     Rectangle { width: parent.width * (settings ? settings.ramProgress : 0) / 100; height: parent.height; radius: parent.radius; color: Theme.accent }
                 }
-                Text {
+                Text { font.family: Theme.fontSans
                     Layout.fillWidth: true
                     text: settings ? (settings.ramMessage !== "" ? settings.ramMessage : settings.ramSummary) : ""
                     color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
@@ -130,7 +170,7 @@ Rectangle {
                     Layout.fillWidth: true
                     spacing: Theme.gap
                     TouchButton { text: "Reboot"; iconSource: "../icons/reboot.png"; color: Theme.cautionFill; onClicked: sheet.confirm("reboot") }
-                    TouchButton { text: "Shut down"; iconSource: "../icons/power.png"; color: Theme.dangerFill; onClicked: sheet.confirm("poweroff") }
+                    TouchButton { text: "Shut down"; iconSource: "../icons/power.png"; color: Theme.dangerFill; textColor: Theme.inkOnDanger; onClicked: sheet.confirm("poweroff") }
                 }
             }
         }
