@@ -97,8 +97,7 @@ ApplicationWindow {
                             font.family: Theme.fontSans; font.pixelSize: Theme.labelFont; font.bold: true
                             font.letterSpacing: Theme.labelFont * 0.14
                         }
-                        Text {
-                            visible: !win.compact
+                        Text {   // micro strip: always shown, stays ink-muted on the active tab
                             text: "SEC." + ("0" + (tab.index + 1)).slice(-2) + " // " + tab.modelData.count
                             color: Theme.muted
                             font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
@@ -113,10 +112,10 @@ ApplicationWindow {
                 }
             }
             Item { Layout.fillWidth: true }
-            TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
+            TouchButton { text: "Terminal"; icon.name: "terminal"; compact: win.compact; onClicked: system.openTerminal() }
             TouchButton {
                 text: (system && system.splitActive) ? "Exit split" : "Split"
-                iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
+                icon.name: (system && system.splitActive) ? "exitsplit" : "split"
                 selected: !!(system && system.splitActive)
                 textColor: selected ? Theme.accent : Theme.text
                 borderColor: selected ? Theme.accent : Theme.borderStrong
@@ -124,21 +123,21 @@ ApplicationWindow {
                 onClicked: system.toggleSplit(win.portrait)
             }
             TouchButton {
-                text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
+                text: "Keyboard"; icon.name: "keyboard"; compact: win.compact
                 // amber while the on-screen keyboard is open: caution, it covers the screen
                 selected: !!(system && system.keyboardVisible)
                 textColor: selected ? Theme.warn : Theme.text
                 borderColor: selected ? Theme.warn : Theme.borderStrong
                 onClicked: system.toggleKeyboard()
             }
-            TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
+            TouchButton { text: "Wi-Fi"; icon.name: "wifi"; compact: win.compact; onClicked: win.wifiOpen = true }
             UsageMeter {
                 visible: win.width >= Theme.s(880)
                 compact: win.compact
                 onTapped: win.monitorOpen = true
             }
             TouchButton {
-                text: "Settings"; iconSource: "../icons/settings.png"; compact: true
+                text: "Settings"; icon.name: "settings"; compact: true
                 selected: win.settingsOpen; borderColor: selected ? Theme.accent : Theme.borderStrong
                 onClicked: { settings.refresh(); win.settingsOpen = true }
             }

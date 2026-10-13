@@ -7,8 +7,9 @@ import QtQuick.Controls
 // outline (panelAlt fill with a coloured border and label: Stop, Reboot, CLI Mode).
 // `selected` is the toggled state: a 2px border in borderColor (the design's "selected or
 // focused control gets a 2px border in its accent"). Keyboard focus draws the 2px acid ring
-// offset 2px outside the control. With `iconSource` set and `compact` true it collapses to
-// a square icon-only button.
+// offset 2px outside the control. With `icon.name` (an Icon.qml glyph name; Button's own `icon`
+// group is FINAL, so it cannot be redeclared) set and `compact` true it collapses to a square
+// icon-only button; the glyph is vector geometry in the label colour.
 Button {
     id: b
     property color color: Theme.panelAlt
@@ -16,9 +17,8 @@ Button {
     readonly property bool filled: !Qt.colorEqual(color, Theme.panelAlt)
     property color borderColor: filled ? color : Theme.borderStrong
     property bool selected: false
-    property string iconSource: ""
     property bool compact: false
-    readonly property bool iconOnly: compact && iconSource !== ""
+    readonly property bool iconOnly: compact && icon.name !== ""
     implicitHeight: Theme.touch
     opacity: enabled ? 1 : 0.45
     implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch, Math.ceil(row.implicitWidth) + Theme.space4 * 2)
@@ -45,12 +45,11 @@ Button {
             id: row
             anchors.centerIn: parent
             spacing: Theme.space2
-            Image {
-                visible: b.iconSource !== ""
-                source: b.iconSource
+            Icon {
+                visible: b.icon.name !== ""
+                name: b.icon.name
+                color: b.textColor
                 width: Theme.icon; height: Theme.icon
-                sourceSize.width: 96; sourceSize.height: 96
-                fillMode: Image.PreserveAspectFit
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {

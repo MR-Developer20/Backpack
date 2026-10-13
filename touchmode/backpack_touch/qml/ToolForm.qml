@@ -2,12 +2,15 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Form generated from the selected command's args. Exposes values() for the runner.
+// Form generated from the selected command's args. Exposes values() for the runner and emits
+// changed() whenever a value is edited, so the command line shown next to Run can follow.
 ColumnLayout {
     id: form
     property var command
     property var fieldItems: []
+    signal changed()
     spacing: Theme.space2
+    onCommandChanged: Qt.callLater(changed)
 
     function values() {
         var v = {}
@@ -60,7 +63,7 @@ ColumnLayout {
                 inputMethodHints: row && row.modelData.type === "int" ? Qt.ImhDigitsOnly : Qt.ImhNone
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
-                onTextChanged: if (row) row.value = text
+                onTextChanged: if (row) { row.value = text; form.changed() }
                 onActiveFocusChanged: if (activeFocus) system.showKeyboard()
             }
         }
@@ -73,7 +76,7 @@ ColumnLayout {
                 id: sw
                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                 checked: row ? row.modelData.default === true : false
-                onToggled: if (row) row.value = checked
+                onToggled: if (row) { row.value = checked; form.changed() }
                 indicator: Rectangle {
                     implicitWidth: Theme.s(96); implicitHeight: Theme.s(44)
                     color: sw.checked ? Theme.accent : Theme.panelAlt
@@ -106,7 +109,7 @@ ColumnLayout {
                     selected: row && row.value === modelData   // 2px accent border, not a second primary
                     textColor: selected ? Theme.accent : Theme.text
                     borderColor: selected ? Theme.accent : Theme.borderStrong
-                    onClicked: row.value = modelData
+                    onClicked: { row.value = modelData; form.changed() }
                 }
             }
         }

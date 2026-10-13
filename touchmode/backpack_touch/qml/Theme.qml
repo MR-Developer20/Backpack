@@ -55,6 +55,7 @@ QtObject {
     readonly property int smallFont: s(15)
     readonly property int labelFont: s(13)      // uppercase, tracked 0.14em
     readonly property int microFont: s(11)      // uppercase, tracked 0.16em
+    readonly property int commandFont: s(12)    // the command a button runs: regular, no tracking, never uppercased
 
     // space, shape, size
     readonly property int space1: s(4)

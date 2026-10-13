@@ -28,6 +28,11 @@ class Runner(QObject):
     def running(self):
         return self._proc is not None and self._proc.state() != QProcess.NotRunning
 
+    @Property(int, notify=runningChanged)
+    def pid(self):
+        """The running tool's pid (0 when idle), so Stop can show `kill -TERM <pid>`."""
+        return int(self._proc.processId()) if self.running else 0
+
     @Slot(str, int, "QVariantMap", result=str)
     def commandLine(self, tool_id, cmd_index, values):
         cmd = self._tools[tool_id]["commands"][cmd_index]
@@ -67,6 +72,7 @@ class Runner(QObject):
                 self._proc = None
                 self.runningChanged.emit()
         p.errorOccurred.connect(_error)
+        p.started.connect(self.runningChanged.emit)   # the pid is known only once it has started
         p.setProgram(argv[0])
         p.setArguments(argv[1:])
         self._proc = p
@@ -226,6 +232,10 @@ class Wifi(QObject):
     @Property(bool, notify=statusChanged)
     def hasDevice(self):
         return bool(self._device)
+
+    @Property(str, notify=statusChanged)
+    def device(self):
+        return self._device
 
     def _run(self, args, done):
         p = QProcess(self)

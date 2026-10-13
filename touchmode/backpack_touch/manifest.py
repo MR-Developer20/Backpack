@@ -45,7 +45,26 @@ def load(path=None):
                 a.setdefault("flag", "")
                 a.setdefault("sep", " ")
                 a.setdefault("options", [])
+            c["template"] = template(c)
     return tools
+
+
+def template(command):
+    """The command line a button stands for, with <name> where a form value goes:
+    `nmap -sn <target>`. Flags that default to on are shown; off ones are left out."""
+    parts = ["sudo -n"] if command["needs_root"] else []
+    parts.append(command["cmd"])
+    for a in command["args"]:
+        if a["type"] == "flag":
+            if a["default"] is True:
+                parts.append(a["flag"])
+            continue
+        slot = "<" + a["name"] + ">"
+        if a["flag"]:
+            parts.append(a["flag"] + slot if a["sep"] == "" else a["flag"] + " " + slot)
+        else:
+            parts.append(slot)
+    return " ".join(parts)
 
 
 def categories(tools):
