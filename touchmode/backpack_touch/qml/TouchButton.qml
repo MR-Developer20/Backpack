@@ -12,10 +12,10 @@ Button {
     readonly property bool iconOnly: compact && iconSource !== ""
     implicitHeight: Theme.touch
     opacity: enabled ? 1 : 0.45
-    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + 36)
+    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + Theme.s(36))
     font.pixelSize: Theme.fontSize
     background: Rectangle {
-        radius: 10
+        radius: Theme.s(10)
         color: b.down ? Qt.lighter(b.color, 1.3) : b.color
         border.color: Theme.border
         border.width: 1
@@ -24,11 +24,11 @@ Button {
         Row {
             id: row
             anchors.centerIn: parent
-            spacing: 10
+            spacing: Theme.s(10)
             Image {
                 visible: b.iconSource !== ""
                 source: b.iconSource
-                width: 34; height: 34
+                width: Theme.icon; height: Theme.icon
                 sourceSize.width: 96; sourceSize.height: 96
                 fillMode: Image.PreserveAspectFit
                 anchors.verticalCenter: parent.verticalCenter

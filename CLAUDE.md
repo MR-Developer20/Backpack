@@ -172,3 +172,18 @@ make release
   BELOW (800x640 each); copy-to-RAM shows the plymouth bar (frames at 64% and 100%).
   Don't put `pkill ... qemu-system` at the top of a Bash call that also starts a VM: its non-zero
   exit (no process) or the kill aborts the rest of the call. Kill in a separate call.
+- (gui tabs + settings) Manifest categories are grouped into GUI tabs by `SECTIONS` in
+  touchmode/backpack_touch/manifest.py: Network = the six network categories, Data = `disks`,
+  `recovery`, `files`, `transfer` (also listed in scripts/gen-package-list.py CATEGORIES). Reboot/
+  Shutdown moved from the top bar into SettingsSheet.qml (gear button). Settings QObject
+  (settings.py): `uiScale` 0.8–1.5 saved to ~/.config/backpack/gui.json and bound to
+  `Theme.scale`; every size in QML comes from Theme (`Theme.s(px)`), and `compact` triggers at
+  `width < Theme.s(1100)`. **Load to RAM** = `sudo -n python3 -m backpack_touch.toram run`: copies
+  the squashfs behind live-boot's read-only loop device into a tmpfs at /run/backpack-ram, swaps the
+  loop's backing file with the LOOP_CHANGE_FD ioctl (same size + RO loop required), then unmounts
+  /run/live/medium; a persistence partition on the stick keeps it busy (message says so). Verified
+  with a real squashfs loop mount in a container (data intact after deleting the original file);
+  not yet run on a booted ISO. `toram status` (JSON) works unprivileged; with boot-time `toram`
+  the image already sits on tmpfs, so the button reads "Running from RAM". **Switch to CLI Mode**
+  = `sudo -n sh -c 'systemctl isolate multi-user.target && chvt 1'` (untested on the ISO).
+  Test hooks: BACKPACK_UI_SCALE, BACKPACK_DEMO_SETTINGS=1, BACKPACK_DEMO_SECTION=data.

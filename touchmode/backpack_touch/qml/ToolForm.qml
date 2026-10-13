@@ -7,7 +7,7 @@ ColumnLayout {
     id: form
     property var command
     property var fieldItems: []
-    spacing: 10
+    spacing: Theme.s(10)
 
     function values() {
         var v = {}
@@ -27,13 +27,13 @@ ColumnLayout {
             property string argName: modelData.name
             property var value: modelData.type === "flag" ? (modelData.default === true) : String(modelData.default)
             Layout.fillWidth: true
-            spacing: 12
+            spacing: Theme.s(12)
 
             Text {
                 text: modelData.name + (modelData.required ? " *" : "")
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: Theme.s(150)
                 elide: Text.ElideRight
             }
             Loader {
@@ -49,9 +49,9 @@ ColumnLayout {
         id: textC
         Rectangle {
             property var row
-            radius: 8; color: Theme.panelAlt; border.color: Theme.border
+            radius: Theme.s(8); color: Theme.panelAlt; border.color: Theme.border
             TextInput {
-                anchors.fill: parent; anchors.margins: 12
+                anchors.fill: parent; anchors.margins: Theme.s(12)
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
@@ -74,17 +74,17 @@ ColumnLayout {
                 checked: row ? row.modelData.default === true : false
                 onToggled: if (row) row.value = checked
                 indicator: Rectangle {
-                    implicitWidth: 96; implicitHeight: 44; radius: 22
+                    implicitWidth: Theme.s(96); implicitHeight: Theme.s(44); radius: Theme.s(22)
                     color: sw.checked ? Theme.accent : Theme.panelAlt
                     border.color: Theme.border
                     Rectangle {
-                        x: sw.checked ? parent.width - width - 4 : 4
-                        y: 4; width: 36; height: 36; radius: 18; color: Theme.text
+                        x: sw.checked ? parent.width - width - Theme.s(4) : Theme.s(4)
+                        y: Theme.s(4); width: Theme.s(36); height: Theme.s(36); radius: Theme.s(18); color: Theme.text
                         Behavior on x { NumberAnimation { duration: 80 } }
                     }
                 }
                 contentItem: Text {
-                    leftPadding: sw.indicator.width + 12
+                    leftPadding: sw.indicator.width + Theme.s(12)
                     text: sw.checked ? (row ? row.modelData.flag : "on") : "off"
                     color: Theme.muted; font.pixelSize: Theme.fontSize
                     verticalAlignment: Text.AlignVCenter
@@ -96,7 +96,7 @@ ColumnLayout {
         id: choiceC
         Flow {
             property var row
-            spacing: 8
+            spacing: Theme.s(8)
             Repeater {
                 model: row ? row.modelData.options : []
                 delegate: TouchButton {

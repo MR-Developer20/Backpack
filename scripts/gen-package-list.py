@@ -6,7 +6,8 @@ Usage: gen-package-list.py [--check] [--manifest FILE] [--out FILE] [--print-cmd
 import argparse, re, sys
 import yaml
 
-CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"}
+CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
+              "disks", "recovery", "files", "transfer"}
 ARG_TYPES = {"string", "int", "flag", "choice"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 

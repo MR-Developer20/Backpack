@@ -17,12 +17,22 @@ ApplicationWindow {
 
     // layout modes: narrow (split view or portrait) -> icon-only top bar; portrait -> stacked panes
     readonly property bool portrait: height > width
-    readonly property bool compact: width < 1100   // icon-only tool buttons when narrow
-    property string category: (manifest && manifest.categories.length) ? manifest.categories[0].id : ""
+    readonly property bool compact: width < Theme.s(1100)   // icon-only tool buttons when narrow (or UI size is large)
+    property string section: (manifest && manifest.sections.length) ? manifest.sections[0].id : "network"
+    property string category: firstCategory(section)
     property var tool: null
     property int cmdIndex: 0
     property string confirmAction: ""
     property bool wifiOpen: false
+    property bool settingsOpen: false
+
+    Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
+
+    function sectionCategories(sec) {
+        return manifest ? manifest.categories.filter(function (c) { return c.section === sec }) : []
+    }
+    function firstCategory(sec) { var c = sectionCategories(sec); return c.length ? c[0].id : "" }
+    function selectSection(sec) { section = sec; category = firstCategory(sec) }
 
     function selectTool(t) { cmdIndex = 0; tool = t; status.text = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
     function toolById(id) {
@@ -46,20 +56,33 @@ ApplicationWindow {
 
     // ---------------------------------------------------------------- top bar
     header: Rectangle {
-        height: 84
+        height: Theme.barH
         color: Theme.panel
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 10
-            spacing: win.compact ? 6 : 10
-            Text { text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
-            Text { visible: win.width >= 1400; text: "GUI Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
+            anchors.margins: Theme.gap
+            spacing: win.compact ? Theme.s(6) : Theme.gap
+            Text { visible: !win.portrait || win.width >= Theme.s(900); text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: Theme.s(28); font.bold: true }
+            Text { visible: win.width >= Theme.s(1600); text: "GUI Mode"; color: Theme.accent; font.pixelSize: Theme.s(18); Layout.leftMargin: Theme.s(4) }
+            // section tabs: Network / Data
+            Repeater {
+                model: manifest ? manifest.sections : []
+                delegate: TouchButton {
+                    required property var modelData
+                    Layout.leftMargin: index === 0 ? Theme.gap : 0
+                    required property int index
+                    text: win.compact ? modelData.label : modelData.label + "  " + modelData.count
+                    color: win.section === modelData.id ? Theme.accent : Theme.panelAlt
+                    textColor: win.section === modelData.id ? Theme.bg : Theme.text
+                    onClicked: win.selectSection(modelData.id)
+                }
+            }
             Item { Layout.fillWidth: true }
             TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
             TouchButton {
                 text: (system && system.splitActive) ? "Exit split" : "Split"
                 iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
-                color: (system && system.splitActive) ? "#3a2a2a" : Theme.panelAlt
+                color: (system && system.splitActive) ? Theme.activeFill : Theme.panelAlt
                 compact: win.compact
                 onClicked: system.toggleSplit(win.portrait)
             }
@@ -72,21 +95,24 @@ ApplicationWindow {
             TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
             TouchButton {
                 text: "eDEX"; iconSource: "../icons/edex.png"; compact: win.compact
-                color: "#13303a"
+                color: Theme.edexFill
                 visible: system ? system.edexAvailable() : false
                 onClicked: system.launchEdex()
             }
-            TouchButton { text: "Reboot"; iconSource: "../icons/reboot.png"; compact: true; color: "#3a3f2a"; onClicked: confirmAction = "reboot" }
-            TouchButton { text: "Shutdown"; iconSource: "../icons/power.png"; compact: true; color: "#4a2328"; onClicked: confirmAction = "poweroff" }
+            TouchButton {
+                text: "Settings"; iconSource: "../icons/settings.png"; compact: true
+                color: win.settingsOpen ? Theme.accent : Theme.panelAlt
+                onClicked: { settings.refresh(); win.settingsOpen = true }
+            }
         }
     }
 
     // ---------------------------------------------------------------- body (2 columns, or stacked in portrait)
     GridLayout {
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: Theme.gap
         columns: win.portrait ? 1 : 2
-        rowSpacing: 10; columnSpacing: 10
+        rowSpacing: Theme.gap; columnSpacing: Theme.gap
 
         // tiles pane
         ColumnLayout {
@@ -96,14 +122,14 @@ ApplicationWindow {
             Layout.maximumWidth: win.portrait ? 1000000 : Math.round(win.width * 0.5)
             Layout.preferredHeight: win.portrait ? Math.round(win.height * 0.42) : -1
             Layout.minimumWidth: 0
-            spacing: 10
+            spacing: Theme.gap
             Flow {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: 0
-                spacing: 8
+                spacing: Theme.s(8)
                 Repeater {
-                    model: manifest ? manifest.categories : []
+                    model: win.sectionCategories(win.section)
                     delegate: TouchButton {
                         required property var modelData
                         text: modelData.label
@@ -127,7 +153,7 @@ ApplicationWindow {
                     selected: win.tool !== null && win.tool.id === modelData.id
                     onTapped: win.selectTool(modelData)
                 }
-                ScrollBar.vertical: ScrollBar { width: 18 }
+                ScrollBar.vertical: ScrollBar { width: Theme.s(18) }
             }
         }
 
@@ -138,7 +164,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.minimumWidth: 0
             Layout.minimumHeight: 0
-            radius: 14
+            radius: Theme.s(14)
             color: Theme.panel
             border.color: Theme.border
 
@@ -147,16 +173,16 @@ ApplicationWindow {
                 anchors.centerIn: parent
                 text: "Tap a tool to begin"
                 color: Theme.muted
-                font.pixelSize: 24
+                font.pixelSize: Theme.s(24)
             }
 
             ColumnLayout {
                 visible: !!win.tool
                 anchors.fill: parent
-                anchors.margins: 14
-                spacing: 10
+                anchors.margins: Theme.s(14)
+                spacing: Theme.gap
 
-                Text { text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: 26; font.bold: true }
+                Text { text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
                 Text {
                     Layout.fillWidth: true
                     text: win.tool ? win.tool.description : ""
@@ -166,7 +192,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
-                    spacing: 8
+                    spacing: Theme.s(8)
                     visible: win.tool && win.tool.commands.length > 1
                     Repeater {
                         model: win.tool ? win.tool.commands : []
@@ -191,9 +217,11 @@ ApplicationWindow {
                         command: win.tool ? win.tool.commands[win.cmdIndex] : null
                     }
                 }
-                RowLayout {
+                Flow {   // wraps when the UI size is large
                     Layout.fillWidth: true
-                    spacing: 10
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
+                    spacing: Theme.gap
                     TouchButton {
                         text: win.tool && win.tool.gui ? "Open" : "Run"
                         color: Theme.accent; textColor: Theme.bg
@@ -204,19 +232,20 @@ ApplicationWindow {
                     TouchButton { text: "Clear"; onClicked: output.clear() }
                     Text {
                         visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
+                        height: Theme.touch; verticalAlignment: Text.AlignVCenter
                         text: "runs as root"; color: Theme.warn; font.pixelSize: Theme.smallFont
                     }
-                    Item { Layout.fillWidth: true }
                 }
                 Text {
                     id: status
                     Layout.fillWidth: true
-                    color: Theme.muted; font.pixelSize: 13; font.family: "DejaVu Sans Mono"; elide: Text.ElideMiddle
+                    color: Theme.muted; font.pixelSize: Theme.s(13); font.family: "DejaVu Sans Mono"; elide: Text.ElideMiddle
                 }
                 OutputPane {
                     id: output
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.minimumHeight: Theme.s(100)
                 }
             }
         }
@@ -229,30 +258,52 @@ ApplicationWindow {
         onClosed: { win.wifiOpen = false; system.hideKeyboard() }
     }
 
+    SettingsSheet {
+        visible: win.settingsOpen
+        anchors.fill: parent
+        onClosed: win.settingsOpen = false
+        onConfirm: function (action) { confirmAction = action }
+    }
+
     Rectangle {
         visible: confirmAction !== ""
         anchors.fill: parent
-        color: "#b0000000"
+        color: Theme.scrim
         MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
         Rectangle {
             anchors.centerIn: parent
-            width: Math.min(520, parent.width - 40); height: 220; radius: 16
+            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48); radius: Theme.s(16)
             color: Theme.panel; border.color: Theme.border
+            MouseArea { anchors.fill: parent }   // swallow clicks
             ColumnLayout {
-                anchors.fill: parent; anchors.margins: 24; spacing: 20
+                id: confirmCol
+                anchors.fill: parent; anchors.margins: Theme.s(24); spacing: Theme.s(20)
                 Text {
                     Layout.fillWidth: true
-                    text: confirmAction === "reboot" ? "Reboot the machine?" : "Shut down the machine?"
-                    color: Theme.text; font.pixelSize: 26; horizontalAlignment: Text.AlignHCenter
+                    text: confirmAction === "reboot" ? "Reboot the machine?"
+                        : confirmAction === "cli" ? "Switch to CLI Mode?" : "Shut down the machine?"
+                    color: Theme.text; font.pixelSize: Theme.titleFont; horizontalAlignment: Text.AlignHCenter
+                }
+                Text {
+                    Layout.fillWidth: true
+                    visible: confirmAction === "cli"
+                    text: "GUI Mode closes, along with any running tools and terminals, and you get a text login on the console. Reboot to come back to GUI Mode."
+                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter
                 }
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    spacing: 20
+                    spacing: Theme.s(20)
                     TouchButton { text: "Cancel"; onClicked: confirmAction = "" }
                     TouchButton {
-                        text: confirmAction === "reboot" ? "Reboot" : "Shut down"
-                        color: Theme.danger
-                        onClicked: { var a = confirmAction; confirmAction = ""; a === "reboot" ? system.reboot() : system.poweroff() }
+                        text: confirmAction === "reboot" ? "Reboot" : confirmAction === "cli" ? "Switch" : "Shut down"
+                        color: confirmAction === "cli" ? Theme.warn : Theme.danger
+                        textColor: confirmAction === "cli" ? Theme.bg : Theme.text
+                        onClicked: {
+                            var a = confirmAction; confirmAction = ""; win.settingsOpen = false
+                            if (a === "reboot") system.reboot()
+                            else if (a === "cli") settings.switchToCli()
+                            else system.poweroff()
+                        }
                     }
                 }
             }
@@ -263,8 +314,10 @@ ApplicationWindow {
     Timer {
         running: demoTool !== ""
         interval: 1500
-        onTriggered: { var t = toolById(demoTool); if (t) { category = t.category; selectTool(t); runTimer.start() } }
+        onTriggered: { var t = toolById(demoTool); if (t) { section = t.section; category = t.category; selectTool(t); runTimer.start() } }
     }
     Timer { id: runTimer; interval: 1500; onTriggered: runCurrent() }
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
+    Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true } }
+    Component.onCompleted: if (demoSection !== "") selectSection(demoSection)
 }

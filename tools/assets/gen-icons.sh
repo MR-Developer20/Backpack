@@ -23,6 +23,10 @@ convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 7 -fill none -draw "ar
 # power: circle with gap + bar
 convert -size ${S}x${S} xc:none -stroke "$C" -strokewidth 7 -fill none -draw "arc 16,20 80,84 300,240" \
   -stroke "$C" -draw "line 48,10 48,46" power.png
+# settings: gear (8 teeth around a ring with a hole)
+T=""; for a in 0 45 90 135 180 225 270 315; do T="$T -draw 'translate 48,48 rotate $a rectangle -7,-42 7,-26'"; done
+eval convert -size ${S}x${S} xc:none -fill "'$C'" -stroke none $T -fill none -stroke "'$C'" -strokewidth 8 \
+  -draw "'circle 48,48 48,22'" -strokewidth 6 -draw "'circle 48,48 48,38'" settings.png
 # eDEX: from the vendored project, scaled
 convert /work/touchmode/edex/media/linuxIcons/128x128.png -resize ${S}x${S} edex.png
 # keyboard: frame + key dots

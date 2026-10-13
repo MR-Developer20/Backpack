@@ -3,10 +3,17 @@ import os
 import shlex
 import yaml
 
-CATEGORY_ORDER = ["discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"]
+# GUI Mode tabs: each section groups some categories (in display order)
+SECTIONS = [
+    ("network", "Network", ["discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"]),
+    ("data", "Data", ["disks", "recovery", "files", "transfer"]),
+]
+CATEGORY_ORDER = [c for _, _, cats in SECTIONS for c in cats]
+CATEGORY_SECTION = {c: sid for sid, _, cats in SECTIONS for c in cats}
 CATEGORY_LABELS = {
     "discovery": "Discovery", "connectivity": "Connectivity", "capture": "Capture",
     "wireless": "Wireless", "throughput": "Throughput", "dns-http": "DNS / HTTP",
+    "disks": "Disks", "recovery": "Recovery", "files": "Files", "transfer": "Transfer",
 }
 DEFAULT_PATH = "/etc/backpack/tools.yaml"
 
@@ -22,6 +29,7 @@ def load(path=None):
     # normalise so QML gets plain, predictable shapes
     for t in tools:
         t.setdefault("gui", False)
+        t["section"] = CATEGORY_SECTION.get(t["category"], "network")
         for c in t["commands"]:
             c.setdefault("args", [])
             c.setdefault("needs_root", False)
@@ -37,7 +45,18 @@ def load(path=None):
 
 def categories(tools):
     present = {t["category"] for t in tools}
-    return [{"id": c, "label": CATEGORY_LABELS.get(c, c)} for c in CATEGORY_ORDER if c in present]
+    return [{"id": c, "label": CATEGORY_LABELS.get(c, c), "section": CATEGORY_SECTION[c]}
+            for c in CATEGORY_ORDER if c in present]
+
+
+def sections(tools):
+    """Tabs that have at least one tool: [{id, label, count}]."""
+    out = []
+    for sid, label, cats in SECTIONS:
+        n = sum(1 for t in tools if t["category"] in cats)
+        if n:
+            out.append({"id": sid, "label": label, "count": n})
+    return out
 
 
 def build_argv(command, values):

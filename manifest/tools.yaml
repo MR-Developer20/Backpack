@@ -5,7 +5,8 @@
 #   id          [a-z0-9-], unique
 #   name        display name
 #   description one plain-English sentence
-#   category    discovery | connectivity | capture | wireless | throughput | dns-http
+#   category    Network tab: discovery | connectivity | capture | wireless | throughput | dns-http
+#               Data tab:    disks | recovery | files | transfer
 #   packages    Debian package names (required; for upstream sources = extra deps)
 #   source      optional: {type: upstream, url, sha256, apt_repo, apt_key_url, apt_key_sha256}
 #   gui         optional bool; GUI Mode launches GUI tools detached instead of streaming output
@@ -389,4 +390,181 @@ tools:
           - {name: output, type: string, default: "/dev/null", required: true, flag: "-o"}
           - {name: format, type: string, default: "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s ttfb=%{time_starttransfer}s total=%{time_total}s http=%{http_code}\n", required: true, flag: "-w"}
           - {name: url, type: string, default: "https://example.com", required: true}
+        needs_root: false
+  # ==================================================================== DATA
+  # ------------------------------------------------------------------- disks
+  - id: lsblk
+    name: Disks
+    description: Lists every disk and partition with size, filesystem, label and mount point.
+    category: disks
+    packages: [util-linux]
+    commands:
+      - label: List disks
+        cmd: lsblk
+        args:
+          - {name: fs, type: flag, default: true, flag: "-f"}
+          - {name: paths, type: flag, default: true, flag: "-p"}
+        needs_root: false
+      - label: Partition tables
+        cmd: fdisk
+        args:
+          - {name: list, type: flag, default: true, flag: "-l"}
+          - {name: device, type: string, default: "", required: false}
+        needs_root: true
+  - id: smartctl
+    name: SMART health
+    description: Reads a drive's own health report, error log and wear counters.
+    category: disks
+    packages: [smartmontools]
+    commands:
+      - label: Health summary
+        cmd: smartctl
+        args:
+          - {name: health, type: flag, default: true, flag: "-H"}
+          - {name: info, type: flag, default: true, flag: "-i"}
+          - {name: device, type: string, default: "/dev/sda", required: true}
+        needs_root: true
+      - label: Full report
+        cmd: smartctl
+        args:
+          - {name: all, type: flag, default: true, flag: "-x"}
+          - {name: device, type: string, default: "/dev/sda", required: true}
+        needs_root: true
+  - id: nvme
+    name: NVMe info
+    description: Lists NVMe drives and shows their health and temperature log.
+    category: disks
+    packages: [nvme-cli]
+    commands:
+      - label: List drives
+        cmd: nvme
+        args:
+          - {name: action, type: choice, default: "list", options: ["list"], required: true}
+        needs_root: true
+      - label: Health log
+        cmd: nvme
+        args:
+          - {name: action, type: choice, default: "smart-log", options: ["smart-log"], required: true}
+          - {name: device, type: string, default: "/dev/nvme0", required: true}
+        needs_root: true
+  # ---------------------------------------------------------------- recovery
+  - id: testdisk
+    name: TestDisk
+    description: Finds lost partitions and repairs broken partition tables and boot sectors.
+    category: recovery
+    packages: [testdisk]
+    commands:
+      - label: Open TestDisk
+        tty: true
+        cmd: testdisk
+        args: []
+        needs_root: true
+  - id: photorec
+    name: PhotoRec
+    description: Recovers deleted photos, documents and other files from a disk or card.
+    category: recovery
+    packages: [testdisk]
+    commands:
+      - label: Open PhotoRec
+        tty: true
+        cmd: photorec
+        args: []
+        needs_root: true
+  - id: ddrescue
+    name: ddrescue
+    description: Copies a failing disk to an image, skipping bad areas and retrying them later.
+    category: recovery
+    packages: [gddrescue]
+    commands:
+      - label: Rescue disk to image
+        tty: true
+        cmd: ddrescue
+        args:
+          - {name: direct, type: flag, default: false, flag: "-d"}
+          - {name: retries, type: int, default: 2, flag: "-r"}
+          - {name: source, type: string, default: "/dev/sdb", required: true}
+          - {name: image, type: string, default: "/media/rescue.img", required: true}
+          - {name: mapfile, type: string, default: "/media/rescue.map", required: true}
+        needs_root: true
+  # ------------------------------------------------------------------- files
+  - id: hash
+    name: Checksums
+    description: Computes SHA-256 checksums of files to verify a download or a copy.
+    category: files
+    packages: [coreutils]
+    commands:
+      - label: SHA-256
+        cmd: sha256sum
+        args:
+          - {name: file, type: string, default: "", required: true}
+        needs_root: false
+      - label: Verify SHA256SUMS
+        cmd: sha256sum
+        args:
+          - {name: check, type: flag, default: true, flag: "-c"}
+          - {name: ignore_missing, type: flag, default: true, flag: "--ignore-missing"}
+          - {name: sums_file, type: string, default: "SHA256SUMS", required: true}
+        needs_root: false
+  - id: exiftool
+    name: ExifTool
+    description: Shows the hidden metadata in photos, documents and media files.
+    category: files
+    packages: [libimage-exiftool-perl]
+    commands:
+      - label: Show metadata
+        cmd: exiftool
+        args:
+          - {name: file, type: string, default: "", required: true}
+        needs_root: false
+  - id: binwalk
+    name: binwalk
+    description: Scans a firmware image or binary for embedded files and filesystems.
+    category: files
+    packages: [binwalk]
+    commands:
+      - label: Scan file
+        cmd: binwalk
+        args:
+          - {name: file, type: string, default: "", required: true}
+        needs_root: false
+  - id: xxd
+    name: Hex dump
+    description: Shows the raw bytes of a file in hex and ASCII.
+    category: files
+    packages: [xxd]
+    commands:
+      - label: Dump file
+        cmd: xxd
+        args:
+          - {name: length, type: int, default: 1024, flag: "-l"}
+          - {name: file, type: string, default: "", required: true}
+        needs_root: false
+  - id: ncdu
+    name: ncdu
+    description: Interactive disk usage browser that finds what is filling a drive.
+    category: files
+    packages: [ncdu]
+    commands:
+      - label: Browse usage
+        tty: true
+        cmd: ncdu
+        args:
+          - {name: one_fs, type: flag, default: true, flag: "-x"}
+          - {name: path, type: string, default: "/", required: true}
+        needs_root: false
+  # ---------------------------------------------------------------- transfer
+  - id: rsync
+    name: rsync
+    description: Copies or mirrors folders between disks or over SSH, resuming where it stopped.
+    category: transfer
+    packages: [rsync]
+    commands:
+      - label: Copy folder
+        cmd: rsync
+        args:
+          - {name: archive, type: flag, default: true, flag: "-a"}
+          - {name: progress, type: flag, default: true, flag: "--info=progress2"}
+          - {name: dry_run, type: flag, default: true, flag: "--dry-run"}
+          - {name: source, type: string, default: "", required: true}
+          - {name: destination, type: string, default: "", required: true}
         needs_root: false

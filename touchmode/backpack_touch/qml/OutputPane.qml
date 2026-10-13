@@ -4,8 +4,8 @@ import QtQuick.Controls
 Rectangle {
     id: pane
     property alias text: area.text
-    radius: 10
-    color: "#0a0e12"
+    radius: Theme.s(10)
+    color: Theme.outputBg
     border.color: Theme.border
 
     function append(s) {
@@ -18,7 +18,7 @@ Rectangle {
     Flickable {
         id: flick
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: Theme.s(10)
         contentHeight: area.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -28,11 +28,11 @@ Rectangle {
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.WrapAnywhere
-            color: "#cfe3d8"
+            color: Theme.outputInk
             font.family: "DejaVu Sans Mono"
             font.pixelSize: Theme.smallFont
             text: ""
         }
-        ScrollBar.vertical: ScrollBar { width: 18; policy: ScrollBar.AsNeeded }
+        ScrollBar.vertical: ScrollBar { width: Theme.s(18); policy: ScrollBar.AsNeeded }
     }
 }

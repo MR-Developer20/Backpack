@@ -8,11 +8,16 @@ A bootable Debian 13 ("trixie") live USB for network discovery and testing — t
 Two ways to use it, chosen from the boot menu:
 
 - **GUI Mode** (default) — a full-screen, touch-friendly tile launcher (PySide6/QML under sway)
-  that builds a form for each tool and streams its output. Top bar: full-screen terminal, split view
+  that builds a form for each tool and streams its output. Tools sit in two tabs: **Network**
+  (discovery, connectivity, capture, wireless, throughput, DNS/HTTP) and **Data** (disks, recovery,
+  files, transfer). The **Settings** button (gear, top right) holds a UI size slider (80–150%,
+  remembered across boots with persistence), **Load to RAM** (moves the running system into memory
+  so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and Shut down.
+  Top bar: full-screen terminal, split view
   (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
   a phone-style on-screen keyboard, a Wi-Fi scan/connect overlay, and an optional
   [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal. When the launcher is narrow
-  (split view or portrait) the top bar collapses to icons.
+  (split view, portrait, or a large UI size) the top bar collapses to icons.
 - **CLI Mode** — boots to a multi-user console, no display server.
 
 Each entry also has a **copy to RAM** (`toram`) variant that runs entirely from memory so the
