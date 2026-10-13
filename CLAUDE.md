@@ -300,3 +300,8 @@ make release
   extension-less Linux writer asset off the release page; the picker offers "All files"; update.ISOAsset
   only matches `backpack-live-*.iso`. Downloads (update/fetch.go) use 8 ranged connections for files >= 64 MB
   (GitHub's CDN caps each connection), resume a dropped part, fall back to one stream on a 200.
+  macOS: Go's File.Sync is fcntl(F_FULLFSYNC), which /dev/rdiskN refuses (ENOTTY), so the darwin device
+  flushes with fsync and ignores ENOTTY/ENOTSUP. CI job `usb-writer-app-macos` runs test/mac-smoke.sh: the
+  Wails-built binary as root (env -i, --json) against an hdiutil-attached image; results are posted as a CI
+  annotation because job logs (blob storage) are not readable from cloud sessions. The elevated worker
+  reports every failure through its --json file; its stdout/stderr go to output.log, shown when no result.
