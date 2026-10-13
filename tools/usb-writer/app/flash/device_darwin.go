@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"howett.net/plist"
 )
@@ -115,6 +116,15 @@ func openDisk(path string, emit func(Event)) (*device, error) {
 		size = info.Size
 	}
 	d := &device{File: f, Size: size}
+	// File.Sync is fcntl(F_FULLFSYNC), which a raw disk node refuses with ENOTTY. Writes to
+	// rdisk bypass the buffer cache; fsync is the most the node takes, and may refuse too.
+	d.sync = func() error {
+		err := syscall.Fsync(int(f.Fd()))
+		if errors.Is(err, syscall.ENOTTY) || errors.Is(err, syscall.ENOTSUP) {
+			return nil
+		}
+		return err
+	}
 	d.after = func(emit func(Event)) {
 		f.Close() // the open rdisk would keep the disk busy
 		emit(Event{Log: "Ejecting " + id})

@@ -11,6 +11,14 @@ type device struct {
 	Size    int64
 	release func()                 // undo platform locks (Windows volume locks)
 	after   func(emit func(Event)) // platform step after writing (re-read partitions, eject)
+	sync    func() error           // platform flush, when File.Sync does not fit the device
+}
+
+func (d *device) Sync() error {
+	if d.sync != nil {
+		return d.sync()
+	}
+	return d.File.Sync()
 }
 
 func (d *device) Close() error {

@@ -4,6 +4,7 @@
 # print every event. Usage: test/mac-smoke.sh path/to/binary
 set -eu
 BIN="$1"
+NAME="${2:-$(basename "$BIN")}"
 W="$(mktemp -d)"
 python3 - "$W/fake.iso" <<'PY'
 import struct, sys
@@ -34,6 +35,6 @@ hdiutil detach "$DEV" >/dev/null 2>&1 || true
 # the same as a CI annotation, which is readable without the raw log
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
   body="$(printf 'exit %s\n--- output\n%s\n--- events\n%s' "$rc" "$(tail -n 20 "$W/output.log")" "$(tail -n 20 "$W/events.jsonl")" | awk '{printf "%s%%0A", $0}')"
-  echo "::notice title=mac-smoke $(basename "$BIN")::$body"
+  echo "::notice title=mac-smoke $NAME::$body"
 fi
-grep -q '"end":true' "$W/events.jsonl" || { echo "FAIL: the worker reported no result"; exit 1; }
+grep -q '"phase":"done"' "$W/events.jsonl" || { echo "FAIL: the write did not finish"; exit 1; }
