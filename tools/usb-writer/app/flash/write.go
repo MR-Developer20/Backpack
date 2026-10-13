@@ -116,6 +116,12 @@ func InspectISO(path string) ISOInfo {
 		return info
 	}
 	info.Size = st.Size()
+	head := make([]byte, 4)
+	f.ReadAt(head, 0)
+	if kind := programKind(head); kind != "" {
+		info.Error = kind + ", not an ISO"
+		return info
+	}
 	pvd := make([]byte, 2048)
 	if _, err := f.ReadAt(pvd, 16*2048); err != nil || string(pvd[1:6]) != "CD001" {
 		info.Error = "not an ISO 9660 image"
@@ -129,6 +135,23 @@ func InspectISO(path string) ISOInfo {
 		info.Error = "GPT images are not supported"
 	}
 	return info
+}
+
+// programKind names files people pick by mistake from the release page: the writer
+// itself for Linux (no extension), Windows (.exe) or macOS (.app in a .zip).
+func programKind(head []byte) string {
+	h := string(head)
+	switch {
+	case h == "\x7fELF":
+		return "a Linux program"
+	case strings.HasPrefix(h, "MZ"):
+		return "a Windows program"
+	case h == "\xcf\xfa\xed\xfe" || h == "\xce\xfa\xed\xfe" || h == "\xca\xfe\xba\xbe":
+		return "a macOS program"
+	case h == "PK\x03\x04":
+		return "a zip archive"
+	}
+	return ""
 }
 
 func baseName(p string) string {
@@ -145,6 +168,9 @@ func Run(o Options, emit func(Event)) (err error) {
 			emit(Event{Error: err.Error(), End: true})
 		}
 	}()
+	if info := InspectISO(o.ISO); info.Error != "" {
+		return fmt.Errorf("%s: %s (the image is backpack-live-<version>-amd64.iso)", info.Name, info.Error)
+	}
 	iso, err := os.Open(o.ISO)
 	if err != nil {
 		return err

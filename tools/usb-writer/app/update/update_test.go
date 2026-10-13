@@ -61,3 +61,14 @@ func TestDownloadVerifies(t *testing.T) {
 		t.Fatal("bad download kept")
 	}
 }
+
+func TestISOAsset(t *testing.T) {
+	r := Release{Assets: []Asset{
+		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64"},
+		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64.iso"},
+		{Name: "backpack-live-v1.0-amd64.iso"},
+	}}
+	if a := r.ISOAsset(); a == nil || a.Name != "backpack-live-v1.0-amd64.iso" {
+		t.Fatalf("ISOAsset = %+v", a)
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -149,5 +150,31 @@ func TestParseSize(t *testing.T) {
 	}
 	if _, err := ParseSize("abc"); err == nil {
 		t.Error("abc accepted")
+	}
+}
+
+func TestInspectISO(t *testing.T) {
+	if e := InspectISO(fakeISO(t, 4096, 0)).Error; e != "" {
+		t.Fatalf("good image rejected: %s", e)
+	}
+	// a file without the .iso extension is judged by content
+	iso := fakeISO(t, 4096, 0)
+	bare := filepath.Join(t.TempDir(), "backpack-live-v1.0-amd64")
+	if err := os.Rename(iso, bare); err != nil {
+		t.Fatal(err)
+	}
+	if e := InspectISO(bare).Error; e != "" {
+		t.Fatalf("image without extension rejected: %s", e)
+	}
+	// the writer binaries from the same release page, renamed to .iso
+	for head, want := range map[string]string{
+		"\x7fELF": "Linux program", "MZ\x90\x00": "Windows program",
+		"\xcf\xfa\xed\xfe": "macOS program", "PK\x03\x04": "zip archive",
+	} {
+		p := filepath.Join(t.TempDir(), "Backpack_USB_Writer-v1.0.iso")
+		os.WriteFile(p, append([]byte(head), make([]byte, 64<<10)...), 0o644)
+		if e := InspectISO(p).Error; !strings.Contains(e, want) {
+			t.Errorf("%q: got %q, want it to mention %q", head, e, want)
+		}
 	}
 }

@@ -102,7 +102,10 @@ func (r *Release) AppAsset() *Asset {
 
 // ISOAsset is the live image.
 func (r *Release) ISOAsset() *Asset {
-	return r.find(func(n string) bool { return strings.HasSuffix(strings.ToLower(n), ".iso") })
+	return r.find(func(n string) bool {
+		n = strings.ToLower(n)
+		return strings.HasPrefix(n, "backpack-live-") && strings.HasSuffix(n, ".iso")
+	})
 }
 
 // checksums reads the release's SHA256SUMS (sha256sum format).

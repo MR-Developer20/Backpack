@@ -11,7 +11,7 @@ const out = process.argv[2] || ".";
 
 const mock = (scenario) => {
   const GB = 1e9;
-  const iso = { path: "/home/marc/Downloads/backpack-live-v1.0.0-amd64.iso", name: "backpack-live-v1.0.0-amd64.iso", size: 1072693248, volume: "BACKPACK_LIVE" };
+  let iso = { path: "/home/marc/Downloads/backpack-live-v1.0.0-amd64.iso", name: "backpack-live-v1.0.0-amd64.iso", size: 1072693248, volume: "BACKPACK_LIVE" };
   const drives = [
     { path: "/dev/sdb", display: "/dev/sdb", name: "SanDisk Ultra Fit", bus: "USB", size: 30.8 * GB, persistence: false, mounted: ["/dev/sdb1"] },
     { path: "/dev/sdc", display: "/dev/sdc", name: "Kingston DataTraveler 3.0", bus: "USB", size: 61.9 * GB, persistence: true, mounted: [] },
@@ -19,6 +19,7 @@ const mock = (scenario) => {
   const handlers = {};
   window.runtime = { EventsOn: (n, f) => (handlers[n] = f), OnFileDrop: () => {} };
   const s = scenario;
+  if (s === "wrong-file") iso = { path: "/Users/marc/Downloads/Backpack_USB_Writer-v1.0-linux-x86_64", name: "Backpack_USB_Writer-v1.0-linux-x86_64", size: 4524317, volume: "", error: "a Linux program, not an ISO" };
   window.go = { main: { App: {
     Info: async () => ({ os: "Linux", version: "v1.0.0", iso: s === "empty" ? null : iso, elevated: false }),
     Drives: async () => (s === "empty" ? [] : drives),
@@ -67,6 +68,7 @@ const shots = [
   ["failed", W, H, async (p) => { await pickDrive(p, 1); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
   ["update", W, H, async (p) => { await pickDrive(p, 1); await p.click("#upd"); await p.click("#iso-dl"); await p.waitForTimeout(200); }],
   ["update-ready", W, H, async (p) => { await pickDrive(p, 1); await p.click("#upd"); await p.waitForTimeout(200); }],
+  ["wrong-file", W, H, async (p) => { await pickDrive(p, 1); }],
   ["min", 480, 660, async (p) => { await pickDrive(p, 1); }],
 ];
 
