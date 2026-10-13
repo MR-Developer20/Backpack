@@ -26,77 +26,119 @@ function maxSize() {
   return Math.max(1, Math.min(256, Math.floor(free / GiB)));
 }
 
+// ---------------------------------------------------------------- dropdown (styled listbox)
+// items: [{value, main, sub, tag, disabled}]; empty: text shown when there are no items.
+function dropdown(el, cls, onPick) {
+  el.classList.add(cls);
+  el.innerHTML = `<button class="dd-btn cut" aria-haspopup="listbox" aria-expanded="false"><div class="rail"></div>
+    <div class="txt"><span class="main"></span><span class="sub"></span></div><span class="micro tag"></span><span class="caret"></span></button>
+    <div class="dd-list cut" role="listbox"></div>`;
+  const btn = el.querySelector(".dd-btn"), list = el.querySelector(".dd-list");
+  const dd = { items: [], value: null, hl: -1 };
+  const close = () => { el.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); };
+  const open = () => {
+    if (!dd.items.length) return;
+    document.querySelectorAll(".dd.open").forEach((o) => o !== el && o.classList.remove("open"));
+    el.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+    dd.hl = Math.max(0, dd.items.findIndex((i) => i.value === dd.value));
+    paintList();
+  };
+  const pick = (it) => { if (!it || it.disabled) return; close(); onPick(it.value); btn.focus(); };
+  function paintList() {
+    list.innerHTML = "";
+    dd.items.forEach((it, i) => {
+      const o = document.createElement("button");
+      o.className = "dd-opt" + (i === dd.hl ? " hl" : "");
+      o.setAttribute("role", "option");
+      o.setAttribute("aria-selected", String(it.value === dd.value));
+      o.disabled = !!it.disabled;
+      o.innerHTML = `<div class="rail"></div><div class="txt"><span class="main"></span><span class="sub"></span></div><span class="micro tag"></span>`;
+      o.querySelector(".main").textContent = it.main;
+      o.querySelector(".sub").textContent = it.sub || "";
+      o.querySelector(".tag").textContent = it.tag || "";
+      o.onclick = () => pick(it);
+      list.append(o);
+    });
+  }
+  btn.onclick = () => (el.classList.contains("open") ? close() : open());
+  btn.onkeydown = (e) => {
+    if (!el.classList.contains("open")) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); open(); }
+      return;
+    }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const n = dd.items.length, d = e.key === "ArrowDown" ? 1 : -1;
+      for (let k = 1; k <= n; k++) { const j = (dd.hl + d * k + n) % n; if (!dd.items[j].disabled) { dd.hl = j; break; } }
+      paintList();
+    } else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(dd.items[dd.hl]); }
+  };
+  document.addEventListener("mousedown", (e) => { if (!el.contains(e.target)) close(); });
+  dd.set = (items, value, empty, disabled) => {
+    dd.items = items; dd.value = value;
+    const cur = items.find((i) => i.value === value);
+    btn.querySelector(".main").textContent = cur ? cur.main : empty;
+    btn.querySelector(".sub").textContent = cur ? cur.sub || "" : "";
+    btn.querySelector(".sub").hidden = !cur || !cur.sub;
+    btn.querySelector(".tag").textContent = cur ? cur.tag || "" : "";
+    btn.disabled = disabled || !items.length;
+    if (btn.disabled) close();
+    if (el.classList.contains("open")) paintList();
+  };
+  return dd;
+}
+
+let driveDD, modeDD;
+
 // ---------------------------------------------------------------- render
 function renderISO() {
   const t = $("iso-tile"), iso = state.iso;
   t.classList.toggle("empty", !iso);
   if (!iso) {
     $("iso-name").textContent = "No image chosen";
-    $("iso-path").textContent = "Choose the Backpack ISO, or drop an .iso file on this window.";
-    $("iso-facts").textContent = "";
-    $("iso-meta").textContent = "STEP 1 OF 3";
+    $("iso-facts").textContent = "CHOOSE AN ISO OR DROP ONE HERE";
+    $("iso-meta").textContent = "";
     return;
   }
   $("iso-name").textContent = iso.name;
-  $("iso-path").textContent = iso.path;
-  $("iso-path").title = iso.path;
+  $("iso-tile").title = iso.path;
   if (iso.error) {
     $("iso-facts").innerHTML = "";
     const s = document.createElement("span");
-    s.className = "err"; s.textContent = "Cannot use this file: " + iso.error;
+    s.className = "err"; s.textContent = "NOT USABLE: " + iso.error.toUpperCase();
     $("iso-facts").append(s);
   } else {
-    $("iso-facts").textContent = `ISO 9660 // ${iso.volume || "NO LABEL"} // ${human(iso.size)}`;
+    $("iso-facts").textContent = `${iso.volume || "NO LABEL"} // ${human(iso.size)}`;
   }
-  $("iso-meta").textContent = iso.error ? "STEP 1 OF 3 // INVALID" : "STEP 1 OF 3 // READY";
+  $("iso-meta").textContent = iso.error ? "INVALID" : "ISO 9660";
 }
 
 function renderDrives() {
-  const box = $("drives");
-  box.innerHTML = "";
-  $("drive-meta").textContent = `STEP 2 OF 3 // ${state.drives.length} FOUND`;
-  if (!state.drives.length) {
-    const n = document.createElement("div");
-    n.className = "none cut small";
-    n.style.gridColumn = "1 / -1";
-    n.textContent = "No USB drive found. Plug one in and press Refresh drives.";
-    box.append(n);
-    return;
-  }
-  for (const d of state.drives) {
-    const b = document.createElement("button");
-    b.className = "drive cut";
-    b.setAttribute("aria-pressed", String(d.path === state.sel));
-    b.disabled = state.running;
-    b.innerHTML = `<div class="rail"></div><div class="info">
-      <div class="tile-name ellipsis"></div>
-      <div class="small muted ellipsis"></div>
-      <div class="foot"><span class="micro"></span><span class="micro tag"></span></div></div>`;
-    b.querySelector(".tile-name").textContent = d.name;
-    b.querySelector(".small").textContent = `${d.display} · ${human(d.size)}`;
-    b.querySelector(".foot .micro").textContent = d.bus || "USB";
-    b.querySelector(".tag").textContent = d.persistence ? "PERSISTENCE" : (d.mounted && d.mounted.length ? "MOUNTED" : "");
-    b.onclick = () => { state.sel = d.path; state.keep = !!d.persistence; state.finished = false; render(); };
-    box.append(b);
-  }
+  $("drive-meta").textContent = `${state.drives.length} FOUND`;
+  const items = state.drives.map((d) => ({
+    value: d.path, main: d.name, sub: `${d.display} · ${human(d.size)} · ${d.bus || "USB"}`,
+    tag: d.persistence ? "PERSISTENCE" : d.mounted && d.mounted.length ? "MOUNTED" : "",
+  }));
+  driveDD.set(items, state.sel, state.drives.length ? "Choose a USB drive" : "No USB drive found", state.running);
 }
 
 function renderMode() {
   const d = drive();
   const canKeep = !!(d && d.persistence);
   if (!canKeep) state.keep = false;
-  $("mode-fresh").setAttribute("aria-pressed", String(!state.keep));
-  $("mode-keep").setAttribute("aria-pressed", String(state.keep));
-  $("mode-keep").disabled = !canKeep || state.running;
-  $("mode-fresh").disabled = state.running;
-  $("keep-note").textContent = canKeep ? "Keep saved files and settings" : "Needs a drive with persistence";
+  modeDD.set([
+    { value: "fresh", main: "Fresh install", sub: "Erase the drive, new persistence" },
+    { value: "keep", main: "Update system", sub: canKeep ? "Keep saved files and settings" : "Needs a drive with persistence", disabled: !canKeep },
+  ], state.keep ? "keep" : "fresh", "", state.running);
   const max = maxSize();
   state.size = Math.min(state.size, max);
   $("size").max = max;
   $("size").value = state.size;
   $("size-val").textContent = `${state.size} GB`;
-  $("size-max").textContent = d ? `MAX ${max} GB` : "";
+  $("size-max").textContent = d && !state.keep ? `PERSISTENCE MAX ${max} GB` : "";
   $("size-block").classList.toggle("disabled-block", state.keep || state.running);
+  $("size-block").hidden = state.keep;
 }
 
 function request() {
@@ -110,14 +152,12 @@ async function renderCommand() {
   if (!ready) {
     const parts = [state.iso && !state.iso.error ? "--iso " + state.iso.name : "--iso <image>",
       state.keep ? "--keep-persistence" : `--size ${state.size}G`, drive() ? drive().path : "<drive>"];
-    ph.textContent = "$ backpack-usb-writer ";
-    const s = document.createElement("span"); s.className = "placeholder"; s.textContent = parts.join(" ");
-    ph.append(s);
+    ph.textContent = "backpack-usb-writer " + parts.join(" ");
     return;
   }
   const seq = ++cmdSeq;
   const cmd = await api().Command(request());
-  if (seq === cmdSeq) ph.textContent = "$ " + cmd;
+  if (seq === cmdSeq) { ph.textContent = cmd; ph.title = cmd; }
 }
 
 function renderWrite() {
@@ -264,7 +304,7 @@ function openConfirm() {
     $("c-ok").className = "btn danger cut";
     $("c-ok-lbl").textContent = "Erase and write";
   }
-  $("c-ok-cmd").textContent = $("cmdline").textContent.replace(/^\$ /, "");
+  $("c-ok-cmd").textContent = $("cmdline").textContent;
   $("confirm").hidden = false;
   $("c-cancel").focus();
 }
@@ -275,7 +315,7 @@ async function start() {
   state.running = true;
   state.finished = false;
   render();
-  log($("cmdline").textContent);
+  log("$ " + $("cmdline").textContent);
   try {
     await api().Write(request());
   } catch (err) {
@@ -355,7 +395,7 @@ function drawDragon() {
   const g = c.getContext("2d");
   g.scale(dpr, dpr);
   // turn sequence for iteration n
-  const n = 11;
+  const n = 9;
   let turns = [];
   for (let i = 0; i < n; i++) turns = [...turns, 1, ...turns.slice().reverse().map((t) => -t)];
   let x = 0, y = 0, dir = 0;
@@ -368,8 +408,8 @@ function drawDragon() {
   }
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const s = Math.min((r.width * 0.6) / (maxX - minX), (r.height - 120) * 0.8 / (maxY - minY));
-  const ox = (r.width - (maxX - minX) * s) / 2 - minX * s, oy = (r.height - 90 - (maxY - minY) * s) / 2 - minY * s;
+  const s = Math.min((r.width * 0.5) / (maxX - minX), (r.height - 40) * 0.8 / (maxY - minY));
+  const ox = (r.width - (maxX - minX) * s) / 2 - minX * s, oy = (r.height - 16 - (maxY - minY) * s) / 2 - minY * s;
   g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--grid-strong");
   g.lineWidth = 1;
   g.beginPath();
@@ -382,8 +422,8 @@ function drawDragon() {
 async function boot() {
   $("iso-pick").onclick = async () => setISO(await api().PickISO());
   $("refresh").onclick = () => refreshDrives(false);
-  $("mode-fresh").onclick = () => { state.keep = false; state.finished = false; render(); };
-  $("mode-keep").onclick = () => { state.keep = true; state.finished = false; render(); };
+  driveDD = dropdown($("drive-dd"), "drive", (v) => { state.sel = v; state.keep = !!(drive() && drive().persistence); state.finished = false; render(); });
+  modeDD = dropdown($("mode-dd"), "mode", (v) => { state.keep = v === "keep"; state.finished = false; render(); });
   $("size").oninput = (e) => { state.size = +e.target.value; render(); };
   $("size-dec").onclick = () => step(-1);
   $("size-inc").onclick = () => step(1);
@@ -402,8 +442,7 @@ async function boot() {
     }, false);
   }
   state.info = await api().Info();
-  $("fact-os").textContent = state.info.os;
-  $("fact-ver").textContent = `WRITER // ${state.info.version}`;
+  $("facts").textContent = `BACKPACK // ${state.info.os} // ${state.info.version}`;
   if (state.info.iso) state.iso = state.info.iso;
   await refreshDrives(false);
   drawDragon();

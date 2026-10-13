@@ -52,23 +52,28 @@ const mock = (scenario) => {
   } } };
 };
 
+const pickDrive = async (p, n) => { await p.click("#drive-dd .dd-btn"); await p.click(`#drive-dd .dd-opt:nth-child(${n})`); };
+const plus = async (p, k) => { for (let i = 0; i < k; i++) await p.click("#size-inc"); };
+const W = 560, H = 780;
 const shots = [
-  ["empty", 1280, 800, async () => {}],
-  ["ready", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); }],
-  ["keep", 1280, 800, async (p) => { await p.click(".drive:nth-child(2)"); }],
-  ["confirm", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#write"); }],
-  ["writing", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
-  ["done", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
-  ["failed", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
-  ["update", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#upd"); await p.click("#iso-dl"); await p.waitForTimeout(200); }],
-  ["update-ready", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#upd"); await p.waitForTimeout(200); }],
-  ["small", 920, 660, async (p) => { await p.click(".drive:nth-child(1)"); }],
+  ["empty", W, H, async () => {}],
+  ["ready", W, H, async (p) => { await pickDrive(p, 1); await plus(p, 3); }],
+  ["drive-list", W, H, async (p) => { await pickDrive(p, 1); await p.click("#drive-dd .dd-btn"); }],
+  ["mode-list", W, H, async (p) => { await pickDrive(p, 2); await p.click("#mode-dd .dd-btn"); }],
+  ["keep", W, H, async (p) => { await pickDrive(p, 2); }],
+  ["confirm", W, H, async (p) => { await pickDrive(p, 1); await plus(p, 3); await p.click("#write"); }],
+  ["writing", W, H, async (p) => { await pickDrive(p, 1); await plus(p, 3); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
+  ["done", W, H, async (p) => { await pickDrive(p, 1); await plus(p, 3); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
+  ["failed", W, H, async (p) => { await pickDrive(p, 1); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
+  ["update", W, H, async (p) => { await pickDrive(p, 1); await p.click("#upd"); await p.click("#iso-dl"); await p.waitForTimeout(200); }],
+  ["update-ready", W, H, async (p) => { await pickDrive(p, 1); await p.click("#upd"); await p.waitForTimeout(200); }],
+  ["min", 480, 660, async (p) => { await pickDrive(p, 1); }],
 ];
 
 const browser = await chromium.launch();
 for (const [name, w, h, act] of shots) {
   const page = await browser.newPage({ viewport: { width: w, height: h } });
-  const scenario = name === "small" ? "ready" : name;
+  const scenario = ["min", "drive-list", "mode-list"].includes(name) ? "ready" : name;
   await page.addInitScript(mock, scenario);
   await page.addInitScript(() => { window.__t0 = () => {}; });
   await page.goto("file://" + dist);

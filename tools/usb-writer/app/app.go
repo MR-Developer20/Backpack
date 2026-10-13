@@ -216,10 +216,10 @@ func runGUI() error {
 	app := &App{}
 	return wails.Run(&options.App{
 		Title:            "Backpack USB Writer",
-		Width:            1180,
-		Height:           800,
-		MinWidth:         900,
-		MinHeight:        640,
+		Width:            560,
+		Height:           780,
+		MinWidth:         480,
+		MinHeight:        660,
 		BackgroundColour: &options.RGBA{R: 7, G: 9, B: 10, A: 255},
 		AssetServer:      &assetserver.Options{Assets: assets},
 		OnStartup:        app.startup,
