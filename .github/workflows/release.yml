@@ -3,7 +3,7 @@ name: release
 # standalone USB writer for Linux, Windows and macOS (tools/usb-writer/app), and publishes them
 # as a GitHub release. A manual run (Actions -> release -> Run workflow) builds the same files as
 # workflow artifacts only, without creating a release; so does a pull request that changes this
-# workflow or the packaging scripts.
+# workflow or the packaging scripts (the ISO only when this workflow or scripts/release.sh changed).
 on:
   push:
     tags: ["v*"]
@@ -19,22 +19,60 @@ permissions:
   contents: read
 
 jobs:
-  iso:
+  # On pull requests, the ISO is only rebuilt when the release packaging itself changed;
+  # a PR that only touches the USB writer skips the ~10 minute ISO build.
+  changes:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    outputs:
+      iso: ${{ steps.diff.outputs.iso }}
     steps:
       - uses: actions/checkout@v4
-      - name: free disk space for live-build
+        with: { fetch-depth: 0 }
+      - id: diff
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
+          changed="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"; echo "$changed"
+          if echo "$changed" | grep -qE '^(\.github/workflows/release\.yml|scripts/release\.sh)$'
+          then echo iso=true; else echo iso=false; fi | tee -a "$GITHUB_OUTPUT"
+
+  iso:
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.iso == 'true') }}
+    runs-on: ubuntu-24.04
+    # A normal build takes ~5-10 minutes; fail fast instead of sitting on a stuck mirror for hours.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: disk space
+        run: df -h /
       - name: host dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-yaml
+      # live-build keeps every downloaded .deb in live/cache/packages.*; reusing them skips most of
+      # the downloads from deb.debian.org. Tag runs can read the cache saved by a run on main.
+      # The month in the key starts a fresh cache now and then so old package versions don't pile up.
+      - name: month (cache key)
+        run: echo "MONTH=$(date -u +%Y-%m)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            live/cache/packages.bootstrap
+            live/cache/packages.chroot
+          key: lb-packages-${{ env.MONTH }}-${{ github.run_id }}
+          restore-keys: lb-packages-${{ env.MONTH }}-
       - name: build ISO (live-build in a privileged debian:trixie container)
-        run: make build
-      - name: build log
-        if: failure()
-        run: tail -n 200 build/logs/build.log || true
+        # make build writes live-build's output to build/logs/build.log; follow it so progress
+        # shows up live in the Actions log.
+        run: |
+          mkdir -p build/logs && : > build/logs/build.log
+          make build & pid=$!
+          tail -n +1 -F build/logs/build.log --pid=$pid 2>/dev/null &
+          wait $pid
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build/logs/build.log
+          retention-days: 7
       - name: stage release ISO
         env:
           VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
@@ -112,7 +150,7 @@ jobs:
           retention-days: 7
 
   publish:
-    if: github.ref_type == 'tag'
+    if: ${{ !cancelled() && !failure() && github.ref_type == 'tag' }}
     needs: [iso, usb-writer, usb-writer-app]
     runs-on: ubuntu-24.04
     permissions:
