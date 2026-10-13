@@ -31,4 +31,9 @@ echo "exit status $rc"
 echo "--- output"; cat "$W/output.log"
 echo "--- events"; cat "$W/events.jsonl"
 hdiutil detach "$DEV" >/dev/null 2>&1 || true
+# the same as a CI annotation, which is readable without the raw log
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  body="$(printf 'exit %s\n--- output\n%s\n--- events\n%s' "$rc" "$(tail -n 20 "$W/output.log")" "$(tail -n 20 "$W/events.jsonl")" | awk '{printf "%s%%0A", $0}')"
+  echo "::notice title=mac-smoke $(basename "$BIN")::$body"
+fi
 grep -q '"end":true' "$W/events.jsonl" || { echo "FAIL: the worker reported no result"; exit 1; }
