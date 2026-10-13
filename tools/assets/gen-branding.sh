@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 cd /work/branding
-# Palette matches the Touch Mode theme (bg #0f1419, accent #2ec4b6)
+# Palette matches the GUI Mode theme (bg #0f1419, accent #2ec4b6)
 # 1) Wallpaper / greeter background 1920x1080
 convert -size 1920x1080 \
   gradient:'#0b1016'-'#0f1b22' \

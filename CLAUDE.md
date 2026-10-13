@@ -5,8 +5,12 @@ build spec with the fixed decisions is `docs/SPEC.md`. User-facing docs: `README
 
 ## Decisions (fixed)
 - Debian trixie amd64, `live-build`, zstd squashfs, `--apt-recommends false`, no installer.
-- Desktop: LXQt + LightDM (X11). Touch Mode: PySide6/QML under sway (Wayland), `foot` terminal.
-- Boot entries: Terminal / Desktop / Touch Mode, each also as `toram`. Touch = `backpack.ui=touch`.
+- Two modes. **GUI Mode** (default): PySide6/QML tile launcher under sway (Wayland) in a LightDM
+  autologin session, `foot` terminal. **CLI Mode**: `systemd.unit=multi-user.target`, no display server.
+  The LXQt/X11 "Desktop" mode was removed (no xserver-xorg; GUI tools run via xwayland).
+- Boot entries: GUI Mode / CLI Mode, each also as `toram`. GUI = `backpack.ui=touch` (the kernel
+  param, the `backpack-touch` deb, the `backpack-touch` session and `touchmode/` keep the old
+  internal "touch" name; only the user-facing label changed).
 - Persistence: 5 GB ext4 labelled `persistence`, targeted dirs `/home /var/lib/backpack /etc/NetworkManager`.
 - Upstream: Kismet apt repo (trixie suite exists), Angry IP Scanner `.deb` 3.10.0 + `openjdk-21-jre`.
 
@@ -26,7 +30,7 @@ scripts/fetch-upstream.sh      upstream .debs → live/config/packages.chroot, k
 scripts/test-qemu.sh           boot ISO in QEMU (BIOS/UEFI/direct-kernel), waits for selftest marker
 scripts/mkusb.sh               write USB or test image + persistence partition
 live/auto/{config,build,clean} live-build config
-touchmode/                     PySide6/QML Touch Mode app + sway config + session files (phase 4)
+touchmode/                     PySide6/QML GUI Mode app + sway config + session files (phase 4)
 scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/backpack-touch_*.deb (run by make build)
 build/                         ignored: ISO, logs, cache, test images
 ```
@@ -63,7 +67,7 @@ make release
   serial log `build/logs/serial-<tag>.log`, screenshots `build/shots/<tag>.png`. Selftest unit
   (`backpack-selftest`, VM-only, writes to ttyS0) prints BOOTTIME / TOOLS / MISSING / PERSIST-MARKER-*.
 - `--apt-recommends false` drops live-config's Recommends: **`user-setup` is required** or the
-  live user is never created (LightDM then shows a greeter, nothing autologs in). base.list.chroot
+  live user is never created (LightDM then tries the greeter, nothing autologs in). base.list.chroot
   lists it explicitly. Debug a running VM without rebuilding: `scripts/test-qemu.sh --keep-alive 150`
   in the background, then `scripts/qemu-type.sh 'cmd > /dev/ttyS0\n'` (switch tty with
   `echo "sendkey ctrl-alt-f2" | socat - UNIX-CONNECT:build/qemu-mon.sock`).
@@ -71,7 +75,7 @@ make release
   adds p3. Image mode formats via `mkfs.ext4 -E offset=... -d <dir>` so no root/loop needed.
   live-boot finds the `persistence`-labelled partition on any disk, including with `toram`.
   `scripts/test-persist.sh` = 6 boots (bios/uefi x normal,normal,toram) on a fresh image.
-- (phase 4) Touch Mode = `backpack-touch` deb: python package in /usr/lib/python3/dist-packages,
+- (phase 4) GUI Mode (was "Touch Mode") = `backpack-touch` deb: python package in /usr/lib/python3/dist-packages,
   `/usr/bin/backpack-touch-session` (sway -c /etc/backpack/sway.config), wayland-sessions
   entry `backpack-touch`, unit `backpack-ui.service` (ConditionKernelCommandLine
   backpack.ui=touch) writes lightdm.conf.d/60-backpack-touch.conf before lightdm starts.
@@ -93,8 +97,8 @@ make release
     libinput enumerates the touch device under sway, so real touchscreens deliver events.
   * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.
 - (phase 5) Branding + splash: assets generated in branding/ by tools/assets/gen-branding.sh (ImageMagick via backpack-edex),
-  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png + LXQt skel,
-  greeter bg via lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd). Boot menus branded:
+  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png, greeter bg via
+  lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd; the LXQt skel went with Desktop mode). Boot menus branded:
   syslinux stdmenu.cfg colors + splash.png + "Backpack Live" title; GRUB background_image.
   Plymouth theme "backpack" (script module, splash.png) set in hook 0300 + update-initramfs.
   Plymouth cost: +74 MiB (plymouth-label pulls pango/cairo/fonts) but **no boot-time regression**
@@ -116,6 +120,13 @@ make release
   For Ventoy use (memdisk mode); does NOT fix Ventoy normal/grub2 mode (that is the Ventoy GRUB
   vs trixie-kernel issue). Verified: boot structure identical to the source ISO; BIOS boot runs.
 
+- (modes) Desktop (LXQt) mode removed; "Terminal" -> "CLI Mode", "Touch Mode" -> "GUI Mode".
+  `desktop.list.chroot` is gone; `gui.list.chroot` (was touch.list.chroot) carries sway/Qt/foot plus
+  `lightdm` + `lightdm-gtk-greeter` (lightdm Depends on a greeter; it never shows with autologin).
+  lightdm.conf.d/50-backpack.conf autologs straight into `backpack-touch`; `backpack-ui.service`
+  still writes 60-backpack-touch.conf on `backpack.ui=touch` (harmless duplicate, keeps selftest
+  TOUCH-CONF + `backpack.demo=` working). Selftest prints GUI-SESSION instead of DESKTOP-SESSION.
+  Not rebuilt/booted in this change: verify with `make clean build && make test-bios test-touch`.
 - (ventoy SOLUTION) `make ventoy` (scripts/make-ventoy-iso.sh) now produces build/ventoy-dist/:
   the persistence-stripped ISO + `ventoy/ventoy.json` with Ventoy's **auto_memdisk** plugin
   (`{"auto_memdisk":["/backpack-ventoy.iso"]}`) + README-VENTOY.txt. The user copies BOTH to

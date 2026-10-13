@@ -57,7 +57,7 @@ Copy BOTH of these onto your Ventoy USB drive, keeping the paths:
 "auto_memdisk" array into it instead of overwriting.)
 
 Then boot the drive and pick Backpack. It goes straight to
-"memdisk mode boot ... Loading ISO file to memory" and boots the desktop.
+"memdisk mode boot ... Loading ISO file to memory" and boots the live system.
 Your laptop needs ~1.5 GB of free RAM (the ISO is loaded into memory).
 
 Note: memdisk runs entirely from RAM, so persistence is not available this way.

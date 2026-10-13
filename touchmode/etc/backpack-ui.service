@@ -1,5 +1,5 @@
 [Unit]
-Description=Backpack: select Touch Mode session when backpack.ui=touch is on the kernel command line
+Description=Backpack: select the GUI Mode session when backpack.ui=touch is on the kernel command line
 ConditionKernelCommandLine=backpack.ui=touch
 After=live-config.service local-fs.target
 Before=lightdm.service display-manager.service

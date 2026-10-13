@@ -25,9 +25,9 @@ Priority: optional
 Architecture: all
 Maintainer: Backpack Live <backpack@localhost>
 Depends: python3, python3-yaml, python3-pyside6.qtcore, python3-pyside6.qtgui, python3-pyside6.qtqml, python3-pyside6.qtquick, python3-pyside6.qtquickcontrols2, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qml6-module-qtqml, qml6-module-qtqml-workerscript, qt6-wayland, sway, foot, wvkbd, fonts-dejavu-core
-Description: Backpack Live Touch Mode launcher
+Description: Backpack Live GUI Mode launcher
  Full-screen tile launcher for the tools in /etc/backpack/tools.yaml, running
- as a locked-down sway Wayland session selected with backpack.ui=touch.
+ as a locked-down sway Wayland session (the "GUI Mode" boot entry, backpack.ui=touch).
 CTL
 echo "/etc/backpack/sway.config" > "$STAGE/DEBIAN/conffiles"
 rm -f "$OUT"/backpack-touch_*.deb
