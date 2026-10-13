@@ -402,7 +402,7 @@ tools:
     name: Disks
     description: Lists every disk and partition with size, filesystem, label and mount point.
     category: disks
-    packages: [util-linux]
+    packages: [util-linux, fdisk]
     commands:
       - label: List disks
         cmd: lsblk

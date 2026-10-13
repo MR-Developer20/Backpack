@@ -7,6 +7,7 @@ bmon
 coreutils
 curl
 ethtool
+fdisk
 fping
 gddrescue
 hping3

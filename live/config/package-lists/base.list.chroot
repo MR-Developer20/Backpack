@@ -30,6 +30,7 @@ ca-certificates
 locales
 procps
 kmod
+kbd
 udev
 dbus
 iproute2
