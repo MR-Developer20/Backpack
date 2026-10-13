@@ -262,7 +262,13 @@ class Wifi(QObject):
                     break
             self._device = dev
             if not dev:
-                self._set_status("No Wi-Fi device found")
+                self._set_status("No Wi-Fi device found (monitor mode, or missing driver/firmware)")
+                return
+            if state == "unavailable":
+                self._set_status(f"{dev} unavailable: Wi-Fi is switched off or blocked (rfkill)")
+                return
+            if state == "unmanaged":
+                self._set_status(f"{dev} is not managed by NetworkManager (monitor mode? run airmon-ng stop)")
                 return
             def done_act(code2, out2):
                 for line in out2.splitlines():
@@ -279,8 +285,8 @@ class Wifi(QObject):
         if self._busy:
             return
         self._set_busy(True)
-        self.refreshStatus()
         def done(code, out):
+            self.refreshStatus()
             best = {}
             for line in out.splitlines():
                 # IN-USE:SSID:SIGNAL:SECURITY  (SSID may contain escaped ":" and "\\")
@@ -303,11 +309,23 @@ class Wifi(QObject):
             self._set_busy(False)
             if code != 0 and not self._networks:
                 self.message.emit(out.strip().splitlines()[-1] if out.strip() else "scan failed")
-        self._run(["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi", "list", "--rescan", "yes"], done)
+        def do_scan(*_):
+            self._run(["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi", "list", "--rescan", "yes"], done)
+        def done_radio(code, out):
+            # A soft-blocked/disabled radio makes the adapter "unavailable" and the list empty.
+            if out.strip() == "disabled":
+                self._run(["radio", "wifi", "on"], lambda *_: QTimer.singleShot(2000, do_scan))
+            else:
+                do_scan()
+        self._run(["radio", "wifi"], done_radio)
 
-    @Slot(str, str)
-    def connectTo(self, ssid, password):
+    @Slot(str, str, str)
+    def connectTo(self, ssid, password, security=""):
         if self._busy:
+            return
+        if "802.1X" in security:
+            # `nmcli dev wifi connect` cannot build an 802.1X (WPA-Enterprise) profile.
+            self.message.emit("Enterprise (802.1X) networks need a profile made in the terminal: nmtui")
             return
         self._set_busy(True)
         self._set_status(f"Connecting to {ssid}…")

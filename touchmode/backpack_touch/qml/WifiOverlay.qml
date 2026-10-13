@@ -7,12 +7,15 @@ Rectangle {
     id: overlay
     property string selectedSsid: ""
     property bool selectedSecured: false
+    property string selectedSecurity: ""
     property string lastMessage: ""
     signal closed()
     color: "#c0000000"
     MouseArea { anchors.fill: parent; onClicked: overlay.closed() }
 
-    Component.onCompleted: wifi.scan()
+    // The overlay is created hidden at startup, often before NetworkManager has the adapter up,
+    // so scan each time it is opened rather than once at creation.
+    onVisibleChanged: if (visible) wifi.scan()
     Connections {
         target: wifi
         function onMessage(m) { overlay.lastMessage = m }
@@ -80,7 +83,7 @@ Rectangle {
                     }
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: { overlay.selectedSsid = modelData.ssid; overlay.selectedSecured = modelData.secured; pw.text = "" }
+                        onClicked: { overlay.selectedSsid = modelData.ssid; overlay.selectedSecured = modelData.secured; overlay.selectedSecurity = modelData.security; pw.text = "" }
                     }
                 }
                 Text {
@@ -115,7 +118,7 @@ Rectangle {
                 TouchButton {
                     text: "Connect"; color: Theme.accent; textColor: Theme.bg
                     enabled: !wifi.busy && (!overlay.selectedSecured || pw.text.length > 0)
-                    onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text) }
+                    onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text, overlay.selectedSecurity) }
                 }
                 TouchButton { text: "Forget"; visible: overlay.selectedSsid !== ""; onClicked: wifi.forget(overlay.selectedSsid) }
             }
