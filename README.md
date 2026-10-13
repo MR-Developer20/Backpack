@@ -83,6 +83,19 @@ scripts/build-edex-deb.sh        # -> live/config/packages.chroot/edex-ui_*.deb
 
 Without it the image still builds; the eDEX button simply does not appear.
 
+### Releases
+
+Pushing a version tag builds everything on GitHub Actions (`.github/workflows/release.yml`) and
+publishes a GitHub release with the ISO, the USB writer (`.deb` + AppImage) and `SHA256SUMS`:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Running the workflow by hand (Actions → release → Run workflow) builds the same files as
+workflow artifacts without publishing. The release ISO is a plain `make build`, so it has no
+eDEX-UI.
+
 ## Write to a USB stick
 
 ```bash
@@ -90,11 +103,17 @@ make mkusb DEV=/dev/sdX            # writes the ISO + a 5 GB persistence partiti
 make mkusb DEV=/dev/sdX SIZE=10G   # larger persistence
 make mkusb DEV=/dev/sdX KEEP=1     # update the system only, keep the existing persistence
 make mkusb-gui                     # same thing in a small GTK4 window (password via pkexec)
+make usb-writer                    # package that window as build/dist/*.deb + AppImage
 scripts/mkusb.sh --dry-run /dev/sdX   # print every command without touching the disk
 ```
 
 `mkusb.sh` refuses disks larger than 256 GB without `--force`, refuses the running system disk,
 and asks you to type the device name to confirm. **It erases the target disk.**
+
+Without a checkout, install the **Backpack USB Writer** from a release: the `.deb`
+(`sudo apt install ./backpack-usb-writer_*_all.deb`, then start it from the app menu) or the
+AppImage (`chmod +x` and run). Both use the system's GTK 4, so the AppImage needs `python3-gi`
+and `gir1.2-gtk-4.0` (stock on Ubuntu 24.04+ / Debian trixie desktops).
 
 ## Ventoy
 

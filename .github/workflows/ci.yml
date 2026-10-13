@@ -19,3 +19,5 @@ jobs:
           python3 -m py_compile touchmode/backpack_touch/*.py scripts/*.py
       - name: touch-mode deb builds
         run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/backpack-touch_*.deb | head -5
+      - name: usb-writer deb builds
+        run: SKIP_APPIMAGE=1 scripts/build-usb-writer.sh && dpkg-deb -I build/dist/backpack-usb-writer_*.deb | head -5

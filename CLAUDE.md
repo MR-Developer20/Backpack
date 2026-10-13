@@ -187,3 +187,8 @@ make release
   the image already sits on tmpfs, so the button reads "Running from RAM". **Switch to CLI Mode**
   = `sudo -n sh -c 'systemctl isolate multi-user.target && chvt 1'` (untested on the ISO).
   Test hooks: BACKPACK_UI_SCALE, BACKPACK_DEMO_SETTINGS=1, BACKPACK_DEMO_SECTION=data.
+- (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
+  (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
+  -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not
+  self-contained: it uses the host's python3-gi/GTK 4. Its AppRun copies the scripts out of the
+  AppImage mount before running, because pkexec'd root cannot read a user FUSE mount.
