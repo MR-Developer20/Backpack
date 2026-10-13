@@ -139,19 +139,23 @@ Sheet {
         font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
     }
     RowLayout {
+        id: actions
         Layout.fillWidth: true
         Layout.topMargin: Theme.space4
         spacing: Theme.gap
         TouchButton {
+            id: disconnectButton
             text: "Disconnect"; command: "nmcli dev disconnect " + (overlay.device !== "" ? overlay.device : "<device>")
             visible: overlay.status.indexOf("Connected") === 0; onClicked: wifi.disconnect()
         }
         TouchButton {
             text: overlay.busy ? "Scanning…" : "Rescan"; command: "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY dev wifi list --rescan yes"
-            commandMaxWidth: Theme.s(470)   // the whole line fits the sheet
+            // the whole line when it fits; elided so the row never runs past the sheet when Disconnect shows
+            commandMaxWidth: Math.min(Theme.s(470), actions.width - closeButton.implicitWidth - Theme.space4 * 2 - actions.spacing * 2
+                                      - (disconnectButton.visible ? disconnectButton.implicitWidth + actions.spacing : 0))
             enabled: !overlay.busy; onClicked: wifi.scan()
         }
         Item { Layout.fillWidth: true }
-        TouchButton { text: "Close"; onClicked: overlay.closed() }
+        TouchButton { id: closeButton; text: "Close"; onClicked: overlay.closed() }
     }
 }
