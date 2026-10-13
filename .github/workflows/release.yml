@@ -1,0 +1,85 @@
+name: release
+# Pushing a tag like v1.2.0 builds the ISO and the USB writer (.deb + AppImage) and publishes them
+# as a GitHub release. A manual run (Actions -> release -> Run workflow) builds the same files as
+# workflow artifacts only, without creating a release; so does a pull request that changes this
+# workflow or the packaging scripts.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - scripts/build-usb-writer.sh
+      - scripts/release.sh
+      - tools/usb-writer/**
+
+permissions:
+  contents: read
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: free disk space for live-build
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - name: host dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-yaml
+      - name: build ISO (live-build in a privileged debian:trixie container)
+        run: make build
+      - name: build log
+        if: failure()
+        run: tail -n 200 build/logs/build.log || true
+      - name: stage release ISO
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: scripts/release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iso
+          path: build/release/*.iso
+          compression-level: 0
+          retention-days: 7
+
+  usb-writer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: package .deb + AppImage
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: scripts/build-usb-writer.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: usb-writer
+          path: build/dist/*
+          retention-days: 7
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: [iso, usb-writer]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/* --verify-tag --generate-notes --title "Backpack Live $TAG" -R "$GITHUB_REPOSITORY"
+          fi

@@ -161,3 +161,8 @@ make release
   BELOW (800x640 each); copy-to-RAM shows the plymouth bar (frames at 64% and 100%).
   Don't put `pkill ... qemu-system` at the top of a Bash call that also starts a VM: its non-zero
   exit (no process) or the kill aborts the rest of the call. Kill in a separate call.
+- (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
+  (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
+  -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not
+  self-contained: it uses the host's python3-gi/GTK 4. Its AppRun copies the scripts out of the
+  AppImage mount before running, because pkexec'd root cannot read a user FUSE mount.
