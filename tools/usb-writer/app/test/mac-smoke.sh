@@ -24,17 +24,25 @@ diskutil info "$DEV" | grep -E 'Device Location|Internal|Removable|Virtual|Whole
 : > "$W/events.jsonl"
 chmod 666 "$W/events.jsonl"
 set +e
-sudo env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin "$BIN" --yes --json "$W/events.jsonl" \
-  --iso "$W/fake.iso" --size 100M "$DEV" > "$W/output.log" 2>&1
+if [ "${VIA:-sudo}" = osascript ]; then
+  # the window's path: do shell script ... with administrator privileges (root already, so no prompt)
+  q() { printf "'%s'" "$(printf %s "$1" | sed "s/'/'\\\\''/g")"; }
+  CMD="{ echo started; $(q "$BIN") --yes --json $(q "$W/events.jsonl") --iso $(q "$W/fake.iso") --size 100M $DEV; rc=\$?; echo exited \$rc; exit \$rc; } >>$(q "$W/output.log") 2>&1"
+  AS="$(printf %s "$CMD" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  sudo osascript -e "do shell script \"$AS\" with administrator privileges"
+else
+  sudo env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin "$BIN" --yes --json "$W/events.jsonl" \
+    --iso "$W/fake.iso" --size 100M "$DEV" > "$W/output.log" 2>&1
+fi
 rc=$?
 set -e
 echo "exit status $rc"
-echo "--- output"; cat "$W/output.log"
-echo "--- events"; cat "$W/events.jsonl"
+echo "--- output"; cat "$W/output.log" || ls -l "$W"
+echo "--- events"; cat "$W/events.jsonl" || true
 hdiutil detach "$DEV" >/dev/null 2>&1 || true
 # the same as a CI annotation, which is readable without the raw log
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
-  body="$(printf 'exit %s\n--- output\n%s\n--- events\n%s' "$rc" "$(tail -n 20 "$W/output.log")" "$(tail -n 20 "$W/events.jsonl")" | awk '{printf "%s%%0A", $0}')"
+  body="$(printf 'exit %s\n--- output\n%s\n--- events\n%s' "$rc" "$(tail -n 20 "$W/output.log" 2>&1 || true)" "$(tail -n 20 "$W/events.jsonl")" | awk '{printf "%s%%0A", $0}')"
   echo "::notice title=mac-smoke $NAME::$body"
 fi
 grep -q '"phase":"done"' "$W/events.jsonl" || { echo "FAIL: the write did not finish"; exit 1; }

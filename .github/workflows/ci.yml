@@ -56,3 +56,5 @@ jobs:
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build -platform darwin/universal -skipbindings -trimpath
       - name: worker smoke test as root against a disk image (this build)
         run: test/mac-smoke.sh "$(ls -d "$PWD"/build/bin/*.app)/Contents/MacOS/"* "this build"
+      - name: worker smoke test through osascript, as the window runs it
+        run: VIA=osascript test/mac-smoke.sh "$(ls -d "$PWD"/build/bin/*.app)/Contents/MacOS/"* "osascript"

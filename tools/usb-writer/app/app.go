@@ -144,12 +144,18 @@ func (a *App) runElevated(r WriteRequest) {
 		return
 	}
 	defer os.RemoveAll(dir)
+	// Both files exist before the worker starts and are world-writable, so a root worker with
+	// a strict umask still appends to files this process can read.
+	os.Chmod(dir, 0o755)
 	status := filepath.Join(dir, "events.jsonl")
-	if err := os.WriteFile(status, nil, 0o666); err != nil {
-		a.emit(flash.Event{Error: err.Error(), End: true})
-		return
+	output := filepath.Join(dir, "output.log")
+	for _, p := range []string{status, output} {
+		if err := os.WriteFile(p, nil, 0o666); err != nil {
+			a.emit(flash.Event{Error: err.Error(), End: true})
+			return
+		}
+		os.Chmod(p, 0o666)
 	}
-	os.Chmod(status, 0o666)
 	exe, err := os.Executable()
 	if err != nil {
 		a.emit(flash.Event{Error: err.Error(), End: true})
@@ -192,7 +198,6 @@ func (a *App) runElevated(r WriteRequest) {
 			}
 		}
 	}()
-	output := filepath.Join(dir, "output.log")
 	cancelled, err := elevate(exe, args, output)
 	close(done)
 	wg.Wait()
@@ -203,7 +208,9 @@ func (a *App) runElevated(r WriteRequest) {
 	default:
 		// the worker ended without a result: show what it printed and how it exited
 		msg := "the writer stopped without reporting a result"
-		if b, _ := os.ReadFile(output); len(bytes.TrimSpace(b)) > 0 {
+		if b, rerr := os.ReadFile(output); rerr != nil {
+			a.emit(flash.Event{Log: "worker output unreadable: " + rerr.Error()})
+		} else if len(bytes.TrimSpace(b)) > 0 {
 			for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
 				a.emit(flash.Event{Log: "worker: " + l})
 			}
