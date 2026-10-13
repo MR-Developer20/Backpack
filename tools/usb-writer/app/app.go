@@ -167,6 +167,10 @@ func (a *App) runElevated(r WriteRequest) {
 		a.emit(flash.Event{Error: err.Error(), End: true})
 		return
 	}
+	if r.ISO, err = workerISO(r.ISO, dir, func(s string) { a.emit(flash.Event{Phase: "prepare", Log: s}) }); err != nil {
+		a.emit(flash.Event{Error: err.Error(), End: true})
+		return
+	}
 	args := append([]string{"--yes", "--json", status}, a.args(r)...)
 	a.emit(flash.Event{Phase: "auth", Log: "Asking for your password"})
 

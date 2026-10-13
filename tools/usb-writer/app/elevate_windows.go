@@ -15,6 +15,9 @@ func elevate(exe string, args []string, logPath string) (bool, error) {
 	return false, errors.New("Backpack USB Writer must run as Administrator: right-click it and choose Run as administrator")
 }
 
+// workerISO: the write runs in-process on Windows.
+func workerISO(iso, dir string, emit func(string)) (string, error) { return iso, nil }
+
 // attachConsole lets the command-line mode print into the terminal it was started from
 // (the .exe is a GUI-subsystem program).
 func attachConsole() {

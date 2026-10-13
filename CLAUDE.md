@@ -309,3 +309,6 @@ make release
   Wails-built binary as root (env -i, --json) against an hdiutil-attached image; results are posted as a CI
   annotation because job logs (blob storage) are not readable from cloud sessions. The elevated worker
   reports every failure through its --json file; its stdout/stderr go to output.log, shown when no result.
+  macOS TCC keeps the root worker (started via osascript's password prompt) out of ~/Downloads, ~/Desktop and
+  ~/Documents ("operation not permitted") although `sudo` from Terminal works: the window first puts the ISO in the
+  worker's /tmp folder (workerISO: APFS clonefile, else a copy).

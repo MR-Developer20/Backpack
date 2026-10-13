@@ -51,7 +51,7 @@ jobs:
           go-version: "1.24.7"
           cache-dependency-path: tools/usb-writer/app/go.sum
       - name: writer tests on macOS
-        run: go test -short ./flash ./update
+        run: go test -short -tags desktop,production . ./flash ./update
       - name: build the app as release.yml does
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build -platform darwin/universal -skipbindings -trimpath
       - name: worker smoke test as root against a disk image (this build)

@@ -100,19 +100,21 @@ type ISOInfo struct {
 	Size   int64  `json:"size"`
 	Volume string `json:"volume"` // ISO9660 volume id
 	Error  string `json:"error,omitempty"`
+
+	unreadable bool // Error is the open/stat error, not a verdict on the content
 }
 
 func InspectISO(path string) ISOInfo {
 	info := ISOInfo{Path: path, Name: baseName(path)}
 	f, err := os.Open(path)
 	if err != nil {
-		info.Error = err.Error()
+		info.Error, info.unreadable = err.Error(), true
 		return info
 	}
 	defer f.Close()
 	st, err := f.Stat()
 	if err != nil {
-		info.Error = err.Error()
+		info.Error, info.unreadable = err.Error(), true
 		return info
 	}
 	info.Size = st.Size()
@@ -168,7 +170,9 @@ func Run(o Options, emit func(Event)) (err error) {
 			emit(Event{Error: err.Error(), End: true})
 		}
 	}()
-	if info := InspectISO(o.ISO); info.Error != "" {
+	if info := InspectISO(o.ISO); info.unreadable {
+		return errors.New(info.Error)
+	} else if info.Error != "" {
 		return fmt.Errorf("%s: %s (the image is backpack-live-<version>-amd64.iso)", info.Name, info.Error)
 	}
 	iso, err := os.Open(o.ISO)
