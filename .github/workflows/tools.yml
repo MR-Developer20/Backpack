@@ -1,0 +1,83 @@
+name: tools
+# Builds the ISO and proves every tool GUI Mode and CLI Mode offer is really installed:
+#  1. runs scripts/check-tools.sh --runtime inside the ISO's own root filesystem (squashfs);
+#  2. boots the ISO in QEMU twice (GUI Mode, CLI Mode) and reads the self-test report
+#     (TOOLS / RUNTIME / MISSING lines) from the serial log.
+# Runs on demand and on pull requests that touch the manifest, package lists or the checks.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/tools.yml
+      - manifest/**
+      - live/config/package-lists/**
+      - scripts/check-tools.sh
+      - scripts/gen-package-list.py
+      - live/config/includes.chroot/usr/local/sbin/backpack-selftest
+
+permissions:
+  contents: read
+
+jobs:
+  installed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: free disk space for live-build
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - name: host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-yaml squashfs-tools xorriso qemu-system-x86 socat netpbm
+          # let the runner user open /dev/kvm (QEMU falls back to slow TCG otherwise)
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+          ls -l /dev/kvm || true
+      - name: build ISO
+        id: build
+        run: make build
+      - name: build log
+        if: failure()
+        run: tail -n 200 build/logs/build.log || true
+
+      - name: every command is in the ISO root filesystem
+        run: |
+          mkdir -p build/iso
+          xorriso -osirrox on -indev build/backpack.iso -extract /live/filesystem.squashfs build/iso/filesystem.squashfs >/dev/null 2>&1
+          sudo unsquashfs -q -d build/rootfs build/iso/filesystem.squashfs
+          sudo chroot build/rootfs /usr/local/lib/backpack/check-tools.sh --runtime | tee build/logs/rootfs-check.txt
+      - name: where each command comes from
+        if: always()
+        run: |
+          [ -d build/rootfs ] || exit 0
+          cmds="$(python3 scripts/gen-package-list.py --print-cmds | awk '{print $2}' | sort -u) chvt nmcli sway foot wvkbd-mobintl dmidecode"
+          sudo chroot build/rootfs sh -c 'for c in "$@"; do
+              p=$(command -v "$c" || ls /usr/sbin/"$c" /sbin/"$c" 2>/dev/null | head -1)
+              [ -n "$p" ] && o=$(dpkg -S "$(readlink -f "$p")" 2>/dev/null | cut -d: -f1 | head -1) || o=
+              printf "%-22s %-32s %s\n" "$c" "${p:-MISSING}" "$o"
+            done' sh $cmds | tee build/logs/command-owners.txt
+
+      - name: boot GUI Mode in QEMU and read the self-test
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          scripts/test-qemu.sh --headless --touch --direct --append "backpack.ui=touch" --tag gui --timeout 900
+          ! grep -q '^MISSING' build/logs/serial-gui.log
+          grep -q '^GUI-SESSION: sway + backpack-touch running' build/logs/serial-gui.log
+      - name: boot CLI Mode in QEMU and read the self-test
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          scripts/test-qemu.sh --headless --direct --append "systemd.unit=multi-user.target" --tag cli --timeout 900
+          ! grep -q '^MISSING' build/logs/serial-cli.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tools-check
+          path: |
+            build/logs/*.txt
+            build/logs/serial-*.log
+            build/shots/*.png
+            live/chroot.packages.install
+          if-no-files-found: ignore

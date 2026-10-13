@@ -240,3 +240,10 @@ make release
   theme.txt are "<-n name> Regular <size>". The progress_bar keeps ~28px height whatever `height` says.
   vesamenu item text is always the VGA bitmap font. Verified in QEMU with stand-in ISOs only (isolinux
   BIOS, grub-mkrescue + OVMF); not yet in a real `make build` (check grub-pc/backpack/ lands in /boot/grub).
+- (tools check) `scripts/check-tools.sh --runtime` also checks the programs GUI/CLI Mode call outside the
+  manifest (sway, foot, wvkbd-mobintl, nmcli, chvt, dmidecode, ...; list in the script, keep it in sync);
+  the selftest runs it and prints RUNTIME / MISSING-RUNTIME. `fdisk` is its own package (not util-linux)
+  and `chvt` is in `kbd`; neither comes with the minbase bootstrap. `.github/workflows/tools.yml` builds
+  the ISO on GitHub, runs the check inside the unpacked squashfs, lists each command's owning package
+  (artifact `tools-check`), and boots GUI + CLI Mode in QEMU. deb.debian.org is unreachable from cloud
+  sessions, so this workflow is the way to verify package changes from there.

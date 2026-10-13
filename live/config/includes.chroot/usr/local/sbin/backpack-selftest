@@ -8,7 +8,7 @@ timeout 150 systemctl is-system-running --wait >/dev/null 2>&1
 echo "STATE: $(systemctl is-system-running 2>&1)"
 echo "BOOTTIME: $(systemd-analyze 2>&1 | head -1)"
 systemctl --failed --no-legend --plain 2>/dev/null | sed 's/^/FAILED-UNIT: /'
-/usr/local/lib/backpack/check-tools.sh
+/usr/local/lib/backpack/check-tools.sh --runtime
 if getent passwd user >/dev/null; then echo "LIVE-USER: present ($(id -nG user | tr " " ","))"; else echo "LIVE-USER: absent"; fi
 if systemctl is-active --quiet lightdm 2>/dev/null; then
 	for _ in $(seq 1 25); do pgrep -f backpack_touch >/dev/null && break; sleep 2; done
