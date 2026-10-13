@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backpack USB Writer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header class="head">
+      <div class="head-text">
+        <h1 class="title">USB Writer</h1>
+        <div class="micro" id="facts">BACKPACK // WRITER</div>
+      </div>
+      <button class="btn small-btn cut upd" id="upd" hidden>
+        <span class="lbl" id="upd-lbl">Update</span>
+        <span class="command" id="upd-cmd">backpack-usb-writer --update</span>
+      </button>
+    </header>
+
+    <section>
+      <div class="sec-head"><span class="label">Image</span><span class="micro" id="iso-meta"></span></div>
+      <div class="row">
+        <div class="field cut iso" id="iso-tile">
+          <div class="rail"></div>
+          <div class="info">
+            <div class="name ellipsis" id="iso-name">No image chosen</div>
+            <div class="micro ellipsis" id="iso-facts">CHOOSE AN ISO OR DROP ONE HERE</div>
+          </div>
+        </div>
+        <button class="btn cut" id="iso-pick"><span class="lbl">Choose</span></button>
+      </div>
+      <div class="release" id="release" hidden>
+        <button class="btn small-btn cut" id="iso-dl">
+          <span class="lbl" id="iso-dl-lbl">Download latest ISO</span>
+          <span class="command">backpack-usb-writer --download-iso</span>
+        </button>
+        <div class="rel-info">
+          <div class="micro" id="rel-facts">LATEST RELEASE</div>
+          <div class="meter thin" id="dl-meter" hidden><div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="label">USB drive</span><span class="micro" id="drive-meta"></span></div>
+      <div class="row">
+        <div class="dd" id="drive-dd"></div>
+        <button class="btn cut icon-btn" id="refresh" aria-label="Refresh drives" title="Refresh drives">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+            <path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="label">Mode</span><span class="micro" id="size-max"></span></div>
+      <div class="dd" id="mode-dd"></div>
+      <div class="size-row" id="size-block">
+        <span class="small muted">Persistence</span>
+        <button class="btn step cut" id="size-dec" aria-label="Smaller">−</button>
+        <div class="val cut" id="size-val">5 GB</div>
+        <button class="btn step cut" id="size-inc" aria-label="Larger">+</button>
+        <input type="range" id="size" min="1" max="64" value="5" aria-label="Persistence size in GB">
+      </div>
+    </section>
+
+    <button class="btn primary cut write" id="write" disabled>
+      <span class="lbl" id="write-lbl">Write</span>
+      <span class="command" id="cmdline">backpack-usb-writer --iso &lt;image&gt; --size 5G &lt;drive&gt;</span>
+    </button>
+
+    <div class="progress">
+      <div class="phases" id="phases">
+        <div class="phase micro" data-p="image">01 // IMAGE</div>
+        <div class="phase micro" data-p="partition">02 // TABLE</div>
+        <div class="phase micro" data-p="format">03 // FORMAT</div>
+        <div class="phase micro" data-p="sync">04 // FLUSH</div>
+      </div>
+      <div class="meter" id="meter"><div></div></div>
+      <div class="status-line">
+        <div class="status small" id="status">Choose an image and a drive.</div>
+        <div class="micro" id="rate"></div>
+      </div>
+    </div>
+
+    <div class="out cut empty" id="out">
+      <canvas id="dragon"></canvas>
+      <pre id="log"></pre>
+      <div class="micro empty-note" id="empty-note">OUTPUT // IDLE // <span id="iter">ITERATION 9</span></div>
+    </div>
+  </main>
+
+  <div class="scrim" id="confirm" hidden>
+    <div class="sheet cut" role="dialog" aria-modal="true" aria-labelledby="c-title">
+      <div class="label warnhead" id="c-head">Erases the drive</div>
+      <h2 class="title" id="c-title">Erase and write?</h2>
+      <p class="small" id="c-body" style="margin:0"></p>
+      <div class="facts">
+        <span class="micro">Drive</span><span class="small" id="c-drive"></span>
+        <span class="micro">Image</span><span class="small ellipsis" id="c-iso"></span>
+        <span class="micro">Persist</span><span class="small" id="c-persist"></span>
+      </div>
+      <div class="actions">
+        <button class="btn cut" id="c-cancel"><span class="lbl">Cancel</span></button>
+        <button class="btn danger cut" id="c-ok"><span class="lbl" id="c-ok-lbl">Erase and write</span><span class="command" id="c-ok-cmd"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

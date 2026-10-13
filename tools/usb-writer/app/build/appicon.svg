@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Backpack USB Writer: Field Terminal chamfered tile, USB stick with a write arrow -->
+  <polygon points="64,64 840,64 960,184 960,960 184,960 64,840" fill="#0e1214" stroke="#5a6b70" stroke-width="12"/>
+  <g fill="none" stroke="#e6ede8" stroke-width="40" stroke-linejoin="miter" stroke-linecap="square">
+    <rect x="412" y="176" width="200" height="150"/>
+  </g>
+  <rect x="460" y="226" width="34" height="44" fill="#e6ede8"/>
+  <rect x="530" y="226" width="34" height="44" fill="#e6ede8"/>
+  <polygon points="344,326 680,326 680,760 610,830 344,830" fill="#c6ff1a"/>
+  <g fill="none" stroke="#07090a" stroke-width="46" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M512 420 V680"/>
+    <path d="M418 596 L512 690 L606 596"/>
+  </g>
+</svg>

@@ -1,0 +1,159 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
+	"sync"
+
+	wr "github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"backpack/usbwriter/flash"
+	"backpack/usbwriter/update"
+)
+
+// UpdateInfo is what the window shows about the newest release.
+type UpdateInfo struct {
+	Current string `json:"current"`
+	Latest  string `json:"latest"` // tag, "" when there is no release yet
+	Page    string `json:"page"`
+	Newer   bool   `json:"newer"`   // a newer writer for this system exists
+	ISOName string `json:"isoName"` // the release's ISO, if any
+	ISOSize int64  `json:"isoSize"`
+}
+
+// UpdateEvent reports a download ("app" or "iso") on the "update" event.
+type UpdateEvent struct {
+	Kind  string         `json:"kind"`
+	Done  int64          `json:"done,omitempty"`
+	Total int64          `json:"total,omitempty"`
+	Ready bool           `json:"ready,omitempty"`
+	Error string         `json:"error,omitempty"`
+	ISO   *flash.ISOInfo `json:"iso,omitempty"`
+}
+
+var (
+	relMu   sync.Mutex
+	rel     *update.Release
+	busy    = map[string]bool{}
+	restart string
+)
+
+func latest(ctx context.Context) (*update.Release, error) {
+	relMu.Lock()
+	defer relMu.Unlock()
+	if rel != nil {
+		return rel, nil
+	}
+	r, err := update.Latest(ctx)
+	if err == nil {
+		rel = r
+	}
+	return r, err
+}
+
+// CheckUpdate asks GitHub for the newest release.
+func (a *App) CheckUpdate() (UpdateInfo, error) {
+	info := UpdateInfo{Current: version}
+	r, err := latest(a.ctx)
+	if err != nil || r == nil {
+		return info, err
+	}
+	info.Latest, info.Page = r.Tag, r.Page
+	info.Newer = update.Newer(version, r.Tag) && r.AppAsset() != nil
+	if iso := r.ISOAsset(); iso != nil {
+		info.ISOName, info.ISOSize = iso.Name, iso.Size
+	}
+	return info, nil
+}
+
+func (a *App) start(kind string, job func(progress func(d, t int64)) (UpdateEvent, error)) error {
+	relMu.Lock()
+	if busy[kind] {
+		relMu.Unlock()
+		return errors.New("already downloading")
+	}
+	busy[kind] = true
+	relMu.Unlock()
+	go func() {
+		defer func() { relMu.Lock(); busy[kind] = false; relMu.Unlock() }()
+		ev, err := job(func(d, t int64) { wr.EventsEmit(a.ctx, "update", UpdateEvent{Kind: kind, Done: d, Total: t}) })
+		ev.Kind = kind
+		if err != nil {
+			ev.Error = err.Error()
+		} else {
+			ev.Ready = true
+		}
+		wr.EventsEmit(a.ctx, "update", ev)
+	}()
+	return nil
+}
+
+// InstallUpdate downloads the newer writer and puts it in place; RestartApp then switches to it.
+func (a *App) InstallUpdate() error {
+	return a.start("app", func(p func(d, t int64)) (UpdateEvent, error) {
+		r, err := latest(a.ctx)
+		if err != nil || r == nil {
+			return UpdateEvent{}, errors.New("no release found")
+		}
+		path, err := update.SelfUpdate(a.ctx, r, p)
+		if err == nil {
+			relMu.Lock()
+			restart = path
+			relMu.Unlock()
+		}
+		return UpdateEvent{}, err
+	})
+}
+
+// RestartApp starts the updated program and closes this one.
+func (a *App) RestartApp() error {
+	relMu.Lock()
+	path := restart
+	relMu.Unlock()
+	if path == "" {
+		return errors.New("no update installed")
+	}
+	if err := update.Restart(path); err != nil {
+		return err
+	}
+	wr.Quit(a.ctx)
+	return nil
+}
+
+// DownloadISO saves the release's ISO into Downloads and makes it the chosen image.
+func (a *App) DownloadISO() error {
+	return a.start("iso", func(p func(d, t int64)) (UpdateEvent, error) {
+		path, err := downloadISO(a.ctx, p)
+		if err != nil {
+			return UpdateEvent{}, err
+		}
+		info := flash.InspectISO(path)
+		return UpdateEvent{ISO: &info}, nil
+	})
+}
+
+func downloadISO(ctx context.Context, p func(d, t int64)) (string, error) {
+	r, err := latest(ctx)
+	if err != nil {
+		return "", err
+	}
+	if r == nil || r.ISOAsset() == nil {
+		return "", errors.New("no released ISO found")
+	}
+	dir := downloadsDir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	a := r.ISOAsset()
+	dst := filepath.Join(dir, a.Name)
+	return dst, r.Download(ctx, a, dst, p)
+}
+
+func downloadsDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, "Downloads")
+	}
+	return "."
+}

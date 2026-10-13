@@ -115,7 +115,36 @@ scripts/mkusb.sh --dry-run /dev/sdX   # print every command without touching the
 `mkusb.sh` refuses disks larger than 256 GB without `--force`, refuses the running system disk,
 and asks you to type the device name to confirm. **It erases the target disk.**
 
-Without a checkout, install the **Backpack USB Writer** from a release: the `.deb`
+### Backpack USB Writer for Linux, Windows and macOS
+
+Each release also carries a standalone writer, one file per system, styled like GUI Mode
+(source: `tools/usb-writer/app`, Go + Wails):
+
+| System | File | Notes |
+| --- | --- | --- |
+| Linux | `Backpack_USB_Writer-<ver>-linux-x86_64` | `chmod +x` and run; asks for your password (pkexec). Needs WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`, stock on Ubuntu 22.04+ / Debian 12+ desktops). |
+| Windows | `Backpack_USB_Writer-<ver>-windows-x86_64.exe` | Asks for Administrator when it opens. Uses the WebView2 runtime built into Windows 10/11. |
+| macOS | `Backpack_USB_Writer-<ver>-macos-universal.zip` | Unzip, then right-click the app and choose Open the first time (it is not signed). Asks for an administrator password when writing. |
+
+It writes the ISO, then creates the `persistence` partition itself (ext3 with the same
+`persistence.conf`, so it works on systems without `mkfs.ext4`), or updates the system and keeps
+an existing persistence partition. The same file is also a command-line writer:
+
+```bash
+backpack-usb-writer --list
+sudo backpack-usb-writer --iso backpack-live-v1.2.0-amd64.iso --size 8G /dev/sdX     # Linux
+sudo backpack-usb-writer --iso backpack.iso --keep-persistence /dev/disk4            # macOS
+backpack-usb-writer.exe --iso backpack.iso --size 8G \\.\PhysicalDrive2              # Windows, as Administrator
+```
+
+It checks GitHub for a newer release when it opens. **Update to vX** downloads the writer for
+your system, checks it against the release's `SHA256SUMS` and replaces the program (then
+**Restart to finish**); **Download vX ISO** saves the release's ISO into Downloads and selects it.
+From a terminal: `backpack-usb-writer --update` and `backpack-usb-writer --download-iso`.
+
+Build it with `make usb-writer-app` (needs Go and, on Linux, `libgtk-3-dev libwebkit2gtk-4.1-dev`).
+
+Without a checkout, you can also install the GTK **Backpack USB Writer** from a release: the `.deb`
 (`sudo apt install ./backpack-usb-writer_*_all.deb`, then start it from the app menu) or the
 AppImage (`chmod +x` and run). Both use the system's GTK 4, so the AppImage needs `python3-gi`
 and `gir1.2-gtk-4.0` (stock on Ubuntu 24.04+ / Debian trixie desktops).
