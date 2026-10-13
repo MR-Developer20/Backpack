@@ -96,8 +96,9 @@ make release
     Hardware tablet taps via the monitor are flaky under nested virt; not a product defect —
     libinput enumerates the touch device under sway, so real touchscreens deliver events.
   * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.
-- (phase 5) Branding + splash: assets generated in branding/ by tools/assets/gen-branding.sh (ImageMagick via backpack-edex),
-  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png, greeter bg via
+- (phase 5) Branding + splash: tools/assets/gen-branding.sh (ImageMagick + python3, run from the repo root) writes the
+  Backpack Field Terminal wallpaper (JetBrains Mono, dragon curve from tools/assets/dragon.py) and plymouth art straight
+  into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png, greeter bg via
   lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd; the LXQt skel went with Desktop mode). Boot menus branded:
   syslinux stdmenu.cfg colors + splash.png + "Backpack Live" title; GRUB background_image.
   Plymouth theme "backpack" (script module, splash.png) set in hook 0300 + update-initramfs.
