@@ -43,7 +43,22 @@ ApplicationWindow {
     property string runState: ""     // the status strip: LAUNCHED / RUNNING / EXIT n / ERROR // ...
     property string runLine: ""      // the command line Run will execute, as the form stands
 
-    Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
+    // Theme.scale = the UI size slider, lowered in 0.05 steps while even the narrowest top bar (tabs +
+    // five icon buttons, no meter) is wider than the window, so the gear stays on screen. Assigned, not
+    // bound: the bar's width depends on the scale. A new slider value or window width starts again from
+    // the slider value; re-measuring after that only ever lowers it, so it always settles.
+    readonly property real barFloor: barMeterOnly - meter.compactWidth - Theme.gap
+    readonly property real scaleWanted: settings ? settings.uiScale : 1.0
+    function fitScale() {
+        var min = settings ? settings.uiScaleMin : 0.75
+        if (barFloor <= width || Theme.scale <= min + 0.001) return
+        var fit = Math.floor(width / (barFloor / Theme.scale) * 20 + 0.001) / 20   // the bar grows ~linearly with the scale
+        Theme.scale = Math.max(min, Math.min(Theme.scale - 0.05, fit))
+    }
+    function refitScale() { Theme.scale = scaleWanted; Qt.callLater(fitScale) }
+    onWidthChanged: refitScale()
+    onScaleWantedChanged: refitScale()
+    onBarFloorChanged: Qt.callLater(fitScale)
     Binding { target: Theme; property: "section"; value: win.section }
 
     function sectionCategories(sec) {
@@ -274,48 +289,67 @@ ApplicationWindow {
                 anchors.margins: Theme.space4   // panel padding
                 spacing: Theme.space2
 
-                // whole-pixel heights, so the rows below (and the form's clip edge) land on pixels
-                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02; Layout.preferredHeight: Math.ceil(implicitHeight) }
-                Text { font.family: Theme.fontSans
-                    Layout.fillWidth: true; Layout.preferredHeight: Math.ceil(implicitHeight)
-                    text: win.tool ? win.tool.description : ""
-                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
-                }
-                Flow {
+                // Title, description, action chips and form scroll together; the Run row, the run line and
+                // the output's minimum height stay in view below them at any UI size. When it all
+                // fits, the form alone is still capped at 40% of the pane so the output keeps its room.
+                // Whole-pixel heights, so the rows below (and the clip edge) land on pixels.
+                Flickable {
+                    id: headFlick
+                    readonly property real headH: headCol.implicitHeight - (form.visible ? form.implicitHeight : 0)
+                    readonly property real room: toolPane.height - Theme.space4 * 2 - Theme.space2 * 3 - runRow.height - runLineRow.implicitHeight
+                                                 - (win.appMode ? 0 : output.Layout.minimumHeight)
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.preferredWidth: 0
-                    spacing: Theme.space2
-                    visible: win.tool && win.tool.commands.length > 1
-                    Repeater {
-                        model: win.tool ? win.tool.commands : []
-                        delegate: Chip {   // the chosen action: 2px accent border and accent label; Run stays the one primary
-                            required property int index
-                            required property var modelData
-                            text: modelData.label
-                            command: modelData.template
-                            selected: win.cmdIndex === index
-                            onClicked: win.cmdIndex = index
+                    Layout.preferredHeight: Math.floor(Math.max(Math.min(headCol.implicitHeight, Theme.touch),
+                        Math.min(headCol.implicitHeight, headH + (form.visible ? toolPane.height * 0.4 : 0), room)))
+                    contentHeight: headCol.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    // the bar sits in the pane's right padding, so the content width (and its wrapping) never
+                    // depends on whether it shows: that feedback loop never settles
+                    ScrollBar.vertical: BpScrollBar {
+                        parent: toolPane
+                        x: Math.round(toolPane.width - Theme.space4 + (Theme.space4 - width) / 2)
+                        y: Theme.space4 + headFlick.y; height: headFlick.height
+                    }
+                    ColumnLayout {
+                        id: headCol
+                        width: headFlick.width
+                        spacing: Theme.space2
+                        Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02; Layout.preferredHeight: Math.ceil(implicitHeight) }
+                        Text { font.family: Theme.fontSans
+                            Layout.fillWidth: true; Layout.preferredHeight: Math.ceil(implicitHeight)
+                            text: win.tool ? win.tool.description : ""
+                            color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
+                        }
+                        Flow {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: 0
+                            spacing: Theme.space2
+                            visible: win.tool && win.tool.commands.length > 1
+                            Repeater {
+                                model: win.tool ? win.tool.commands : []
+                                delegate: Chip {   // the chosen action: 2px accent border and accent label; Run stays the one primary
+                                    required property int index
+                                    required property var modelData
+                                    text: modelData.label
+                                    command: modelData.template
+                                    selected: win.cmdIndex === index
+                                    onClicked: win.cmdIndex = index
+                                }
+                            }
+                        }
+                        ToolForm {
+                            visible: !win.appMode   // the form still supplies its defaults to runCurrent()
+                            Layout.fillWidth: true
+                            id: form
+                            command: win.tool ? win.tool.commands[win.cmdIndex] : null
+                            onChanged: win.updateRunLine()
                         }
                     }
                 }
-                Flickable {
-                    visible: !win.appMode   // the form still supplies its defaults to runCurrent()
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Math.floor(Math.min(form.implicitHeight, toolPane.height * 0.4))   // whole pixels: a fractional clip edge blurs the row it cuts
-                    id: formFlick
-                    contentHeight: form.implicitHeight
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    ScrollBar.vertical: BpScrollBar { parent: formFlick; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.right: parent.right }
-                    ToolForm {
-                        id: form
-                        width: parent.width - (formFlick.ScrollBar.vertical.visible ? formFlick.ScrollBar.vertical.width : 0)
-                        command: win.tool ? win.tool.commands[win.cmdIndex] : null
-                        onChanged: win.updateRunLine()
-                    }
-                }
                 Flow {   // wraps when the UI size is large
+                    id: runRow
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
@@ -323,6 +357,7 @@ ApplicationWindow {
                     TouchButton {
                         text: win.tool && win.tool.gui ? "Open" : "Run"
                         command: win.runLine
+                        commandMaxWidth: Math.min(Theme.s(360), runRow.width - Theme.space4 * 2)   // never wider than the pane
                         color: Theme.accent; textColor: Theme.inkOnAccent
                         enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
@@ -340,6 +375,7 @@ ApplicationWindow {
                     }
                 }
                 RowLayout {   // the command Run will execute (phosphor), then the status strip
+                    id: runLineRow
                     Layout.fillWidth: true
                     spacing: Theme.space4
                     Text {
@@ -363,7 +399,9 @@ ApplicationWindow {
                     visible: !win.appMode
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.minimumHeight: Theme.s(100)
+                    // Theme.s(100), less on a screen too short for it beside the Run row and a touch-tall head
+                    Layout.minimumHeight: Math.max(Theme.s(40), Math.min(Theme.s(100), toolPane.height - Theme.space4 * 2 - Theme.space2 * 3
+                                                   - runRow.height - runLineRow.implicitHeight - Theme.touch))
                 }
             }
         }
@@ -409,5 +447,5 @@ ApplicationWindow {
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
     Timer { running: demoMonitor; interval: 4000; onTriggered: win.monitorOpen = true }
     Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true; if (demoAsk !== "") settingsSheet.ask = demoAsk } }
-    Component.onCompleted: if (demoSection !== "") selectSection(demoSection)
+    Component.onCompleted: { refitScale(); if (demoSection !== "") selectSection(demoSection) }
 }

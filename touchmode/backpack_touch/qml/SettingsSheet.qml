@@ -81,6 +81,13 @@ Sheet {
         text: "Reset to 1.0×"
         onClicked: { settings.uiScale = 1.0; scaleSlider.value = 1.0 }
     }
+    Text {   // Main.fitScale lowered the size so the top bar fits this screen
+        visible: settings && Theme.scale < settings.uiScale - 0.001
+        Layout.fillWidth: true
+        text: "This screen fits up to " + Theme.scale.toFixed(2).replace(/0$/, "") + "×, so that is what is shown."
+        color: Theme.warn; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont
+        wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
+    }
 
     // ------------------------------------------------ system
     SheetHeading { text: "System"; Layout.topMargin: Theme.space4 }
