@@ -18,6 +18,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash   # -eo pipefail: a failing check piped into tee fails the step
+
 jobs:
   installed:
     runs-on: ubuntu-24.04
@@ -59,17 +63,23 @@ jobs:
               [ -n "$p" ] && o=$(dpkg -S "$(readlink -f "$p")" 2>/dev/null | cut -d: -f1 | head -1) || o=
               printf "%-22s %-32s %s\n" "$c" "${p:-MISSING}" "$o"
             done' sh $cmds | tee build/logs/command-owners.txt
+          # artifacts and logs are not readable everywhere; annotations are
+          echo "::notice title=Command owners::$(awk '{printf "%s=%s; ", $1, ($3 ? $3 : $2)}' build/logs/command-owners.txt)"
 
       - name: boot GUI Mode in QEMU and read the self-test
         if: always() && steps.build.outcome == 'success'
         run: |
           scripts/test-qemu.sh --headless --touch --direct --append "backpack.ui=touch" --tag gui --timeout 900
+          grep -E '^(TOOLS|RUNTIME|MISSING|GUI-SESSION):' build/logs/serial-gui.log | sed 's/^/::notice title=GUI Mode boot::/'
+          grep -q '^RUNTIME:' build/logs/serial-gui.log
           ! grep -q '^MISSING' build/logs/serial-gui.log
           grep -q '^GUI-SESSION: sway + backpack-touch running' build/logs/serial-gui.log
       - name: boot CLI Mode in QEMU and read the self-test
         if: always() && steps.build.outcome == 'success'
         run: |
           scripts/test-qemu.sh --headless --direct --append "systemd.unit=multi-user.target" --tag cli --timeout 900
+          grep -E '^(TOOLS|RUNTIME|MISSING):' build/logs/serial-cli.log | sed 's/^/::notice title=CLI Mode boot::/'
+          grep -q '^RUNTIME:' build/logs/serial-cli.log
           ! grep -q '^MISSING' build/logs/serial-cli.log
       - uses: actions/upload-artifact@v4
         if: always()
