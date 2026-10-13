@@ -168,7 +168,9 @@ function renderWrite() {
   if (!state.running && !state.finished) {
     let s = "";
     if (!state.iso) s = "Choose an image and a drive.";
-    else if (state.iso.error) s = "That file is not a Backpack ISO.";
+    else if (state.iso.error) s = state.rel && state.rel.isoName
+      ? `That file is not the Backpack ISO. Download ${state.rel.latest} above, or choose ${state.rel.isoName}.`
+      : "That file is not the Backpack ISO. Choose backpack-live-<version>-amd64.iso from the release page.";
     else if (!d) s = state.drives.length ? "Choose the USB drive to write." : "Plug in a USB drive.";
     else if (state.keep) s = "Ready. The system is replaced, persistence is kept.";
     else s = `Ready. Everything on ${d.display} will be erased.`;
@@ -437,7 +439,7 @@ async function boot() {
   $("iso-dl").onclick = () => { $("iso-dl").disabled = true; $("dl-meter").hidden = false; api().DownloadISO(); };
   if (window.runtime.OnFileDrop) {
     window.runtime.OnFileDrop(async (_x, _y, paths) => {
-      const p = (paths || []).find((q) => q.toLowerCase().endsWith(".iso"));
+      const p = (paths || []).find((q) => q.toLowerCase().endsWith(".iso")) || (paths || [])[0];
       if (p && !state.running) setISO(await api().Inspect(p));
     }, false);
   }

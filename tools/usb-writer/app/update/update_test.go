@@ -1,15 +1,19 @@
 package update
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestNewer(t *testing.T) {
@@ -59,5 +63,74 @@ func TestDownloadVerifies(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "bad.iso")); err == nil {
 		t.Fatal("bad download kept")
+	}
+}
+
+func TestISOAsset(t *testing.T) {
+	r := Release{Assets: []Asset{
+		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64"},
+		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64.iso"},
+		{Name: "backpack-live-v1.0-amd64.iso"},
+	}}
+	if a := r.ISOAsset(); a == nil || a.Name != "backpack-live-v1.0-amd64.iso" {
+		t.Fatalf("ISOAsset = %+v", a)
+	}
+}
+
+// TestDownloadParallel: ranged parts reassemble, a part whose connection drops resumes, and a
+// server without Range support falls back to one stream.
+func TestDownloadParallel(t *testing.T) {
+	defer func(m int64) { parallelMin = m }(parallelMin)
+	parallelMin = 1
+	body := make([]byte, 3<<20+12345)
+	for i := range body {
+		body[i] = byte(i * 7 / 3)
+	}
+	sum := sha256.Sum256(body)
+	var mu sync.Mutex
+	ranged, dropped := 0, false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/SHA256SUMS":
+			fmt.Fprintf(w, "%x  a.iso\n%x  b.iso\n", sum, sum)
+		case "/a":
+			mu.Lock()
+			if r.Header.Get("Range") != "" {
+				ranged++
+			}
+			drop := !dropped && strings.HasPrefix(r.Header.Get("Range"), "bytes=0-")
+			dropped = dropped || drop
+			mu.Unlock()
+			if drop { // send half of the first part, then cut the connection
+				w.Header().Set("Content-Range", fmt.Sprintf("bytes 0-%d/%d", len(body)/8, len(body)))
+				w.Header().Set("Content-Length", fmt.Sprint(len(body)/8+1))
+				w.WriteHeader(http.StatusPartialContent)
+				w.Write(body[:len(body)/16])
+				panic(http.ErrAbortHandler)
+			}
+			http.ServeContent(w, r, "a.iso", time.Time{}, bytes.NewReader(body))
+		case "/b":
+			w.Write(body) // ignores Range
+		}
+	}))
+	defer srv.Close()
+	r := &Release{Assets: []Asset{
+		{Name: "SHA256SUMS", URL: srv.URL + "/SHA256SUMS"},
+		{Name: "a.iso", URL: srv.URL + "/a", Size: int64(len(body))},
+		{Name: "b.iso", URL: srv.URL + "/b", Size: int64(len(body))},
+	}}
+	dir := t.TempDir()
+	for _, a := range r.Assets[1:] {
+		var last int64
+		dst := filepath.Join(dir, a.Name)
+		if err := r.Download(context.Background(), &a, dst, func(d, _ int64) { last = d }); err != nil {
+			t.Fatalf("%s: %v", a.Name, err)
+		}
+		if got, _ := os.ReadFile(dst); !bytes.Equal(got, body) || last != int64(len(body)) {
+			t.Fatalf("%s: wrong content or progress %d", a.Name, last)
+		}
+	}
+	if ranged < Parts+1 || !dropped {
+		t.Fatalf("ranged requests %d, dropped %v", ranged, dropped)
 	}
 }

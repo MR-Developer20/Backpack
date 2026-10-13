@@ -65,8 +65,11 @@ func (a *App) Drives() ([]flash.Drive, error) {
 
 func (a *App) PickISO() (*flash.ISOInfo, error) {
 	p, err := wr.OpenFileDialog(a.ctx, wr.OpenDialogOptions{
-		Title:   "Choose the Backpack ISO image",
-		Filters: []wr.FileFilter{{DisplayName: "ISO images (*.iso)", Pattern: "*.iso"}},
+		Title: "Choose the Backpack ISO image",
+		Filters: []wr.FileFilter{
+			{DisplayName: "ISO images (*.iso)", Pattern: "*.iso"},
+			{DisplayName: "All files", Pattern: "*"},
+		},
 	})
 	if err != nil || p == "" {
 		return nil, err

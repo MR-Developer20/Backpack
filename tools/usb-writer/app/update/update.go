@@ -102,7 +102,10 @@ func (r *Release) AppAsset() *Asset {
 
 // ISOAsset is the live image.
 func (r *Release) ISOAsset() *Asset {
-	return r.find(func(n string) bool { return strings.HasSuffix(strings.ToLower(n), ".iso") })
+	return r.find(func(n string) bool {
+		n = strings.ToLower(n)
+		return strings.HasPrefix(n, "backpack-live-") && strings.HasSuffix(n, ".iso")
+	})
 }
 
 // checksums reads the release's SHA256SUMS (sha256sum format).
@@ -144,28 +147,16 @@ func (r *Release) Download(ctx context.Context, a *Asset, dst string, progress f
 			return nil
 		}
 	}
-	resp, err := get(ctx, a.URL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
 	part := dst + ".part"
-	f, err := os.Create(part)
-	if err != nil {
-		return err
-	}
-	h := sha256.New()
-	pr := &progressReader{r: resp.Body, total: a.Size, fn: progress}
-	_, err = io.Copy(io.MultiWriter(f, h), pr)
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
+	if err := fetch(ctx, a.URL, part, a.Size, progress); err != nil {
 		os.Remove(part)
 		return err
 	}
-	if got := hex.EncodeToString(h.Sum(nil)); got != want {
+	if got, err := fileSHA(part); err != nil || got != want {
 		os.Remove(part)
+		if err != nil {
+			return err
+		}
 		return fmt.Errorf("%s: checksum mismatch, download discarded", a.Name)
 	}
 	return os.Rename(part, dst)
@@ -182,23 +173,6 @@ func fileSHA(p string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-type progressReader struct {
-	r           io.Reader
-	done, total int64
-	last        time.Time
-	fn          func(done, total int64)
-}
-
-func (p *progressReader) Read(b []byte) (int, error) {
-	n, err := p.r.Read(b)
-	p.done += int64(n)
-	if p.fn != nil && (time.Since(p.last) > 200*time.Millisecond || err == io.EOF) {
-		p.fn(p.done, p.total)
-		p.last = time.Now()
-	}
-	return n, err
 }
 
 // Newer reports whether release tag is a newer version than current. Development builds
