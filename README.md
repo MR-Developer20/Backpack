@@ -8,7 +8,8 @@ A bootable Debian 13 ("trixie") live USB for network discovery and testing — t
 Two ways to use it, chosen from the boot menu:
 
 - **GUI Mode** (default) — a full-screen, touch-friendly tile launcher (PySide6/QML under sway)
-  that builds a form for each tool and streams its output. Tools sit in tabs: **Network**
+  that builds a form for each tool and streams its output. Every button shows the command it
+  runs, and the line above the output is exactly what Run executes. Tools sit in tabs: **Network**
   (discovery, connectivity, capture, wireless, throughput, DNS/HTTP), **Data** (disks, recovery,
   files, transfer) and **Extra** (other software, such as the optional
   [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when

@@ -115,6 +115,12 @@ class Settings(QObject):
         out = f"RAM {st['memAvailable'] / 2**30:.1f} GB FREE"
         return out + (" // FROM RAM" if st["inRam"] else "")
 
+    @Property(str, constant=True)
+    def ramCommand(self):
+        """The command the Load to RAM button runs, shown under its label."""
+        cmd = f"{os.path.basename(sys.executable)} -m backpack_touch.toram run"
+        return cmd if os.geteuid() == 0 else "sudo -n " + cmd
+
     @Property(bool, notify=ramChanged)
     def canLoadToRam(self):
         st = self._ram

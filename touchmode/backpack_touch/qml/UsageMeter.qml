@@ -7,7 +7,9 @@ Chamfer {
     signal tapped()
     property bool compact: false
     implicitHeight: Theme.touch
-    implicitWidth: compact ? Theme.s(110) : Theme.s(200)
+    readonly property int compactWidth: Theme.s(110)   // bars only
+    readonly property int fullWidth: Theme.s(200)      // bars with percentages
+    implicitWidth: compact ? compactWidth : fullWidth
     cut: Theme.cutSm
     color: area.pressed ? Qt.lighter(Theme.panelAlt, 1.3) : Theme.panelAlt
     borderColor: Theme.borderStrong

@@ -138,7 +138,7 @@ make release
   guest RAM for a 1 GB ISO-to-RAM load (fine on real HW; this host's ~3 GB free is marginal).
   Ventoy repro tooling: tools/ventoy/ (make-ventoy-usb.sh, add-auto-memdisk-json.sh, loopback-emul.sh).
 
-- (touch mode v2) Top bar is responsive: `compact` (width < 1100) collapses the tool buttons to
+- (touch mode v2) Top bar is responsive: `compact` (now measured, see "command lines on buttons") collapses the tool buttons to
   icon-only (the top-bar icons are vector glyphs in touchmode/backpack_touch/qml/Icon.qml:
   QtQuick.Shapes, 24-unit SVG paths scaled in JS with pixel snapping, named via TouchButton's `icon.name`;
   no PNGs are shipped); Reboot/Shutdown are always icon-only; the
@@ -230,6 +230,28 @@ make release
   Theme.s(960) and the meter below Theme.s(880). Theme property names must not start with `on` +
   capital (QML reads them as signal handlers): hence `inkOnAccent` / `inkOnDanger`. Test hook:
   BACKPACK_DEMO_ASK=reboot|poweroff|cli (with BACKPACK_DEMO_SETTINGS=1) opens a confirm state.
+- (command lines on buttons) Design rule: every button that runs a command shows it under its label in
+  `command` type (Theme.commandFont = 12px mono, regular, letter-spacing 0, never uppercased; ink-muted
+  on a plain button, the label colour at 75% on a filled one, 0.8 on an outline one). TouchButton has
+  `command` (+ `commandMaxWidth`, elided) and `fullWidth` (its width with label + command). Sources of
+  truth: manifest.load() puts `template` on every command (`sudo -n`? + cmd + default-on flags +
+  `<name>` placeholders, built by manifest.template()); the action chips show it, Run shows the live
+  line from `runner.commandLine(tool, cmdIndex, form.values())` (Main.updateRunLine(), re-run on
+  ToolForm.changed / chip / tool change; falls back to the template while a required field is empty)
+  and the Run row echoes it as `$ …` (phosphor) beside the micro status strip; Stop shows
+  `kill -TERM <pid>` with runner.pid while running; Settings: Load to RAM = settings.ramCommand
+  (`[sudo -n ]python3 -m backpack_touch.toram run`), Switch to CLI Mode = `systemctl isolate
+  multi-user.target`, Reboot/Shut down = `systemctl reboot|poweroff` (also on the confirm buttons);
+  Wi-Fi: nmcli lines with the SSID shell-quoted (WifiOverlay.quoted) and `<password>`/`<device>`
+  placeholders; top bar: Terminal/Split/Keyboard show foot / swaymsg kill / pkill -USR1|USR2 lines.
+  Buttons that only change the screen (tabs, category chips, Close, Cancel, Settings, Wi-Fi) show none.
+  The top bar is now MEASURED, not thresholded: `barLabels` sums the wordmark ("BACKPACK",
+  TextMetrics), the tabs (an Item wrapping a Row + Repeater, `tabs.implicitWidth`), the four tool
+  buttons' `fullWidth`, the compact meter, the gear and the gaps; `compact = width < barLabels`
+  (icon-only buttons, ~1790px at 1.0x); then `barWordmark` adds "//LIVE" and `barMeter` adds the
+  meter's percentages. Every term is an implicit width independent of the tier, so no binding loop.
+  At 1920x1080 the buttons show their commands with the short wordmark. Verified offscreen at 1280,
+  1800, 1920, 2048, 2200, 2560, portrait 800x1280 and 0.75/1.3/1.6x (logs clean, pixel scan clean).
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

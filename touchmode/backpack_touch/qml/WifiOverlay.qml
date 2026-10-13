@@ -15,6 +15,9 @@ Sheet {
     readonly property string status: wifi ? wifi.status : ""
     readonly property bool hasDevice: wifi ? wifi.hasDevice : false
     readonly property var networks: wifi ? wifi.networks : []
+    readonly property string device: wifi ? wifi.device : ""
+    // an SSID as the shell would need it, for the command lines under the buttons
+    function quoted(s) { return /^[A-Za-z0-9_.:@-]+$/.test(s) ? s : "'" + s.replace(/'/g, "'\\''") + "'" }
     title: "Wi-Fi"
     facts: overlay.busy ? "SCANNING" : (overlay.status.indexOf("Connected") === 0 ? "CONNECTED" : (overlay.hasDevice ? "NOT CONNECTED" : "NO ADAPTER"))
     sheetWidth: Theme.s(760)
@@ -123,10 +126,14 @@ Sheet {
         }
         TouchButton {
             text: "Connect"; color: Theme.accent; textColor: Theme.inkOnAccent
+            command: "nmcli dev wifi connect " + overlay.quoted(overlay.selectedSsid) + (overlay.selectedSecured ? " password <password>" : "")
             enabled: !overlay.busy && (!overlay.selectedSecured || pw.text.length > 0)
             onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text, overlay.selectedSecurity) }
         }
-        TouchButton { text: "Forget"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: wifi.forget(overlay.selectedSsid) }
+        TouchButton {
+            text: "Forget"; command: "nmcli con delete id " + overlay.quoted(overlay.selectedSsid)
+            textColor: Theme.danger; borderColor: Theme.danger; onClicked: wifi.forget(overlay.selectedSsid)
+        }
     }
     Text {
         Layout.fillWidth: true
@@ -138,8 +145,14 @@ Sheet {
         Layout.fillWidth: true
         Layout.topMargin: Theme.space4
         spacing: Theme.gap
-        TouchButton { text: "Disconnect"; visible: overlay.status.indexOf("Connected") === 0; onClicked: wifi.disconnect() }
-        TouchButton { text: overlay.busy ? "Scanning…" : "Rescan"; enabled: !overlay.busy; onClicked: wifi.scan() }
+        TouchButton {
+            text: "Disconnect"; command: "nmcli dev disconnect " + (overlay.device !== "" ? overlay.device : "<device>")
+            visible: overlay.status.indexOf("Connected") === 0; onClicked: wifi.disconnect()
+        }
+        TouchButton {
+            text: overlay.busy ? "Scanning…" : "Rescan"; command: "nmcli dev wifi list --rescan yes"
+            enabled: !overlay.busy; onClicked: wifi.scan()
+        }
         Item { Layout.fillWidth: true }
         TouchButton { text: "Close"; onClicked: overlay.closed() }
     }

@@ -19,6 +19,7 @@ Sheet {
         property string question
         property string consequence
         property string verb
+        property string command
         visible: sheet.ask === action
         Layout.fillWidth: true
         spacing: Theme.space2
@@ -28,7 +29,7 @@ Sheet {
             spacing: Theme.gap
             TouchButton { text: "Cancel"; onClicked: sheet.ask = "" }
             TouchButton {
-                text: verb; color: Theme.dangerFill; textColor: Theme.inkOnDanger
+                text: verb; command: parent.parent.command; color: Theme.dangerFill; textColor: Theme.inkOnDanger
                 onClicked: { var a = sheet.ask; sheet.ask = ""; sheet.act(a) }
             }
         }
@@ -89,12 +90,13 @@ Sheet {
         spacing: Theme.gap
         TouchButton {
             text: settings && settings.inRam ? "Running from RAM" : (settings && settings.ramBusy ? "Loading… " + settings.ramProgress + "%" : "Load to RAM")
+            command: settings ? settings.ramCommand : ""
             color: Theme.accent; textColor: Theme.inkOnAccent
             enabled: settings ? settings.canLoadToRam : false
             onClicked: settings.loadToRam()
         }
         TouchButton {   // caution: leaves GUI Mode
-            text: "Switch to CLI Mode"
+            text: "Switch to CLI Mode"; command: "systemctl isolate multi-user.target"
             textColor: Theme.warn; borderColor: Theme.warn
             onClicked: sheet.ask = "cli"
         }
@@ -113,7 +115,7 @@ Sheet {
         color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
     }
     Confirm {
-        action: "cli"; verb: "Switch to CLI Mode"; question: "Switch to CLI Mode?"
+        action: "cli"; verb: "Switch to CLI Mode"; command: "systemctl isolate multi-user.target"; question: "Switch to CLI Mode?"
         consequence: "GUI Mode closes with its running tools and terminals and you get a text login on the console. Reboot to come back to GUI Mode."
     }
 
@@ -123,17 +125,17 @@ Sheet {
         visible: sheet.ask !== "reboot" && sheet.ask !== "poweroff"
         Layout.fillWidth: true
         spacing: Theme.gap
-        TouchButton { text: "Reboot"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "reboot" }
-        TouchButton { text: "Shut down"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "poweroff" }
+        TouchButton { text: "Reboot"; command: "systemctl reboot"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "reboot" }
+        TouchButton { text: "Shut down"; command: "systemctl poweroff"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "poweroff" }
         Item { Layout.fillWidth: true }
         TouchButton { text: "Close"; onClicked: sheet.closed() }
     }
     Confirm {
-        action: "reboot"; verb: "Reboot"; question: "Reboot?"
+        action: "reboot"; verb: "Reboot"; command: "systemctl reboot"; question: "Reboot?"
         consequence: "Running tools stop. Anything not saved to the persistence partition is lost."
     }
     Confirm {
-        action: "poweroff"; verb: "Shut down"; question: "Shut down?"
+        action: "poweroff"; verb: "Shut down"; command: "systemctl poweroff"; question: "Shut down?"
         consequence: "Running tools stop. Anything not saved to the persistence partition is lost."
     }
 }
