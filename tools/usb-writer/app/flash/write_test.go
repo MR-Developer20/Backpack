@@ -37,8 +37,7 @@ func fakeISO(t *testing.T, sectors uint32, fill byte) string {
 }
 
 func partitionUUID(t *testing.T, img string, start, sectors uint32) string {
-	part := img + ".p3"
-	defer os.Remove(part)
+	part := filepath.Join(t.TempDir(), "p3")
 	cmd := exec.Command("dd", "if="+img, "of="+part, "bs=512", "skip="+itoa(start), "count="+itoa(sectors), "conv=sparse", "status=none")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("dd: %v %s", err, out)

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -152,8 +154,47 @@ func downloadISO(ctx context.Context, p func(d, t int64)) (string, error) {
 }
 
 func downloadsDir() string {
+	if d := xdgDownloads(); d != "" {
+		return d
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, "Downloads")
 	}
 	return "."
+}
+
+// xdgDownloads is the desktop's own Downloads folder on Linux (XDG_DOWNLOAD_DIR in
+// user-dirs.dirs), which non-English desktops name in their language; "" when unset.
+func xdgDownloads() string {
+	if runtime.GOOS != "linux" {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	conf := os.Getenv("XDG_CONFIG_HOME")
+	if conf == "" {
+		conf = filepath.Join(home, ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(conf, "user-dirs.dirs"))
+	if err != nil {
+		return ""
+	}
+	for _, l := range strings.Split(string(b), "\n") {
+		v, ok := strings.CutPrefix(strings.TrimSpace(l), "XDG_DOWNLOAD_DIR=")
+		if !ok {
+			continue
+		}
+		v = strings.Trim(v, `"`)
+		if rest, ok := strings.CutPrefix(v, "$HOME"); ok {
+			v = home + rest
+		}
+		// set to $HOME itself means the desktop has no Downloads folder
+		if !filepath.IsAbs(v) || filepath.Clean(v) == filepath.Clean(home) {
+			return ""
+		}
+		return filepath.Clean(v)
+	}
+	return ""
 }

@@ -20,6 +20,9 @@ func findDefaultISO() *flash.ISOInfo {
 	if home, err := os.UserHomeDir(); err == nil {
 		dirs = append(dirs, filepath.Join(home, "Downloads"), filepath.Join(home, "Desktop"), home)
 	}
+	if d := xdgDownloads(); d != "" {
+		dirs = append(dirs, d)
+	}
 	var best string
 	var bestTime int64
 	for _, d := range dirs {

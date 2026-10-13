@@ -126,7 +126,7 @@ Each release also carries a standalone writer, one file per system, styled like 
 
 | System | File | Notes |
 | --- | --- | --- |
-| Linux | `Backpack_USB_Writer-<ver>-linux-x86_64` | `chmod +x` and run; asks for your password (pkexec). Needs WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`, stock on Ubuntu 22.04+ / Debian 12+ desktops). |
+| Linux | `Backpack_USB_Writer-<ver>-linux-x86_64` | `chmod +x` and run; asks for your password (pkexec, which needs the desktop's polkit agent: on sway/i3 without one, run the shown command with `sudo`). Needs glibc 2.34+ and WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`), stock on Ubuntu 22.04+ / Debian 12+ / Fedora 36+ desktops. Powers the stick off when done. |
 | Windows | `Backpack_USB_Writer-<ver>-windows-x86_64.exe` | Asks for Administrator when it opens. Uses the WebView2 runtime built into Windows 10/11. |
 | macOS | `Backpack_USB_Writer-<ver>-macos-universal.zip` | Unzip, then right-click the app and choose Open the first time (it is not signed). Asks for an administrator password when writing. |
 

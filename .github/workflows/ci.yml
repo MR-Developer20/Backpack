@@ -36,6 +36,13 @@ jobs:
           cache-dependency-path: tools/usb-writer/app/go.sum
       - name: writer + persistence formatter tests (checked with e2fsck)
         run: go vet ./flash && go test -short ./flash
+      - name: write a real block device (loop device, as root)
+        run: |
+          truncate -s 1G "$RUNNER_TEMP/disk.img"
+          LOOP=$(sudo losetup -f --show "$RUNNER_TEMP/disk.img")
+          go test -c -o "$RUNNER_TEMP/flash.test" ./flash
+          sudo BACKPACK_TEST_LOOP="$LOOP" "$RUNNER_TEMP/flash.test" -test.run LoopDevice -test.v
+          sudo losetup -d "$LOOP"
       - name: cross-compile checks
         run: GOOS=windows go vet ./flash && GOOS=darwin go vet ./flash
 
