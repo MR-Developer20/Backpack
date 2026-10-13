@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -75,34 +76,17 @@ func cli(args []string) int {
 		}
 		return 0
 	}
-	if fs.NArg() != 1 {
-		fs.Usage()
-		return 2
+	// The window's worker reports through --json: open it first, so every failure below,
+	// a panic included, reaches the window instead of a terminal nobody sees.
+	emit := printEvent
+	fail := func(code int, err error) int {
+		fmt.Fprintln(os.Stderr, err)
+		return code
 	}
-	o := flash.Options{ISO: *iso, Device: fs.Arg(0), Keep: *keep, Force: *force}
-	if o.ISO == "" {
-		if info := findDefaultISO(); info != nil {
-			o.ISO = info.Path
-		} else {
-			fmt.Fprintln(os.Stderr, "no ISO given and no backpack*.iso found: use --iso FILE")
-			return 2
-		}
-	}
-	if !o.Keep {
-		n, err := flash.ParseSize(*size)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 2
-		}
-		o.Persist = n
-	}
-
-	var emit func(flash.Event)
 	if *jsonOut != "" {
 		f, err := os.OpenFile(*jsonOut, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 1
+			return fail(1, err)
 		}
 		defer f.Close()
 		var mu sync.Mutex
@@ -113,9 +97,40 @@ func cli(args []string) int {
 			f.Sync()
 			mu.Unlock()
 		}
-	} else {
-		emit = printEvent
+		fail = func(code int, err error) int {
+			emit(flash.Event{Error: err.Error(), End: true})
+			return code
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				emit(flash.Event{Error: fmt.Sprintf("internal error: %v", r), End: true})
+				panic(r)
+			}
+		}()
 	}
+	if fs.NArg() != 1 {
+		if *jsonOut != "" {
+			return fail(2, fmt.Errorf("expected one drive, got %q", fs.Args()))
+		}
+		fs.Usage()
+		return 2
+	}
+	o := flash.Options{ISO: *iso, Device: fs.Arg(0), Keep: *keep, Force: *force}
+	if o.ISO == "" {
+		if info := findDefaultISO(); info != nil {
+			o.ISO = info.Path
+		} else {
+			return fail(2, errors.New("no ISO given and no backpack*.iso found: use --iso FILE"))
+		}
+	}
+	if !o.Keep {
+		n, err := flash.ParseSize(*size)
+		if err != nil {
+			return fail(2, err)
+		}
+		o.Persist = n
+	}
+
 	if !*yes && *jsonOut == "" {
 		if o.Keep {
 			fmt.Printf("The system on %s will be replaced with %s. The persistence partition is kept.\n", o.Device, o.ISO)

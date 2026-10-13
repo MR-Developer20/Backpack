@@ -38,3 +38,21 @@ jobs:
         run: go vet ./flash && go test -short ./flash
       - name: cross-compile checks
         run: GOOS=windows go vet ./flash && GOOS=darwin go vet ./flash
+
+  usb-writer-app-macos:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: tools/usb-writer/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.7"
+          cache-dependency-path: tools/usb-writer/app/go.sum
+      - name: writer tests on macOS
+        run: go test -short ./flash ./update
+      - name: build the app binary (as release.yml does, without the bundle)
+        run: go build -tags desktop,production -o build/bin/backpack-usb-writer .
+      - name: worker smoke test as root against a disk image
+        run: test/mac-smoke.sh "$PWD/build/bin/backpack-usb-writer"

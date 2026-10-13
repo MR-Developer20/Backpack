@@ -11,7 +11,7 @@ import (
 // write runs in-process.
 func elevated() bool { return windows.GetCurrentProcessToken().IsElevated() }
 
-func elevate(exe string, args []string) (bool, error) {
+func elevate(exe string, args []string, logPath string) (bool, error) {
 	return false, errors.New("Backpack USB Writer must run as Administrator: right-click it and choose Run as administrator")
 }
 

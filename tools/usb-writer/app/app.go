@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"embed"
 	"encoding/json"
@@ -191,17 +192,26 @@ func (a *App) runElevated(r WriteRequest) {
 			}
 		}
 	}()
-	cancelled, err := elevate(exe, args)
+	output := filepath.Join(dir, "output.log")
+	cancelled, err := elevate(exe, args, output)
 	close(done)
 	wg.Wait()
 	switch {
 	case ended:
 	case cancelled:
 		a.emit(flash.Event{Error: "Authentication was cancelled. Nothing was written.", End: true})
-	case err != nil:
-		a.emit(flash.Event{Error: err.Error(), End: true})
 	default:
-		a.emit(flash.Event{Error: "the writer stopped without reporting a result", End: true})
+		// the worker ended without a result: show what it printed and how it exited
+		msg := "the writer stopped without reporting a result"
+		if b, _ := os.ReadFile(output); len(bytes.TrimSpace(b)) > 0 {
+			for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+				a.emit(flash.Event{Log: "worker: " + l})
+			}
+		}
+		if err != nil && err.Error() != "" {
+			msg += " (" + err.Error() + ")"
+		}
+		a.emit(flash.Event{Error: msg, End: true})
 	}
 }
 
