@@ -298,4 +298,5 @@ make release
   The writer judges an image by content, never by extension: InspectISO (also called by flash.Run, so the
   CLI too) names ELF/PE/Mach-O/zip files ("a Linux program, not an ISO") because people pick the
   extension-less Linux writer asset off the release page; the picker offers "All files"; update.ISOAsset
-  only matches `backpack-live-*.iso`.
+  only matches `backpack-live-*.iso`. Downloads (update/fetch.go) use 8 ranged connections for files >= 64 MB
+  (GitHub's CDN caps each connection), resume a dropped part, fall back to one stream on a 200.
