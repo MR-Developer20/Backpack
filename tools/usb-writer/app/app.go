@@ -36,17 +36,17 @@ type App struct {
 }
 
 type Info struct {
-	OS       string          `json:"os"`
-	Version  string          `json:"version"`
-	ISO      *flash.ISOInfo  `json:"iso"`
-	Elevated bool            `json:"elevated"`
+	OS       string         `json:"os"`
+	Version  string         `json:"version"`
+	ISO      *flash.ISOInfo `json:"iso"`
+	Elevated bool           `json:"elevated"`
 }
 
 type WriteRequest struct {
-	ISO     string `json:"iso"`
-	Device  string `json:"device"`
-	SizeGB  int    `json:"sizeGB"`
-	Keep    bool   `json:"keep"`
+	ISO    string `json:"iso"`
+	Device string `json:"device"`
+	SizeGB int    `json:"sizeGB"`
+	Keep   bool   `json:"keep"`
 }
 
 func (a *App) startup(ctx context.Context) { a.ctx = ctx }

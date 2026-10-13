@@ -14,6 +14,10 @@
       <div class="micro" id="tab-meta">SEC.01 // FLASH</div>
     </div>
     <div class="spacer"></div>
+    <button class="btn cut upd" id="upd" hidden>
+      <span class="lbl" id="upd-lbl">Update</span>
+      <span class="command" id="upd-cmd">backpack-usb-writer --update</span>
+    </button>
     <div class="facts">
       <div class="label" id="fact-os">—</div>
       <div class="micro" id="fact-ver">—</div>
@@ -35,6 +39,16 @@
             <div class="micro" id="iso-facts"></div>
           </div>
           <button class="btn cut" id="iso-pick"><span class="lbl">Choose ISO</span></button>
+        </div>
+        <div class="release" id="release" hidden>
+          <button class="btn small-btn cut" id="iso-dl">
+            <span class="lbl" id="iso-dl-lbl">Download latest ISO</span>
+            <span class="command">backpack-usb-writer --download-iso</span>
+          </button>
+          <div class="rel-info">
+            <div class="micro" id="rel-facts">LATEST RELEASE</div>
+            <div class="meter thin" id="dl-meter" hidden><div></div></div>
+          </div>
         </div>
       </section>
 

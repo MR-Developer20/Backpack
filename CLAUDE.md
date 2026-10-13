@@ -290,4 +290,8 @@ make release
   via pkexec (Linux) / osascript admin prompt (macOS) with `--yes --json FILE` and tails FILE; the
   Windows .exe is requireAdministrator (`build/windows/wails.exe.manifest`) and writes in-process.
   UI previews without a build: `NODE_PATH=$(npm root -g) node preview/shoot.mjs OUTDIR` (fake Go side).
+  `update/` = updater: GitHub `releases/latest` of MR-Developer20/backpack (unauthenticated; repo is public),
+  picks `Backpack_USB_Writer-*-{linux-x86_64,windows-x86_64.exe,macos-universal.zip}` + the `.iso`, verifies
+  against the release's SHA256SUMS, and swaps the binary (Linux rename over, Windows rename to .old,
+  macOS replaces the .app bundle). Asset names come from release.yml's stage step: keep them in sync.
   The repo-wide `build/` ignore is undone in the app's `.gitignore` (Wails keeps packaging inputs there).

@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"backpack/usbwriter/update"
 )
 
 var version = "dev"
 
 func main() {
+	update.CleanupOld()
 	// macOS passes -psn_... to apps opened from Finder on old systems
 	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-psn_") {
 		os.Exit(cli(os.Args[1:]))

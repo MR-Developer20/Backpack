@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"sync"
 
 	"backpack/usbwriter/flash"
+	"backpack/usbwriter/update"
 )
 
 const usage = `Backpack USB Writer %s: write the Backpack Live ISO to a USB drive and add a persistence partition.
@@ -17,6 +19,8 @@ const usage = `Backpack USB Writer %s: write the Backpack Live ISO to a USB driv
 Usage:
   backpack-usb-writer                          open the window
   backpack-usb-writer --list                   list USB drives
+  backpack-usb-writer --update                 update this program from the newest release
+  backpack-usb-writer --download-iso           download the newest release's ISO into Downloads
   backpack-usb-writer [options] DEVICE         write from the command line (needs root / Administrator)
 
 DEVICE is /dev/sdX (Linux), /dev/diskN (macOS) or \\.\PhysicalDriveN (Windows), or a disk image file.
@@ -36,6 +40,8 @@ func cli(args []string) int {
 	jsonOut := fs.String("json", "", "append progress events as JSON lines to this file (used by the window)")
 	list := fs.Bool("list", false, "list USB drives and exit")
 	ver := fs.Bool("version", false, "print the version and exit")
+	upd := fs.Bool("update", false, "replace this program with the newest release and exit")
+	getISO := fs.Bool("download-iso", false, "download the newest release's ISO into Downloads and exit")
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), usage, version)
 		fs.PrintDefaults()
@@ -47,6 +53,10 @@ func cli(args []string) int {
 	case *ver:
 		fmt.Println(version)
 		return 0
+	case *upd:
+		return cliUpdate()
+	case *getISO:
+		return cliDownloadISO()
 	case *list:
 		drives, err := flash.ListDrives()
 		if err != nil {
@@ -142,4 +152,42 @@ func printEvent(e flash.Event) {
 		fmt.Printf("\r%-9s %3d%%  %s of %s   ", e.Phase, e.Done*100/e.Total, flash.Human(e.Done), flash.Human(e.Total))
 		lastPhase = "progress"
 	}
+}
+
+func cliProgress(d, t int64) {
+	if t > 0 {
+		fmt.Printf("\r%3d%%  %s of %s   ", d*100/t, flash.Human(d), flash.Human(t))
+	}
+}
+
+func cliUpdate() int {
+	r, err := update.Latest(context.Background())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if r == nil || !update.Newer(version, r.Tag) {
+		fmt.Printf("Backpack USB Writer %s is up to date.\n", version)
+		return 0
+	}
+	fmt.Printf("Updating %s -> %s\n", version, r.Tag)
+	path, err := update.SelfUpdate(context.Background(), r, cliProgress)
+	fmt.Println()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "update failed:", err)
+		return 1
+	}
+	fmt.Println("Installed", path)
+	return 0
+}
+
+func cliDownloadISO() int {
+	path, err := downloadISO(context.Background(), cliProgress)
+	fmt.Println()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	fmt.Println("Saved", path)
+	return 0
 }

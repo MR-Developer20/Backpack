@@ -20,16 +20,16 @@ func diskutilPlist(v any, args ...string) error {
 }
 
 type duInfo struct {
-	DeviceIdentifier string
-	DeviceNode       string
-	MediaName        string
+	DeviceIdentifier    string
+	DeviceNode          string
+	MediaName           string
 	IORegistryEntryName string
-	BusProtocol      string
-	TotalSize        int64
-	Size             int64
-	WholeDisk        bool
-	Internal         bool
-	VirtualOrPhysical string
+	BusProtocol         string
+	TotalSize           int64
+	Size                int64
+	WholeDisk           bool
+	Internal            bool
+	VirtualOrPhysical   string
 }
 
 // ListDrives returns external physical disks (USB sticks, SD cards).

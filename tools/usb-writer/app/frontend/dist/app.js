@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const api = () => window.go.main.App;
 const GiB = 1024 ** 3;
 
-const state = { info: null, iso: null, drives: [], sel: null, keep: false, size: 5, running: false, finished: false, phases: {}, t0: 0 };
+const state = { rel: null, info: null, iso: null, drives: [], sel: null, keep: false, size: 5, running: false, finished: false, phases: {}, t0: 0 };
 
 function human(n) {
   let f = n;
@@ -288,6 +288,64 @@ function step(n) {
   render();
 }
 
+// ---------------------------------------------------------------- updates from GitHub releases
+async function checkUpdate() {
+  let u;
+  try { u = await api().CheckUpdate(); } catch (_) { return; } // offline: say nothing
+  state.rel = u;
+  if (u.newer) {
+    $("upd").hidden = false;
+    $("upd-lbl").textContent = `Update to ${u.latest}`;
+  }
+  if (u.isoName) {
+    $("release").hidden = false;
+    $("iso-dl-lbl").textContent = `Download ${u.latest} ISO`;
+    $("rel-facts").textContent = `LATEST RELEASE // ${u.latest} // ${human(u.isoSize)}`;
+  }
+}
+
+function onUpdate(e) {
+  if (e.kind === "app") {
+    const b = $("upd");
+    b.className = "btn cut upd";
+    if (e.error) {
+      b.classList.add("failed");
+      $("upd-lbl").textContent = "Update failed";
+      b.disabled = false;
+      log("update: " + e.error, true);
+    } else if (e.ready) {
+      b.classList.add("ready");
+      $("upd-lbl").textContent = "Restart to finish";
+      $("upd-cmd").textContent = `${state.rel.latest} installed`;
+      b.disabled = false;
+      b.onclick = () => api().RestartApp();
+    } else {
+      $("upd-lbl").textContent = `Updating ${e.total ? Math.floor((e.done / e.total) * 100) : 0}%`;
+    }
+    return;
+  }
+  const m = $("dl-meter");
+  if (e.error) {
+    m.classList.add("failed");
+    $("rel-facts").innerHTML = "";
+    const s = document.createElement("span");
+    s.className = "err-text"; s.textContent = "Download failed: " + e.error;
+    $("rel-facts").append(s);
+    $("iso-dl").disabled = false;
+  } else if (e.ready) {
+    m.firstElementChild.style.width = "100%";
+    $("rel-facts").textContent = `SAVED TO DOWNLOADS // ${state.rel.latest}`;
+    $("iso-dl").disabled = false;
+    if (e.iso && !state.running) setISO(e.iso);
+  } else if (e.total) {
+    m.hidden = false;
+    m.classList.remove("failed");
+    const pct = (e.done / e.total) * 100;
+    m.firstElementChild.style.width = pct + "%";
+    $("rel-facts").textContent = `DOWNLOADING // ${pct.toFixed(0)}% // ${human(e.done)} OF ${human(e.total)}`;
+  }
+}
+
 // ---------------------------------------------------------------- empty state: dragon curve
 function drawDragon() {
   const c = $("dragon"), r = c.getBoundingClientRect();
@@ -334,6 +392,9 @@ async function boot() {
   $("c-ok").onclick = start;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("confirm").hidden = true; });
   window.runtime.EventsOn("job", onJob);
+  window.runtime.EventsOn("update", onUpdate);
+  $("upd").onclick = () => { $("upd").disabled = true; $("upd-lbl").textContent = "Updating…"; api().InstallUpdate(); };
+  $("iso-dl").onclick = () => { $("iso-dl").disabled = true; $("dl-meter").hidden = false; api().DownloadISO(); };
   if (window.runtime.OnFileDrop) {
     window.runtime.OnFileDrop(async (_x, _y, paths) => {
       const p = (paths || []).find((q) => q.toLowerCase().endsWith(".iso"));
@@ -346,6 +407,7 @@ async function boot() {
   if (state.info.iso) state.iso = state.info.iso;
   await refreshDrives(false);
   drawDragon();
+  checkUpdate();
   new ResizeObserver(() => { if ($("out").classList.contains("empty")) drawDragon(); }).observe($("out"));
 }
 

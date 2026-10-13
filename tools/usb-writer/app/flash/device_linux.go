@@ -14,10 +14,10 @@ import (
 
 type lsblkDev struct {
 	Name, Path, Model, Vendor, Tran, Type, Label string
-	Size                                      int64
-	Rm, Hotplug                               bool
-	Mountpoints                               []*string
-	Children                                  []lsblkDev
+	Size                                         int64
+	Rm, Hotplug                                  bool
+	Mountpoints                                  []*string
+	Children                                     []lsblkDev
 }
 
 func lsblk(args ...string) ([]lsblkDev, error) {

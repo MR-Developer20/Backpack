@@ -23,6 +23,10 @@ const mock = (scenario) => {
     Info: async () => ({ os: "Linux", version: "v1.0.0", iso: s === "empty" ? null : iso, elevated: false }),
     Drives: async () => (s === "empty" ? [] : drives),
     PickISO: async () => iso,
+    CheckUpdate: async () => ({ current: "v1.0.0", latest: "v1.1.0", page: "", newer: true, isoName: "backpack-live-v1.1.0-amd64.iso", isoSize: 1084227584 }),
+    InstallUpdate: async () => { setTimeout(() => handlers.update({ kind: "app", ready: s === "update-ready", done: 4.1e6, total: 9.6e6 }), 30); },
+    DownloadISO: async () => { setTimeout(() => handlers.update({ kind: "iso", done: 4.6e8, total: 1084227584 }), 30); },
+    RestartApp: async () => {},
     Inspect: async () => iso,
     Command: async (r) => `backpack-usb-writer --iso ${r.iso.replace("/home/marc", "~")} ${r.keep ? "--keep-persistence" : `--size ${r.sizeGB}G`} ${r.device}`,
     Write: async () => {
@@ -56,6 +60,8 @@ const shots = [
   ["writing", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
   ["done", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#size-inc"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
   ["failed", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#write"); await p.click("#c-ok"); await p.waitForTimeout(300); }],
+  ["update", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#upd"); await p.click("#iso-dl"); await p.waitForTimeout(200); }],
+  ["update-ready", 1280, 800, async (p) => { await p.click(".drive:nth-child(1)"); await p.click("#upd"); await p.waitForTimeout(200); }],
   ["small", 920, 660, async (p) => { await p.click(".drive:nth-child(1)"); }],
 ];
 

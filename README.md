@@ -137,6 +137,11 @@ sudo backpack-usb-writer --iso backpack.iso --keep-persistence /dev/disk4       
 backpack-usb-writer.exe --iso backpack.iso --size 8G \\.\PhysicalDrive2              # Windows, as Administrator
 ```
 
+It checks GitHub for a newer release when it opens. **Update to vX** downloads the writer for
+your system, checks it against the release's `SHA256SUMS` and replaces the program (then
+**Restart to finish**); **Download vX ISO** saves the release's ISO into Downloads and selects it.
+From a terminal: `backpack-usb-writer --update` and `backpack-usb-writer --download-iso`.
+
 Build it with `make usb-writer-app` (needs Go and, on Linux, `libgtk-3-dev libwebkit2gtk-4.1-dev`).
 
 Without a checkout, you can also install the GTK **Backpack USB Writer** from a release: the `.deb`

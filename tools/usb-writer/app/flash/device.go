@@ -9,7 +9,7 @@ import (
 type device struct {
 	*os.File
 	Size    int64
-	release func()            // undo platform locks (Windows volume locks)
+	release func()                 // undo platform locks (Windows volume locks)
 	after   func(emit func(Event)) // platform step after writing (re-read partitions, eject)
 }
 
