@@ -1,85 +1,93 @@
 pragma Singleton
 import QtQuick
 
-// Colors, fonts and sizes for GUI Mode. Two looks: Field Terminal (the design system, default)
-// and the previous look, switched by `fieldTerminal` (Settings > Display; Main.qml binds it to
-// settings.fieldTerminal). Every size is multiplied by `scale` (the UI size slider), so QML files
-// take px values from here or through s(px) instead of hard-coding them.
+// GUI Mode look: the "Backpack Field Terminal" design system. Values are its tokens.json (token
+// names in the comments). Every size is multiplied by `scale` (the UI size slider), so QML files
+// take px values from here or through s(px) instead of hard-coding them. `section` follows the open
+// tab (Main.qml binds it): `accent` is acid in Network and Extra, cyan in Data.
 QtObject {
     property real scale: 1.0
-    property bool fieldTerminal: true
-    readonly property bool ft: fieldTerminal
+    property string section: "network"
     function s(px) { return Math.round(px * scale) }
 
-    // Field Terminal (Night) values come from the design system's tokens.json; the second value
-    // is the previous look.
-    readonly property color bg: ft ? "#161616" : "#0f1419"            // void
-    readonly property color panel: ft ? "#1d1d1d" : "#182028"         // surface
-    readonly property color panelAlt: ft ? "#262626" : "#1f2a35"      // surface-raised
-    readonly property color border: ft ? "#333333" : "#2c3a48"        // line
-    readonly property color borderStrong: ft ? "#757575" : "#2c3a48"  // line-strong (controls)
-    readonly property color text: ft ? "#ececec" : "#e6edf3"          // ink
-    readonly property color muted: ft ? "#bbbbbb" : "#8b9bb0"         // ink-muted
-    readonly property color accent: ft ? "#99ff45" : "#2ec4b6"        // signal
-    readonly property color inkOnAccent: ft ? "#161616" : "#0f1419"      // text on an accent fill
-    readonly property color accentDim: ft ? "#24331a" : "#1b3a3a"     // signal-dim: selected fill
-    readonly property color info: ft ? "#82e1ff" : "#4f9df7"
-    readonly property color danger: ft ? "#ff4320" : "#e5484d"
-    readonly property color warn: ft ? "#fff262" : "#f5a524"
-    readonly property color dangerFill: ft ? "#ff4320" : "#4a2328"    // Shut down button
-    readonly property color inkOnDanger: ft ? "#161616" : "#e6edf3"
-    readonly property color cautionFill: ft ? "#262626" : "#3a3f2a"   // Reboot button
-    readonly property color activeFill: ft ? "#24331a" : "#3a2a2a"    // Split while a split terminal is open
-    readonly property color scrim: ft ? "#c7030404" : "#c0000000"     // behind overlays and dialogs
-    readonly property color outputBg: ft ? "#0c0c0c" : "#0a0e12"      // surface-sunk
-    readonly property color outputInk: ft ? "#c9f5b0" : "#cfe3d8"
+    // palette
+    readonly property color void_: "#07090a"
+    readonly property color hull: "#0e1214"
+    readonly property color hullRaised: "#161c1f"
+    readonly property color grid: "#2a3438"
+    readonly property color gridStrong: "#5a6b70"
+    readonly property color ink: "#e6ede8"
+    readonly property color inkMuted: "#8d9c96"
+    readonly property color phosphor: "#b8f5a0"
+    readonly property color acid: "#c6ff1a"
+    readonly property color cyan: "#2fd8e8"
+    readonly property color amber: "#ffb000"
+    readonly property color signal: "#ff3d6e"
 
-    // fonts: Field Terminal uses one text family for every label; mono only for terminal content
-    readonly property string fontSans: ft ? "IBM Plex Sans Condensed" : "DejaVu Sans"
-    readonly property string fontDisplay: ft ? "Chakra Petch" : "DejaVu Sans"   // wordmark, titles
-    readonly property string fontMono: ft ? "IBM Plex Mono" : "DejaVu Sans Mono"
-    readonly property bool upperLabels: ft          // tabs, wordmark and group labels in caps
+    // roles used across the QML
+    readonly property color bg: void_
+    readonly property color panel: hull
+    readonly property color panelAlt: hullRaised
+    readonly property color border: grid
+    readonly property color borderStrong: gridStrong
+    readonly property color text: ink
+    readonly property color muted: inkMuted
+    readonly property color accent: section === "data" ? cyan : acid
+    readonly property color focus: acid
+    readonly property color inkOnAccent: void_      // on-acid / on-cyan / on-amber / on-signal
+    readonly property color info: cyan
+    readonly property color warn: amber
+    readonly property color danger: signal
+    readonly property color dangerFill: signal
+    readonly property color inkOnDanger: void_
+    readonly property color scrim: "#c0000000"
+    readonly property color outputBg: void_
+    readonly property color outputInk: phosphor
 
-    readonly property int fontSize: s(20)
-    readonly property int smallFont: s(15)
+    // type: one family; hierarchy from weight, case and tracking
+    readonly property string fontSans: "JetBrains Mono"
+    readonly property string fontDisplay: "JetBrains Mono"
+    readonly property string fontMono: "JetBrains Mono"
+    readonly property int wordmarkFont: s(28)
     readonly property int titleFont: s(26)
+    readonly property int tileNameFont: s(22)
+    readonly property int fontSize: s(19)       // body
+    readonly property int smallFont: s(15)
+    readonly property int labelFont: s(13)      // uppercase, tracked 0.14em
+    readonly property int microFont: s(11)      // uppercase, tracked 0.16em
+
+    // space, shape, size
+    readonly property int space1: s(4)
+    readonly property int space2: s(8)
+    readonly property int space3: s(12)
+    readonly property int space4: s(16)
+    readonly property int space6: s(24)
+    readonly property int cutSm: s(6)           // buttons, chips, inputs
+    readonly property int cutMd: s(12)          // tiles, output pane
+    readonly property int cutLg: s(20)          // panels, sheets
+    readonly property int touch: s(64)
+    readonly property int chipH: s(48)
     readonly property int tileW: s(196)
     readonly property int tileH: s(140)
-    readonly property int touch: s(64)
-    readonly property int icon: s(ft ? 28 : 34)
     readonly property int barH: s(84)
-    readonly property int gap: s(ft ? 8 : 10)
-    readonly property int radius: s(10)                 // buttons, chips, fields ("main")
-    readonly property int radiusLarge: s(ft ? 10 : 14)  // tiles
-    readonly property int radiusPanel: s(ft ? 10 : 16)  // sheets and dialogs
-    readonly property int radiusTab: ft ? 0 : s(10)     // section tabs are part of the screen
+    readonly property int rail: s(6)
+    readonly property int icon: s(34)
+    readonly property int gap: space2
 
     function categoryColor(c) {
-        if (ft) {
-            switch (c) {
-            case "discovery": return "#3ee6c4"
-            case "connectivity": return "#7fa8ff"
-            case "capture": return "#ffb000"
-            case "wireless": return "#c79bff"
-            case "throughput": return "#74e8a2"
-            case "dns-http": return "#ff86a8"
-            case "extra": return "#ff9a7a"     // cat-extra
-            }
-            return "#e8d27a"                   // cat-data: every Data-tab category
-        }
         switch (c) {
-        case "discovery": return "#2ec4b6"
-        case "connectivity": return "#4f9df7"
-        case "capture": return "#f5a524"
-        case "wireless": return "#c084fc"
-        case "throughput": return "#34d399"
-        case "dns-http": return "#fb7185"
-        case "disks": return "#38bdf8"
-        case "recovery": return "#fb923c"
-        case "files": return "#facc15"
-        case "transfer": return "#a3e635"
-        case "extra": return "#c084fc"
+        case "discovery": return acid
+        case "connectivity": return "#6cc4ff"
+        case "capture": return amber
+        case "wireless": return "#b496ff"
+        case "throughput": return "#8ff0c8"
+        case "dns-http": return "#ff6fb0"
+        case "disks": return cyan
+        case "recovery": return "#ff8c42"
+        case "files": return "#f2e15c"
+        case "transfer": return "#b496ff"
+        case "extra": return "#ff9a7a"
         }
-        return "#8b9bb0"
+        return inkMuted
     }
 }

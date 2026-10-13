@@ -47,10 +47,11 @@ ColumnLayout {
 
     Component {
         id: textC
-        Rectangle {
+        Chamfer {
             property var row
-            radius: Theme.radius; color: Theme.panelAlt; border.color: Theme.borderStrong
+            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: input.activeFocus ? 2 : 1
             TextInput {
+                id: input
                 anchors.fill: parent; anchors.margins: Theme.s(12)
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
@@ -74,12 +75,12 @@ ColumnLayout {
                 checked: row ? row.modelData.default === true : false
                 onToggled: if (row) row.value = checked
                 indicator: Rectangle {
-                    implicitWidth: Theme.s(96); implicitHeight: Theme.s(44); radius: Theme.s(22)
+                    implicitWidth: Theme.s(96); implicitHeight: Theme.s(44)
                     color: sw.checked ? Theme.accent : Theme.panelAlt
-                    border.color: Theme.border
+                    border.color: sw.checked ? Theme.accent : Theme.borderStrong
                     Rectangle {
                         x: sw.checked ? parent.width - width - Theme.s(4) : Theme.s(4)
-                        y: Theme.s(4); width: Theme.s(36); height: Theme.s(36); radius: Theme.s(18); color: Theme.text
+                        y: Theme.s(4); width: Theme.s(36); height: Theme.s(36); color: sw.checked ? Theme.bg : Theme.text
                         Behavior on x { NumberAnimation { duration: 80 } }
                     }
                 }

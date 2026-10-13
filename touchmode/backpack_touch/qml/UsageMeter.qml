@@ -2,26 +2,26 @@ import QtQuick
 import QtQuick.Layouts
 
 // Tab-bar module: live CPU and RAM usage as two labelled bars. Tap opens the system monitor.
-Rectangle {
+Chamfer {
     id: meter
     signal tapped()
     property bool compact: false
     implicitHeight: Theme.touch
     implicitWidth: compact ? Theme.s(110) : Theme.s(200)
-    radius: Theme.s(10)
+    cut: Theme.cutSm
     color: area.pressed ? Qt.lighter(Theme.panelAlt, 1.3) : Theme.panelAlt
-    border.color: Theme.border
+    borderColor: Theme.borderStrong
 
     component Row1: RowLayout {
         property string label
         property real value
         property color barColor
         spacing: Theme.s(6)
-        Text { font.family: Theme.fontSans; text: label; color: Theme.muted; font.pixelSize: Theme.s(13); font.bold: true; Layout.preferredWidth: Theme.s(32) }
+        Text { font.family: Theme.fontSans; text: label; color: Theme.muted; font.pixelSize: Theme.labelFont; font.bold: true; font.letterSpacing: Theme.labelFont * 0.14; Layout.preferredWidth: Theme.s(40) }
         Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: Theme.s(8); radius: height / 2
+            Layout.fillWidth: true; Layout.preferredHeight: Theme.s(6)
             color: Theme.bg
-            Rectangle { width: parent.width * Math.min(1, value / 100); height: parent.height; radius: parent.radius; color: barColor }
+            Rectangle { width: parent.width * Math.min(1, value / 100); height: parent.height; color: barColor }
         }
         Text { font.family: Theme.fontSans
             visible: !meter.compact
@@ -35,8 +35,8 @@ Rectangle {
         anchors.leftMargin: Theme.s(12); anchors.rightMargin: Theme.s(12)
         anchors.topMargin: Theme.s(10); anchors.bottomMargin: Theme.s(10)
         spacing: Theme.s(4)
-        Row1 { Layout.fillWidth: true; label: "CPU"; value: sysmon ? sysmon.cpu : 0; barColor: Theme.accent }
-        Row1 { Layout.fillWidth: true; label: "RAM"; value: sysmon ? sysmon.mem : 0; barColor: Theme.warn }
+        Row1 { Layout.fillWidth: true; label: "CPU"; value: sysmon ? sysmon.cpu : 0; barColor: Theme.acid }
+        Row1 { Layout.fillWidth: true; label: "RAM"; value: sysmon ? sysmon.mem : 0; barColor: Theme.cyan }
     }
     MouseArea { id: area; anchors.fill: parent; onClicked: meter.tapped() }
 }

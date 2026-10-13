@@ -24,4 +24,5 @@ fonts-dejavu-core
 xdg-utils
 xdg-user-dirs
 dmidecode
-fonts-ibm-plex
+fonts-jetbrains-mono
+qml6-module-qtquick-shapes

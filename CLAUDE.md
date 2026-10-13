@@ -176,7 +176,7 @@ make release
   touchmode/backpack_touch/manifest.py: Network = the six network categories, Data = `disks`,
   `recovery`, `files`, `transfer` (also listed in scripts/gen-package-list.py CATEGORIES). Reboot/
   Shutdown moved from the top bar into SettingsSheet.qml (gear button). Settings QObject
-  (settings.py): `uiScale` 0.8–1.5 saved to ~/.config/backpack/gui.json and bound to
+  (settings.py): `uiScale` 0.75–1.6 saved to ~/.config/backpack/gui.json and bound to
   `Theme.scale`; every size in QML comes from Theme (`Theme.s(px)`), and `compact` triggers at
   `width < Theme.s(1100)`. **Load to RAM** = `sudo -n python3 -m backpack_touch.toram run`: copies
   the squashfs behind live-boot's read-only loop device into a tmpfs at /run/backpack-ram, swaps the
@@ -198,14 +198,19 @@ make release
   tools whose command is missing (so the tab disappears without the deb) and `--print-cmds` /
   check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
   like the terminal buttons.
-- (field terminal look) Theme.qml carries two looks switched by `Theme.fieldTerminal` (bound to
-  settings.fieldTerminal, saved as `fieldTerminal` in ~/.config/backpack/gui.json, default on):
-  Field Terminal = the design system's Night tokens (palette, IBM Plex Sans Condensed / Plex Mono
-  from `fonts-ibm-plex`, caps tabs/wordmark, signal-edged selected tile); off = the launcher's
-  previous colours and DejaVu. Settings > Display has the "Field Terminal look" switch. QML takes
-  fonts from Theme.fontSans/fontMono/fontDisplay. Chakra Petch (display) is not in Debian, so the
-  wordmark falls back. Theme property names must not start with `on` + capital (QML reads them as
-  signal handlers): hence `inkOnAccent` / `inkOnDanger`. Test hook: BACKPACK_UI_STYLE=classic|field.
+- (backpack field terminal look) GUI Mode is styled after Marc's "Backpack Field Terminal" design
+  system (https://claude.ai/artifact/QBvYFJMqGGPx2XKYYL6tm2; the other "Field Terminal" system
+  and a Settings switch between looks were dropped at his request). Theme.qml holds its tokens:
+  void/hull/acid/cyan/amber/signal palette, one font (JetBrains Mono, `fonts-jetbrains-mono`),
+  `accent` follows `Theme.section` (acid in Network/Extra, cyan in Data). Chamfer.qml (QtQuick.Shapes,
+  `qml6-module-qtquick-shapes`) draws the cut top-right/bottom-left corners for panels, tiles,
+  buttons and fields (cutSm/cutMd/cutLg). Section tabs are label + `SEC.NN // count` strip with an
+  underline; chips 48px; tile meta strip = N ACTIONS / GUI / ROOT // TTY; empty tool pane =
+  EmptyState.qml (24px scan grid + dragon curve). Buttons: TouchButton filled when `color` is not
+  panelAlt; outline variants via `borderColor` + `textColor` (Stop/Reboot/Shut down = signal,
+  CLI Mode = amber). UI size range 0.75–1.6. Top bar drops the wordmark below width
+  Theme.s(960) and the meter below Theme.s(880). Theme property names must not start with `on` +
+  capital (QML reads them as signal handlers): hence `inkOnAccent` / `inkOnDanger`.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

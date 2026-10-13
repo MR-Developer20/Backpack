@@ -1,31 +1,37 @@
 import QtQuick
 import QtQuick.Controls
 
-// Large touch target. With `iconSource` set and `compact` true it collapses to a square icon-only
-// button (used when the launcher is narrow: split view or portrait).
+// The one touch control: at least Theme.touch square, chamfered (cutSm), label in body.
+// Variants come from color/textColor/borderColor: default (panelAlt fill, strong border),
+// filled (accent, signal, category colour: the border follows the fill, label bold),
+// outline (panelAlt fill with a coloured border and label: Stop, Reboot, CLI Mode).
+// With `iconSource` set and `compact` true it collapses to a square icon-only button.
 Button {
     id: b
     property color color: Theme.panelAlt
     property color textColor: Theme.text
+    readonly property bool filled: !Qt.colorEqual(color, Theme.panelAlt)
+    property color borderColor: filled ? color : Theme.borderStrong
     property string iconSource: ""
     property bool compact: false
     readonly property bool iconOnly: compact && iconSource !== ""
     implicitHeight: Theme.touch
     opacity: enabled ? 1 : 0.45
-    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch * 2, row.implicitWidth + Theme.s(36))
+    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch, row.implicitWidth + Theme.space4 * 2)
     font.pixelSize: Theme.fontSize
     font.family: Theme.fontSans
-    background: Rectangle {
-        radius: Theme.radius
-        color: b.down ? Qt.lighter(b.color, 1.3) : b.color
-        border.color: Theme.borderStrong
-        border.width: 1
+    font.bold: filled
+    background: Chamfer {
+        cut: Theme.cutSm
+        color: b.down ? Qt.lighter(b.color, b.filled ? 1.15 : 1.6) : b.color
+        borderColor: b.visualFocus ? Theme.focus : b.borderColor
+        borderWidth: b.visualFocus ? 2 : 1
     }
     contentItem: Item {
         Row {
             id: row
             anchors.centerIn: parent
-            spacing: Theme.s(10)
+            spacing: Theme.space2
             Image {
                 visible: b.iconSource !== ""
                 source: b.iconSource

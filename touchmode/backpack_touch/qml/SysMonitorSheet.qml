@@ -19,7 +19,7 @@ Rectangle {
         spacing: Theme.s(8)
         RowLayout {
             Layout.fillWidth: true
-            Text { font.family: Theme.fontSans; text: sec.title; color: Theme.muted; font.pixelSize: Theme.s(14); font.bold: true; font.letterSpacing: Theme.s(2) }
+            Text { font.family: Theme.fontSans; text: sec.title; color: Theme.muted; font.pixelSize: Theme.labelFont; font.bold: true; font.letterSpacing: Theme.labelFont * 0.14 }
             Item { Layout.fillWidth: true }
             Text { font.family: Theme.fontSans; text: sec.value; color: sec.lineColor; font.pixelSize: Theme.fontSize; font.bold: true }
         }
@@ -60,12 +60,12 @@ Rectangle {
         return f
     }
 
-    Rectangle {
+    Chamfer {
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, Theme.s(760))
         height: Math.min(parent.height - 40, body.implicitHeight + Theme.s(48))
-        radius: Theme.radiusPanel
-        color: Theme.panel; border.color: Theme.border
+        cut: Theme.cutLg
+        color: Theme.panel; borderColor: Theme.borderStrong
         MouseArea { anchors.fill: parent }   // swallow clicks
 
         Flickable {
@@ -88,7 +88,7 @@ Rectangle {
                     Layout.fillWidth: true
                     title: "CPU"
                     value: sysmon ? Math.round(sysmon.cpu) + "%" : ""
-                    lineColor: Theme.accent
+                    lineColor: Theme.acid
                     samples: sysmon ? sysmon.cpuHistory : []
                     facts: sysmon ? [["Model", sysmon.cpuModel], ["Cores", sysmon.cpuCores]] : []
                 }
@@ -96,7 +96,7 @@ Rectangle {
                     Layout.fillWidth: true
                     title: "RAM"
                     value: sysmon ? Math.round(sysmon.mem) + "%" : ""
-                    lineColor: Theme.warn
+                    lineColor: Theme.cyan
                     samples: sysmon ? sysmon.memHistory : []
                     facts: sysmon ? [["In use", sysmon.memText]].concat(sheet.moduleFacts()) : []
                 }

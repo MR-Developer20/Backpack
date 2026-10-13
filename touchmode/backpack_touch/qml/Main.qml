@@ -30,7 +30,7 @@ ApplicationWindow {
     property bool monitorOpen: false
 
     Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
-    Binding { target: Theme; property: "fieldTerminal"; value: settings ? settings.fieldTerminal : true }
+    Binding { target: Theme; property: "section"; value: win.section }
 
     function sectionCategories(sec) {
         return manifest ? manifest.categories.filter(function (c) { return c.section === sec }) : []
@@ -62,30 +62,53 @@ ApplicationWindow {
     header: Rectangle {
         height: Theme.barH
         color: Theme.panel
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.border }
         RowLayout {
             anchors.fill: parent
             anchors.margins: Theme.gap
             spacing: win.compact ? Theme.s(6) : Theme.gap
-            Text {
-                visible: !win.portrait || win.width >= Theme.s(900); text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text
-                font.family: Theme.fontDisplay; font.pixelSize: Theme.s(28); font.bold: true
-                font.capitalization: Theme.upperLabels ? Font.AllUppercase : Font.MixedCase; font.letterSpacing: Theme.upperLabels ? Theme.s(1) : 0
+            Text {   // wordmark
+                visible: win.width >= Theme.s(960)   // dropped first when the bar gets tight
+                text: win.compact ? "BACKPACK" : "BACKPACK//LIVE"; color: Theme.text
+                font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold
+                font.letterSpacing: Theme.wordmarkFont * 0.08
+                Layout.leftMargin: Theme.space2; Layout.rightMargin: Theme.space2
             }
-            Text { font.family: Theme.fontSans; visible: win.width >= Theme.s(1600); text: "GUI Mode"; color: Theme.accent; font.pixelSize: Theme.s(18); Layout.leftMargin: Theme.s(4) }
-            // section tabs: Network / Data
+            // section tabs: label over a micro strip (section index // tool count), underlined when open
             Repeater {
                 model: manifest ? manifest.sections : []
-                delegate: TouchButton {
+                delegate: Item {
+                    id: tab
                     required property var modelData
-                    Layout.leftMargin: index === 0 ? Theme.gap : 0
                     required property int index
-                    text: win.compact ? modelData.label : modelData.label + "  " + modelData.count
-                    color: win.section === modelData.id ? Theme.accent : Theme.panelAlt
-                    textColor: win.section === modelData.id ? Theme.inkOnAccent : Theme.text
-                    font.capitalization: Theme.upperLabels ? Font.AllUppercase : Font.MixedCase
-                    font.letterSpacing: Theme.upperLabels ? Theme.s(2) : 0
-                    font.weight: Theme.upperLabels ? Font.DemiBold : Font.Normal
-                    onClicked: win.selectSection(modelData.id)
+                    readonly property bool on: win.section === modelData.id
+                    readonly property color tabAccent: modelData.id === "data" ? Theme.cyan : Theme.acid
+                    Layout.fillHeight: true
+                    Layout.bottomMargin: -Theme.gap
+                    implicitWidth: Math.max(Theme.touch, tabCol.implicitWidth + Theme.space4 * 2)
+                    Column {
+                        id: tabCol
+                        anchors.centerIn: parent
+                        spacing: Theme.s(2)
+                        Text {
+                            text: tab.modelData.label.toUpperCase()
+                            color: tab.on ? tab.tabAccent : Theme.muted
+                            font.family: Theme.fontSans; font.pixelSize: Theme.labelFont; font.bold: true
+                            font.letterSpacing: Theme.labelFont * 0.14
+                        }
+                        Text {
+                            visible: !win.compact
+                            text: "SEC." + ("0" + (tab.index + 1)).slice(-2) + " // " + tab.modelData.count
+                            color: Theme.muted
+                            font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+                            font.letterSpacing: Theme.microFont * 0.16
+                        }
+                    }
+                    Rectangle {
+                        anchors.bottom: parent.bottom; width: parent.width; height: Theme.s(3)
+                        color: tab.on ? tab.tabAccent : "transparent"
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: win.selectSection(tab.modelData.id) }
                 }
             }
             Item { Layout.fillWidth: true }
@@ -93,25 +116,27 @@ ApplicationWindow {
             TouchButton {
                 text: (system && system.splitActive) ? "Exit split" : "Split"
                 iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
-                color: (system && system.splitActive) ? Theme.activeFill : Theme.panelAlt
+                textColor: (system && system.splitActive) ? Theme.warn : Theme.text
+                borderColor: (system && system.splitActive) ? Theme.warn : Theme.borderStrong
                 compact: win.compact
                 onClicked: system.toggleSplit(win.portrait)
             }
             TouchButton {
                 text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
-                color: (system && system.keyboardVisible) ? Theme.accent : Theme.panelAlt
-                textColor: (system && system.keyboardVisible) ? Theme.inkOnAccent : Theme.text
+                // amber outline while the on-screen keyboard is open (caution: it covers the screen)
+                textColor: (system && system.keyboardVisible) ? Theme.warn : Theme.text
+                borderColor: (system && system.keyboardVisible) ? Theme.warn : Theme.borderStrong
                 onClicked: system.toggleKeyboard()
             }
             TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
             UsageMeter {
-                visible: win.width >= Theme.s(720)
+                visible: win.width >= Theme.s(880)
                 compact: win.compact
                 onTapped: win.monitorOpen = true
             }
             TouchButton {
                 text: "Settings"; iconSource: "../icons/settings.png"; compact: true
-                color: win.settingsOpen ? Theme.accent : Theme.panelAlt
+                borderColor: win.settingsOpen ? Theme.focus : Theme.borderStrong
                 onClicked: { settings.refresh(); win.settingsOpen = true }
             }
         }
@@ -140,12 +165,28 @@ ApplicationWindow {
                 spacing: Theme.s(8)
                 Repeater {
                     model: win.sectionCategories(win.section)
-                    delegate: TouchButton {
+                    delegate: Item {   // category chip: 48px tall inside a touch-tall row
+                        id: chip
                         required property var modelData
-                        text: modelData.label
-                        color: win.category === modelData.id ? Theme.categoryColor(modelData.id) : Theme.panelAlt
-                        textColor: win.category === modelData.id ? Theme.inkOnAccent : Theme.text
-                        onClicked: win.category = modelData.id
+                        readonly property bool on: win.category === modelData.id
+                        implicitHeight: Theme.touch
+                        implicitWidth: chipLabel.implicitWidth + Theme.space4 * 2
+                        Chamfer {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width; height: Theme.chipH
+                            cut: Theme.cutSm
+                            color: chip.on ? Theme.categoryColor(chip.modelData.id) : Theme.panelAlt
+                            borderColor: chip.on ? Theme.categoryColor(chip.modelData.id) : Theme.borderStrong
+                            Text {
+                                id: chipLabel
+                                anchors.centerIn: parent
+                                text: chip.modelData.label.toUpperCase()
+                                color: chip.on ? Theme.inkOnAccent : Theme.text
+                                font.family: Theme.fontSans; font.pixelSize: Theme.labelFont; font.bold: true
+                                font.letterSpacing: Theme.labelFont * 0.14
+                            }
+                        }
+                        MouseArea { anchors.fill: parent; onClicked: win.category = chip.modelData.id }
                     }
                 }
             }
@@ -168,23 +209,17 @@ ApplicationWindow {
         }
 
         // tool pane
-        Rectangle {
+        Chamfer {
             id: toolPane
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: 0
             Layout.minimumHeight: 0
-            radius: Theme.radiusLarge
+            cut: Theme.cutLg
             color: Theme.panel
-            border.color: Theme.border
+            borderColor: Theme.border
 
-            Text { font.family: Theme.fontSans
-                visible: !win.tool
-                anchors.centerIn: parent
-                text: "Tap a tool to begin"
-                color: Theme.muted
-                font.pixelSize: Theme.s(24)
-            }
+            EmptyState { visible: !win.tool; anchors.fill: parent; anchors.margins: Theme.cutLg / 2 }
 
             ColumnLayout {
                 visible: !!win.tool
@@ -192,7 +227,7 @@ ApplicationWindow {
                 anchors.margins: Theme.s(14)
                 spacing: Theme.gap
 
-                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true }
+                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02 }
                 Text { font.family: Theme.fontSans
                     Layout.fillWidth: true
                     text: win.tool ? win.tool.description : ""
@@ -239,18 +274,19 @@ ApplicationWindow {
                         enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
                     }
-                    TouchButton { visible: !win.appMode; text: "Stop"; color: Theme.danger; textColor: Theme.inkOnDanger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
+                    TouchButton { visible: !win.appMode; text: "Stop"; textColor: Theme.danger; borderColor: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
                     TouchButton { visible: !win.appMode; text: "Clear"; onClicked: output.clear() }
                     Text { font.family: Theme.fontSans
                         visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
                         height: Theme.touch; verticalAlignment: Text.AlignVCenter
-                        text: "runs as root"; color: Theme.warn; font.pixelSize: Theme.smallFont
+                        text: "RUNS AS ROOT"; color: Theme.warn; font.pixelSize: Theme.labelFont; font.bold: true; font.letterSpacing: Theme.labelFont * 0.14
                     }
                 }
                 Text {
                     id: status
                     Layout.fillWidth: true
-                    color: Theme.muted; font.pixelSize: Theme.s(13); font.family: Theme.fontMono; elide: Text.ElideMiddle
+                    color: text.indexOf("error:") === 0 ? Theme.danger : Theme.muted
+                    font.pixelSize: Theme.smallFont; font.family: Theme.fontMono; elide: Text.ElideMiddle
                 }
                 Item { visible: win.appMode; Layout.fillHeight: true }
                 OutputPane {
@@ -289,10 +325,11 @@ ApplicationWindow {
         anchors.fill: parent
         color: Theme.scrim
         MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
-        Rectangle {
+        Chamfer {
             anchors.centerIn: parent
-            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48); radius: Theme.radiusPanel
-            color: Theme.panel; border.color: Theme.border
+            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48)
+            cut: Theme.cutLg
+            color: Theme.panel; borderColor: Theme.borderStrong
             MouseArea { anchors.fill: parent }   // swallow clicks
             ColumnLayout {
                 id: confirmCol
@@ -315,8 +352,8 @@ ApplicationWindow {
                     TouchButton { text: "Cancel"; onClicked: confirmAction = "" }
                     TouchButton {
                         text: confirmAction === "reboot" ? "Reboot" : confirmAction === "cli" ? "Switch" : "Shut down"
-                        color: confirmAction === "cli" ? Theme.warn : Theme.danger
-                        textColor: confirmAction === "cli" ? Theme.inkOnAccent : Theme.inkOnDanger
+                        color: confirmAction === "cli" ? Theme.warn : Theme.dangerFill
+                        textColor: Theme.inkOnDanger
                         onClicked: {
                             var a = confirmAction; confirmAction = ""; win.settingsOpen = false
                             if (a === "reboot") system.reboot()

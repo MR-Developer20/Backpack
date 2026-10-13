@@ -1,14 +1,14 @@
 import QtQuick
 
 // Line + area graph of the last N percentage samples (0-100), newest on the right.
-Rectangle {
+Chamfer {
     id: graph
     property var samples: []
     property int capacity: 60
     property color lineColor: Theme.accent
-    radius: Theme.s(10)
+    cut: Theme.cutMd
     color: Theme.outputBg
-    border.color: Theme.border
+    borderColor: Theme.border
 
     onSamplesChanged: canvas.requestPaint()
     onLineColorChanged: canvas.requestPaint()

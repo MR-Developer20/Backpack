@@ -1,12 +1,12 @@
 import QtQuick
 import QtQuick.Controls
 
-Rectangle {
+Chamfer {
     id: pane
     property alias text: area.text
-    radius: Theme.s(10)
+    cut: Theme.cutMd
     color: Theme.outputBg
-    border.color: Theme.border
+    borderColor: Theme.border
 
     function append(s) {
         area.text += s
@@ -18,7 +18,7 @@ Rectangle {
     Flickable {
         id: flick
         anchors.fill: parent
-        anchors.margins: Theme.s(10)
+        anchors.margins: Theme.space3
         contentHeight: area.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds

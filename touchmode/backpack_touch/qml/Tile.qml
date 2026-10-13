@@ -1,48 +1,59 @@
 import QtQuick
 
-Rectangle {
+// One tool in the launcher grid: category rail, name, two-line description, metadata strip.
+// Rest: hull fill, grid border. Selected: hull-raised fill, 2px border in the category colour.
+Chamfer {
     id: tile
     property var tool
     property bool selected: false
     signal tapped()
-    width: Theme.tileW - 12
-    height: Theme.tileH - 12
-    radius: Theme.radiusLarge
-    // Field Terminal: selected = signal-dim fill with a signal edge; previous look: the category hue
-    color: selected ? (Theme.ft ? Theme.accentDim : Qt.darker(Theme.categoryColor(tool.category), 2.2)) : Theme.panel
-    border.color: selected ? (Theme.ft ? Theme.accent : Theme.categoryColor(tool.category)) : Theme.border
-    border.width: selected ? (Theme.ft ? 2 : 3) : 1
+    readonly property color cat: Theme.categoryColor(tool.category)
+    width: Theme.tileW - Theme.space3
+    height: Theme.tileH - Theme.space3
+    cut: Theme.cutMd
+    color: selected ? Theme.panelAlt : Theme.panel
+    borderColor: selected ? cat : Theme.border
+    borderWidth: selected ? 2 : 1
+
+    function meta() {
+        if (tool.gui) return "GUI"
+        var cmds = tool.commands, root = cmds.length > 0, tty = cmds.length > 0
+        for (var i = 0; i < cmds.length; i++) { root = root && !!cmds[i].needs_root; tty = tty && !!cmds[i].tty }
+        if (root || tty) return [root ? "ROOT" : "", tty ? "TTY" : ""].filter(Boolean).join(" // ")
+        return cmds.length + (cmds.length === 1 ? " ACTION" : " ACTIONS")
+    }
 
     Rectangle {
-        width: Theme.s(Theme.ft ? 6 : 10); height: parent.height - Theme.s(28); x: Theme.s(12); y: Theme.s(14); radius: Theme.ft ? 0 : Theme.s(5)
-        color: Theme.categoryColor(tool.category)
+        x: Theme.space3; y: Theme.space3
+        width: Theme.rail; height: parent.height - Theme.space3 * 2
+        color: tile.cat
     }
     Column {
-        anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.s(32); rightMargin: Theme.s(12); topMargin: Theme.s(14) }
-        spacing: Theme.s(6)
-        Text { font.family: Theme.fontSans
+        anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space3 * 2 + Theme.rail; rightMargin: Theme.space3; topMargin: Theme.space3 }
+        spacing: Theme.space1
+        Text {
             width: parent.width
             text: tool.name
             color: Theme.text
-            font.pixelSize: Theme.s(22)
-            font.bold: true
+            font.family: Theme.fontSans; font.pixelSize: Theme.tileNameFont; font.bold: true
             elide: Text.ElideRight
         }
-        Text { font.family: Theme.fontSans
+        Text {
             width: parent.width
             text: tool.description
             color: Theme.muted
-            font.pixelSize: Theme.smallFont
+            font.family: Theme.fontSans; font.pixelSize: Theme.smallFont
             wrapMode: Text.WordWrap
-            maximumLineCount: 3
+            maximumLineCount: 2
             elide: Text.ElideRight
         }
     }
-    Text { font.family: Theme.fontSans
-        anchors { right: parent.right; bottom: parent.bottom; margins: Theme.s(10) }
-        text: tool.gui ? "GUI" : (tool.commands.length + (tool.commands.length === 1 ? " action" : " actions"))
+    Text {
+        anchors { right: parent.right; bottom: parent.bottom; rightMargin: Theme.space3; bottomMargin: Theme.space2 }
+        text: tile.meta()
         color: Theme.muted
-        font.pixelSize: Theme.s(13)
+        font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+        font.letterSpacing: Theme.microFont * 0.16
     }
     MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
 }

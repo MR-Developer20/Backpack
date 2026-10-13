@@ -1,4 +1,4 @@
-"""GUI Mode settings popup: UI size and look (saved per user), Load to RAM, Switch to CLI Mode."""
+"""GUI Mode settings popup: UI size (saved per user), Load to RAM, Switch to CLI Mode."""
 import json
 import os
 import sys
@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QProcess, Property, Signal, Slot
 
 from . import toram
 
-SCALE_MIN, SCALE_MAX = 0.8, 1.5
+SCALE_MIN, SCALE_MAX = 0.75, 1.6   # design tokens ui-scale-min / ui-scale-max
 
 
 def config_path():
@@ -26,7 +26,6 @@ def _clamp_scale(v):
 
 class Settings(QObject):
     uiScaleChanged = Signal()
-    fieldTerminalChanged = Signal()
     ramChanged = Signal()
 
     def __init__(self, parent=None):
@@ -38,8 +37,6 @@ class Settings(QObject):
             pass
         env = os.environ.get("BACKPACK_UI_SCALE")   # test hook
         self._scale = _clamp_scale(env if env else self._cfg.get("uiScale", 1.0))
-        style = os.environ.get("BACKPACK_UI_STYLE")   # test hook: "field" or "classic"
-        self._field = style != "classic" if style else bool(self._cfg.get("fieldTerminal", True))
         self._ram = toram.status()
         self._ram_busy = False
         self._ram_progress = 0
@@ -77,21 +74,6 @@ class Settings(QObject):
         except OSError:
             pass
 
-    # ------------------------------------------------------------ look
-    # True = the Field Terminal design system; False = the launcher's previous look.
-    def _get_field(self):
-        return self._field
-
-    def _set_field(self, v):
-        v = bool(v)
-        if v == self._field:
-            return
-        self._field = v
-        self.fieldTerminalChanged.emit()
-        self._save("fieldTerminal", v)
-
-    fieldTerminal = Property(bool, _get_field, _set_field, notify=fieldTerminalChanged)
-
     # ------------------------------------------------------------ Load to RAM
     @Property(bool, notify=ramChanged)
     def ramSupported(self):
@@ -125,6 +107,13 @@ class Settings(QObject):
         if st["memAvailable"] < st["size"] + st["headroom"]:
             return f"Needs {size + st['headroom'] / 2**30:.1f} GB free RAM; {free:.1f} GB free."
         return f"Copies the {size:.1f} GB system image into memory so you can unplug the USB stick. {free:.1f} GB RAM free."
+
+    @Property(str, notify=ramChanged)
+    def ramFacts(self):
+        """Metadata strip for the sheet header, e.g. "RAM 7.6 GB FREE // FROM RAM"."""
+        st = self._ram
+        out = f"RAM {st['memAvailable'] / 2**30:.1f} GB FREE"
+        return out + (" // FROM RAM" if st["inRam"] else "")
 
     @Property(bool, notify=ramChanged)
     def canLoadToRam(self):
