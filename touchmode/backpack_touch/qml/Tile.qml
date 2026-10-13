@@ -13,7 +13,7 @@ Chamfer {
     cut: Theme.cutMd
     color: selected ? Theme.panelAlt : Theme.panel
     borderColor: selected ? cat : Theme.border
-    borderWidth: selected ? 2 : 1
+    borderWidth: 1   // every border is 1px; selection shows through colour and fill
 
     function meta() {
         if (tool.gui) return "GUI"

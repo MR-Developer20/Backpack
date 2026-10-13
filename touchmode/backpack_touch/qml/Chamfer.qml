@@ -7,7 +7,7 @@ Item {
     id: c
     property color color: Theme.panel
     property color borderColor: Theme.border
-    property real borderWidth: 1
+    property real borderWidth: 1      // the same 1px everywhere; 0 = no border
     property real cut: Theme.cutSm
 
     Shape {

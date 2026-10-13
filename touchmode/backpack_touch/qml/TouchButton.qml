@@ -25,7 +25,6 @@ Button {
         cut: Theme.cutSm
         color: b.down ? Qt.lighter(b.color, b.filled ? 1.15 : 1.6) : b.color
         borderColor: b.visualFocus ? Theme.focus : b.borderColor
-        borderWidth: b.visualFocus ? 2 : 1
     }
     contentItem: Item {
         Row {

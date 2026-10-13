@@ -49,7 +49,7 @@ ColumnLayout {
         id: textC
         Chamfer {
             property var row
-            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: input.activeFocus ? 2 : 1
+            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong
             TextInput {
                 id: input
                 anchors.fill: parent; anchors.margins: Theme.s(12)
