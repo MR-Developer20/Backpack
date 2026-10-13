@@ -17,7 +17,7 @@ Button {
     readonly property bool iconOnly: compact && iconSource !== ""
     implicitHeight: Theme.touch
     opacity: enabled ? 1 : 0.45
-    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch, row.implicitWidth + Theme.space4 * 2)
+    implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch, Math.ceil(row.implicitWidth) + Theme.space4 * 2)
     font.pixelSize: Theme.fontSize
     font.family: Theme.fontSans
     font.bold: filled

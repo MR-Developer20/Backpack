@@ -204,7 +204,11 @@ make release
   void/hull/acid/cyan/amber/signal palette, one font (JetBrains Mono, `fonts-jetbrains-mono`),
   `accent` follows `Theme.section` (acid in Network/Extra, cyan in Data). Chamfer.qml (QtQuick.Shapes,
   `qml6-module-qtquick-shapes`) draws the cut top-right/bottom-left corners for panels, tiles,
-  buttons and fields (cutSm/cutMd/cutLg). Section tabs are label + `SEC.NN // count` strip with an
+  buttons and fields (cutSm/cutMd/cutLg) with `Shape.CurveRenderer` (Qt >= 6.6; analytic AA, no
+  layer texture: a layer over a fractional-width item gets stretched sub-pixel and blurs the right
+  edge) and snaps its size to whole pixels; text-sized buttons/chips/tabs ceil() their widths and
+  the sheets round their centred position so every 1px border lands on one pixel. Verify with a
+  pixel scan of offscreen screenshots: all 1px box edges must be exact token colours. Section tabs are label + `SEC.NN // count` strip with an
   underline; chips 48px; tile meta strip = N ACTIONS / GUI / ROOT // TTY; empty tool pane =
   EmptyState.qml (24px scan grid + dragon curve). Buttons: TouchButton filled when `color` is not
   panelAlt; outline variants via `borderColor` + `textColor` (Stop/Reboot/Shut down = signal,

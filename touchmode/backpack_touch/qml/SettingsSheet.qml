@@ -26,9 +26,9 @@ Rectangle {
 
     Chamfer {
         id: panel
-        anchors.centerIn: parent
+        x: Math.round((parent.width - width) / 2); y: Math.round((parent.height - height) / 2)   // whole pixels
         width: Math.min(parent.width - 40, Theme.s(560))
-        height: Math.min(parent.height - 40, body.implicitHeight + Theme.space6 * 2)
+        height: Math.min(parent.height - 40, Math.ceil(body.implicitHeight) + Theme.space6 * 2)
         cut: Theme.cutLg
         color: Theme.panel; borderColor: Theme.borderStrong
         MouseArea { anchors.fill: parent }   // swallow clicks

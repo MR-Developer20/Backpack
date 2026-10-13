@@ -85,7 +85,7 @@ ApplicationWindow {
                     readonly property color tabAccent: modelData.id === "data" ? Theme.cyan : Theme.acid
                     Layout.fillHeight: true
                     Layout.bottomMargin: -Theme.gap
-                    implicitWidth: Math.max(Theme.touch, tabCol.implicitWidth + Theme.space4 * 2)
+                    implicitWidth: Math.max(Theme.touch, Math.ceil(tabCol.implicitWidth) + Theme.space4 * 2)
                     Column {
                         id: tabCol
                         anchors.centerIn: parent
@@ -170,7 +170,7 @@ ApplicationWindow {
                         required property var modelData
                         readonly property bool on: win.category === modelData.id
                         implicitHeight: Theme.touch
-                        implicitWidth: chipLabel.implicitWidth + Theme.space4 * 2
+                        implicitWidth: Math.ceil(chipLabel.implicitWidth) + Theme.space4 * 2
                         Chamfer {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width; height: Theme.chipH
@@ -325,9 +325,9 @@ ApplicationWindow {
         anchors.fill: parent
         color: Theme.scrim
         MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
-        Chamfer {
-            anchors.centerIn: parent
-            width: Math.min(Theme.s(560), parent.width - 40); height: confirmCol.implicitHeight + Theme.s(48)
+        Chamfer {   // centred on whole pixels
+            x: Math.round((parent.width - width) / 2); y: Math.round((parent.height - height) / 2)
+            width: Math.min(Theme.s(560), parent.width - 40); height: Math.ceil(confirmCol.implicitHeight) + Theme.s(48)
             cut: Theme.cutLg
             color: Theme.panel; borderColor: Theme.borderStrong
             MouseArea { anchors.fill: parent }   // swallow clicks
