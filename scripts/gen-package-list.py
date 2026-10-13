@@ -7,7 +7,7 @@ import argparse, re, sys
 import yaml
 
 CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
-              "disks", "recovery", "files", "transfer"}
+              "disks", "recovery", "files", "transfer", "apps"}
 ARG_TYPES = {"string", "int", "flag", "choice"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 
@@ -50,6 +50,8 @@ def validate(doc):
                 fail(f"{tid}: source needs url or apt_repo")
         if not isinstance(t.get("gui", False), bool):
             fail(f"{tid}: gui must be a bool")
+        if not isinstance(t.get("optional", False), bool):
+            fail(f"{tid}: optional must be a bool")
         if not isinstance(t["commands"], list) or not t["commands"]:
             fail(f"{tid}: commands must be a non-empty list")
         for c in t["commands"]:
@@ -90,6 +92,8 @@ def main():
 
     if args.print_cmds:
         for t in tools:
+            if t.get("optional"):   # installed separately; GUI Mode hides it when absent
+                continue
             for c in t["commands"]:
                 print(t["id"], c["cmd"])
         return

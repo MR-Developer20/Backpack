@@ -7,9 +7,12 @@
 #   description one plain-English sentence
 #   category    Network tab: discovery | connectivity | capture | wireless | throughput | dns-http
 #               Data tab:    disks | recovery | files | transfer
+#               Extra tab:   apps
 #   packages    Debian package names (required; for upstream sources = extra deps)
 #   source      optional: {type: upstream, url, sha256, apt_repo, apt_key_url, apt_key_sha256}
 #   gui         optional bool; GUI Mode launches GUI tools detached instead of streaming output
+#   optional    optional bool; the program is installed separately (not from `packages`), so GUI Mode
+#               hides the tile when its command is missing and check-tools.sh does not require it
 #   commands[]  {label, cmd, args[], needs_root, tty?}  tty: true = run inside foot (curses UIs)
 #   args[]      {name, type: string|int|flag|choice, default, required, flag, options, sep?}
 #               sep: "" joins flag and value with no space (e.g. dig @server)
@@ -567,4 +570,19 @@ tools:
           - {name: dry_run, type: flag, default: true, flag: "--dry-run"}
           - {name: source, type: string, default: "", required: true}
           - {name: destination, type: string, default: "", required: true}
+        needs_root: false
+  # =================================================================== EXTRA
+  # -------------------------------------------------------------------- apps
+  - id: edex-ui
+    name: eDEX-UI
+    description: Sci-fi full-screen terminal with live system, network and file panels.
+    category: apps
+    packages: []          # edex-ui_*.deb from scripts/build-edex-deb.sh, when built
+    optional: true
+    gui: true
+    commands:
+      - label: Open eDEX-UI
+        cmd: edex-ui
+        args:
+          - {name: no_sandbox, type: flag, default: true, flag: "--no-sandbox"}
         needs_root: false

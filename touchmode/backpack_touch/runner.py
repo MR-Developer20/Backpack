@@ -43,7 +43,8 @@ class Runner(QObject):
             self.error.emit(err)
             return
         if tool["gui"]:
-            QProcess.startDetached(argv[0], argv[1:])
+            # like openTerminal: leave fullscreen first or the app opens behind the launcher
+            QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec " + shlex.join(argv)])
             self.output.emit(f"launched {manifest.display(argv)}\n")
             return
         if cmd["tty"]:
@@ -166,16 +167,6 @@ class System(QObject):
     @Slot()
     def toggleKeyboard(self):
         self.hideKeyboard() if self._kbd else self.showKeyboard()
-
-    @Slot(result=bool)
-    def edexAvailable(self):
-        import shutil
-        return shutil.which("edex-ui") is not None
-
-    @Slot()
-    def launchEdex(self):
-        QProcess.startDetached("sh", ["-c",
-            "swaymsg fullscreen disable; swaymsg exec 'edex-ui --no-sandbox'"])
 
     @Slot()
     def poweroff(self):

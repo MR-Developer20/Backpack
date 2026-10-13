@@ -94,12 +94,6 @@ ApplicationWindow {
                 onClicked: system.toggleKeyboard()
             }
             TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
-            TouchButton {
-                text: "eDEX"; iconSource: "../icons/edex.png"; compact: win.compact
-                color: Theme.edexFill
-                visible: system ? system.edexAvailable() : false
-                onClicked: system.launchEdex()
-            }
             UsageMeter {
                 visible: win.width >= Theme.s(720)
                 compact: win.compact

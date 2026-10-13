@@ -1,12 +1,14 @@
 """Load /etc/backpack/tools.yaml and build command lines from arg values."""
 import os
 import shlex
+import shutil
 import yaml
 
 # GUI Mode tabs: each section groups some categories (in display order)
 SECTIONS = [
     ("network", "Network", ["discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"]),
     ("data", "Data", ["disks", "recovery", "files", "transfer"]),
+    ("extra", "Extra", ["apps"]),
 ]
 CATEGORY_ORDER = [c for _, _, cats in SECTIONS for c in cats]
 CATEGORY_SECTION = {c: sid for sid, _, cats in SECTIONS for c in cats}
@@ -14,6 +16,7 @@ CATEGORY_LABELS = {
     "discovery": "Discovery", "connectivity": "Connectivity", "capture": "Capture",
     "wireless": "Wireless", "throughput": "Throughput", "dns-http": "DNS / HTTP",
     "disks": "Disks", "recovery": "Recovery", "files": "Files", "transfer": "Transfer",
+    "apps": "Apps",
 }
 DEFAULT_PATH = "/etc/backpack/tools.yaml"
 
@@ -25,7 +28,9 @@ def manifest_path():
 def load(path=None):
     with open(path or manifest_path()) as f:
         doc = yaml.safe_load(f)
-    tools = doc["tools"]
+    # optional tools (installed separately, e.g. eDEX-UI) only show up when their program is there
+    tools = [t for t in doc["tools"]
+             if not t.get("optional") or shutil.which(t["commands"][0]["cmd"])]
     # normalise so QML gets plain, predictable shapes
     for t in tools:
         t.setdefault("gui", False)

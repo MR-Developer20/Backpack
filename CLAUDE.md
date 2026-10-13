@@ -193,6 +193,11 @@ make release
   `sudo -n dmidecode -t 17` (dmidecode added to gui.list.chroot + deb Depends), parsed by
   parse_dmidecode_memory (empty slots skipped). Adding the meter moved `compact` to
   width < Theme.s(1400). Test hook: BACKPACK_DEMO_MONITOR=1.
+- (extra tab) The eDEX top-bar button is gone; eDEX-UI is the `edex-ui` manifest tool in category
+  `apps` (Extra tab), marked `optional: true` with `packages: []`: manifest.load() drops optional
+  tools whose command is missing (so the tab disappears without the deb) and `--print-cmds` /
+  check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
+  like the terminal buttons.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

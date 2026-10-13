@@ -8,17 +8,18 @@ A bootable Debian 13 ("trixie") live USB for network discovery and testing — t
 Two ways to use it, chosen from the boot menu:
 
 - **GUI Mode** (default) — a full-screen, touch-friendly tile launcher (PySide6/QML under sway)
-  that builds a form for each tool and streams its output. Tools sit in two tabs: **Network**
-  (discovery, connectivity, capture, wireless, throughput, DNS/HTTP) and **Data** (disks, recovery,
-  files, transfer). The **Settings** button (gear, top right) holds a UI size slider (80–150%,
+  that builds a form for each tool and streams its output. Tools sit in tabs: **Network**
+  (discovery, connectivity, capture, wireless, throughput, DNS/HTTP), **Data** (disks, recovery,
+  files, transfer) and **Extra** (other software, such as the optional
+  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when
+  something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (80–150%,
   remembered across boots with persistence), **Load to RAM** (moves the running system into memory
   so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and Shut down.
   A CPU/RAM meter in the top bar opens a system monitor with live graphs plus the CPU model,
   core count, RAM capacity and installed memory modules.
   Top bar: full-screen terminal, split view
   (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
-  a phone-style on-screen keyboard, a Wi-Fi scan/connect overlay, and an optional
-  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal. When the launcher is narrow
+  a phone-style on-screen keyboard and a Wi-Fi scan/connect overlay. When the launcher is narrow
   (split view, portrait, or a large UI size) the top bar collapses to icons.
 - **CLI Mode** — boots to a multi-user console, no display server.
 
@@ -74,7 +75,7 @@ package cache.
 
 ### eDEX-UI (optional)
 
-The GUI Mode "eDEX" button needs the `edex-ui` Debian package, built from the vendored and
+The eDEX-UI tile in GUI Mode's Extra tab needs the `edex-ui` Debian package, built from the vendored and
 modernized fork in `touchmode/edex/` (Electron 37). It is not built by `make build`; build it
 once and it is picked up by the next `make build`:
 
@@ -83,7 +84,7 @@ docker build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
 scripts/build-edex-deb.sh        # -> live/config/packages.chroot/edex-ui_*.deb
 ```
 
-Without it the image still builds; the eDEX button simply does not appear.
+Without it the image still builds; the tile (and the Extra tab, while eDEX-UI is its only entry) simply does not appear.
 
 ### Releases
 

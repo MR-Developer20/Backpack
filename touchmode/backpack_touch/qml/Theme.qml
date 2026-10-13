@@ -20,7 +20,6 @@ QtObject {
     readonly property color dangerFill: "#4a2328"    // Shut down button
     readonly property color cautionFill: "#3a3f2a"   // Reboot button
     readonly property color activeFill: "#3a2a2a"    // Split while a split terminal is open
-    readonly property color edexFill: "#13303a"
     readonly property color scrim: "#c0000000"       // behind overlays and dialogs
     readonly property color outputBg: "#0a0e12"
     readonly property color outputInk: "#cfe3d8"
@@ -45,6 +44,7 @@ QtObject {
         case "recovery": return "#fb923c"
         case "files": return "#facc15"
         case "transfer": return "#a3e635"
+        case "apps": return "#c084fc"
         }
         return "#8b9bb0"
     }
