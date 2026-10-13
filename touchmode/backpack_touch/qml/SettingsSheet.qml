@@ -24,7 +24,7 @@ Sheet {
         Layout.fillWidth: true
         spacing: Theme.space2
         Text { text: question; color: Theme.text; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; font.bold: true }
-        Text { Layout.fillWidth: true; text: consequence; color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap }
+        Text { Layout.fillWidth: true; text: consequence; color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine }
         RowLayout {
             spacing: Theme.gap
             TouchButton { text: "Cancel"; onClicked: sheet.ask = "" }
@@ -59,20 +59,20 @@ Sheet {
                 y: scaleSlider.topPadding + scaleSlider.availableHeight / 2 - height / 2
                 width: scaleSlider.availableWidth; height: Theme.s(4)
                 color: Theme.borderStrong
-                Rectangle { width: scaleSlider.visualPosition * parent.width; height: parent.height; color: Theme.accent }
+                Rectangle { width: scaleSlider.visualPosition * parent.width; height: parent.height; color: Theme.acid }   // the sheet is global: acid, whatever the section
             }
             handle: Chamfer {
                 x: scaleSlider.leftPadding + scaleSlider.visualPosition * (scaleSlider.availableWidth - width)
                 y: scaleSlider.topPadding + scaleSlider.availableHeight / 2 - height / 2
                 width: Theme.s(28); height: Theme.s(40)
                 cut: Theme.cutSm; borderWidth: 0
-                color: scaleSlider.pressed ? Qt.lighter(Theme.accent, 1.15) : Theme.accent
+                color: scaleSlider.pressed ? Qt.lighter(Theme.acid, 1.15) : Theme.acid
             }
         }
         TouchButton { text: "+"; implicitWidth: Theme.touch; onClicked: scaleSlider.value = Math.min(scaleSlider.to, scaleSlider.value + 0.05) }
         Text {
             text: scaleSlider.value.toFixed(2).replace(/0$/, "") + "×"
-            color: Theme.accent; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; font.bold: true
+            color: Theme.acid; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; font.bold: true
             Layout.preferredWidth: Theme.s(64); horizontalAlignment: Text.AlignRight
         }
     }
@@ -91,12 +91,12 @@ Sheet {
         TouchButton {
             text: settings && settings.inRam ? "Running from RAM" : (settings && settings.ramBusy ? "Loading… " + settings.ramProgress + "%" : "Load to RAM")
             command: settings ? settings.ramCommand : ""
-            color: Theme.accent; textColor: Theme.inkOnAccent
+            color: Theme.acid; textColor: Theme.inkOnAccent
             enabled: settings ? settings.canLoadToRam : false
             onClicked: settings.loadToRam()
         }
         TouchButton {   // caution: leaves GUI Mode
-            text: "Switch to CLI Mode"; command: "systemctl isolate multi-user.target"
+            text: "Switch to CLI Mode"; command: settings ? settings.cliCommand : ""
             textColor: Theme.warn; borderColor: Theme.warn
             onClicked: sheet.ask = "cli"
         }
@@ -106,16 +106,16 @@ Sheet {
         Layout.fillWidth: true
         Layout.preferredHeight: Theme.s(4)
         color: Theme.borderStrong
-        Rectangle { width: parent.width * (settings ? settings.ramProgress : 0) / 100; height: parent.height; color: Theme.accent }
+        Rectangle { width: parent.width * (settings ? settings.ramProgress : 0) / 100; height: parent.height; color: Theme.acid }
     }
     Text {
         visible: sheet.ask !== "cli"
         Layout.fillWidth: true
         text: settings ? (settings.ramMessage !== "" ? settings.ramMessage : settings.ramSummary) : ""
-        color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
+        color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
     }
     Confirm {
-        action: "cli"; verb: "Switch to CLI Mode"; command: "systemctl isolate multi-user.target"; question: "Switch to CLI Mode?"
+        action: "cli"; verb: "Switch to CLI Mode"; command: settings ? settings.cliCommand : ""; question: "Switch to CLI Mode?"
         consequence: "GUI Mode closes with its running tools and terminals and you get a text login on the console. Reboot to come back to GUI Mode."
     }
 
@@ -125,17 +125,17 @@ Sheet {
         visible: sheet.ask !== "reboot" && sheet.ask !== "poweroff"
         Layout.fillWidth: true
         spacing: Theme.gap
-        TouchButton { text: "Reboot"; command: "systemctl reboot"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "reboot" }
-        TouchButton { text: "Shut down"; command: "systemctl poweroff"; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "poweroff" }
+        TouchButton { text: "Reboot"; command: system ? system.rebootCommand : ""; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "reboot" }
+        TouchButton { text: "Shut down"; command: system ? system.poweroffCommand : ""; textColor: Theme.danger; borderColor: Theme.danger; onClicked: sheet.ask = "poweroff" }
         Item { Layout.fillWidth: true }
         TouchButton { text: "Close"; onClicked: sheet.closed() }
     }
     Confirm {
-        action: "reboot"; verb: "Reboot"; command: "systemctl reboot"; question: "Reboot?"
+        action: "reboot"; verb: "Reboot"; command: system ? system.rebootCommand : ""; question: "Reboot?"
         consequence: "Running tools stop. Anything not saved to the persistence partition is lost."
     }
     Confirm {
-        action: "poweroff"; verb: "Shut down"; command: "systemctl poweroff"; question: "Shut down?"
+        action: "poweroff"; verb: "Shut down"; command: system ? system.poweroffCommand : ""; question: "Shut down?"
         consequence: "Running tools stop. Anything not saved to the persistence partition is lost."
     }
 }

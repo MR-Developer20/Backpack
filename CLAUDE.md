@@ -232,26 +232,43 @@ make release
   BACKPACK_DEMO_ASK=reboot|poweroff|cli (with BACKPACK_DEMO_SETTINGS=1) opens a confirm state.
 - (command lines on buttons) Design rule: every button that runs a command shows it under its label in
   `command` type (Theme.commandFont = 12px mono, regular, letter-spacing 0, never uppercased; ink-muted
-  on a plain button, the label colour at 75% on a filled one, 0.8 on an outline one). TouchButton has
-  `command` (+ `commandMaxWidth`, elided) and `fullWidth` (its width with label + command). Sources of
-  truth: manifest.load() puts `template` on every command (`sudo -n`? + cmd + default-on flags +
-  `<name>` placeholders, built by manifest.template()); the action chips show it, Run shows the live
-  line from `runner.commandLine(tool, cmdIndex, form.values())` (Main.updateRunLine(), re-run on
-  ToolForm.changed / chip / tool change; falls back to the template while a required field is empty)
-  and the Run row echoes it as `$ …` (phosphor) beside the micro status strip; Stop shows
-  `kill -TERM <pid>` with runner.pid while running; Settings: Load to RAM = settings.ramCommand
-  (`[sudo -n ]python3 -m backpack_touch.toram run`), Switch to CLI Mode = `systemctl isolate
-  multi-user.target`, Reboot/Shut down = `systemctl reboot|poweroff` (also on the confirm buttons);
-  Wi-Fi: nmcli lines with the SSID shell-quoted (WifiOverlay.quoted) and `<password>`/`<device>`
-  placeholders; top bar: Terminal/Split/Keyboard show foot / swaymsg kill / pkill -USR1|USR2 lines.
-  Buttons that only change the screen (tabs, category chips, Close, Cancel, Settings, Wi-Fi) show none.
-  The top bar is now MEASURED, not thresholded: `barLabels` sums the wordmark ("BACKPACK",
-  TextMetrics), the tabs (an Item wrapping a Row + Repeater, `tabs.implicitWidth`), the four tool
-  buttons' `fullWidth`, the compact meter, the gear and the gaps; `compact = width < barLabels`
-  (icon-only buttons, ~1790px at 1.0x); then `barWordmark` adds "//LIVE" and `barMeter` adds the
-  meter's percentages. Every term is an implicit width independent of the tier, so no binding loop.
-  At 1920x1080 the buttons show their commands with the short wordmark. Verified offscreen at 1280,
-  1800, 1920, 2048, 2200, 2560, portrait 800x1280 and 0.75/1.3/1.6x (logs clean, pixel scan clean).
+  on a plain button, the label colour at 75% on a filled one, 0.8 on an outline one); buttons that only
+  change the screen (tabs, category chips, Close, Cancel, Settings, Wi-Fi) show none. TouchButton has
+  `command` (+ `commandMaxWidth`, elided) and `fullWidth` (its width with label + command); Chip.qml is
+  the design's 48px chip (uppercase `label` over the command, left-aligned, 2px accent border when
+  selected) used for the action chips and the choice chips of a form. One source of truth per line:
+  manifest.preview(cmd, values[, placeholders]) builds the display string the way build_argv builds
+  argv (same `sudo -n` euid rule, shell quoting, `<name>` for an empty required field, every value a
+  `<name>` slot with placeholders=True = the chip's `template`); runner.commandLine() returns it and
+  Main.updateRunLine() re-runs it on ToolForm.changed / chip / tool change; the Run row echoes it as
+  `$ …` (phosphor) beside the micro status strip (LAUNCHED also for gui/tty tools, which now emit
+  `started`); Stop shows `kill -TERM <pid>` with runner.pid. Settings: Load to RAM = settings.ramCommand,
+  Switch to CLI Mode = settings.cliCommand (`[sudo -n ]backpack-cli-mode`, a 2-line sh script in
+  touchmode/bin shipped by the deb: `systemctl isolate multi-user.target && chvt 1`), Reboot/Shut down =
+  system.rebootCommand/poweroffCommand (`[sudo -n ]systemctl reboot|poweroff`; the live user has
+  passwordless sudo) and the Python runs exactly those strings. Wi-Fi: real nmcli lines (Rescan shows
+  the `-t -f …` scan line), SSID shell-quoted (WifiOverlay.quoted), password as dots once typed,
+  `<device>` placeholder; Connect is disabled with a message on 802.1X networks. Top bar: Terminal/Split/
+  Keyboard show `foot --app-id …` / `pkill -f backpack-split` (Exit split now kills foot that way) /
+  `pkill -USR1|USR2 -x wvkbd-mobintl` (the `swaymsg fullscreen disable; swaymsg exec` plumbing around
+  foot is not shown); toggling buttons give TouchButton `altText`/`altCommand` so `fullWidth` is the
+  wider state and the bar never re-tiers on a toggle. Form labels come
+  from the manifest's optional arg `label` (`Ping only` for -sn; default = name with `_` as spaces);
+  the flag switch is touch-tall with a chamfered track and shows its flag in command type.
+  The top bar is MEASURED, not thresholded (Main.qml): tiers barMeterOnly < barWordmark < barLabels <
+  barSettings < barMeter are sums of implicit widths that do not depend on the tier chosen (no binding
+  loop): tabs (an Item wrapping a Row + Repeater) + five icon buttons + the compact meter; + the whole
+  "BACKPACK//LIVE" wordmark (TextMetrics; it is never shortened, only dropped); + the four tool buttons'
+  `fullWidth` (`compact` = width < barLabels, ~1902px at 1.0x: 1920x1080 shows the commands); + the
+  Settings label; + the meter's percentages. Settings sheet is acid whatever the section; `extra`'s cat
+  colour is acid (tokens.json has no cat-extra); meter/graph numbers are micro, the graph has no area
+  fill; wrapped small text uses lineHeight Theme.smallLine (21px). The form Flickable (capped at 40% of
+  the pane) has a BpScrollBar. Verified offscreen at 1024, 1280, 1800, 1920, 2048, 2200, 2560,
+  portrait 800x1280 and 0.75/1.3/1.6x (logs clean, pixel scan clean). Offscreen gotcha: the
+  `offscreen` platform uses the SOFTWARE scenegraph, where a Shape (Chamfer) inside a clipped
+  Flickable is NOT clipped (a Rectangle is): a form row cut by the 40% cap shows through the Run
+  row in screenshots (rsync at 1280x800). Not a product defect (the ISO renders with the RHI
+  backend); check such artefacts in QEMU before chasing them.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

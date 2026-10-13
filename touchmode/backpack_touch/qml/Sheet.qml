@@ -17,8 +17,8 @@ Rectangle {
 
     Chamfer {
         x: Math.round((parent.width - width) / 2); y: Math.round((parent.height - height) / 2)
-        width: Math.min(parent.width - 40, sheet.sheetWidth)
-        height: Math.min(parent.height - 40, Math.ceil(body.implicitHeight) + Theme.space6 * 2)
+        width: Math.min(parent.width - Theme.space10, sheet.sheetWidth)
+        height: Math.min(parent.height - Theme.space10, Math.ceil(body.implicitHeight) + Theme.space6 * 2)
         cut: Theme.cutLg
         color: Theme.panel; borderColor: Theme.borderStrong
         MouseArea { anchors.fill: parent }   // swallow clicks

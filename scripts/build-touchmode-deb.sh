@@ -11,7 +11,7 @@ install -d "$STAGE/usr/lib/python3/dist-packages" "$STAGE/usr/bin" "$STAGE/usr/l
   "$STAGE/etc/systemd/system/multi-user.target.wants"
 cp -r "$SRC/backpack_touch" "$STAGE/usr/lib/python3/dist-packages/"
 find "$STAGE/usr/lib/python3" -name __pycache__ -prune -exec rm -rf {} +
-install -m755 "$SRC/bin/backpack-touch" "$SRC/bin/backpack-touch-session" "$STAGE/usr/bin/"
+install -m755 "$SRC/bin/backpack-touch" "$SRC/bin/backpack-touch-session" "$SRC/bin/backpack-cli-mode" "$STAGE/usr/bin/"
 install -m755 "$SRC/bin/backpack-ui" "$STAGE/usr/lib/backpack/"
 install -m644 "$SRC/etc/sway.config" "$STAGE/etc/backpack/"
 install -m644 "$SRC/etc/backpack-touch.desktop" "$STAGE/usr/share/wayland-sessions/"

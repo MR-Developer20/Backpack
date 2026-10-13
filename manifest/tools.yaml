@@ -14,7 +14,9 @@
 #   optional    optional bool; the program is installed separately (not from `packages`), so GUI Mode
 #               hides the tile when its command is missing and check-tools.sh does not require it
 #   commands[]  {label, cmd, args[], needs_root, tty?}  tty: true = run inside foot (curses UIs)
-#   args[]      {name, type: string|int|flag|choice, default, required, flag, options, sep?}
+#   args[]      {name, type: string|int|flag|choice, default, required, flag, options, sep?, label?}
+#               label: what the GUI form calls the field (a thing a person recognises, e.g.
+#               "Ping only" for -sn); defaults to the name with underscores as spaces
 #               sep: "" joins flag and value with no space (e.g. dig @server)
 #               flag type emits `flag` when true; other types emit `flag value` if flag set,
 #               else the bare value; args are emitted in declared order.
@@ -30,19 +32,19 @@ tools:
       - label: Ping sweep
         cmd: nmap
         args:
-          - {name: sn, type: flag, default: true, flag: "-sn"}
+          - {name: sn, type: flag, default: true, flag: "-sn", label: "Ping only"}
           - {name: target, type: string, default: "192.168.1.0/24", required: true}
         needs_root: false
       - label: Fast port scan
         cmd: nmap
         args:
-          - {name: fast, type: flag, default: true, flag: "-F"}
+          - {name: fast, type: flag, default: true, flag: "-F", label: "Fast (top 100 ports)"}
           - {name: target, type: string, default: "192.168.1.1", required: true}
         needs_root: false
       - label: Service + OS detection
         cmd: nmap
         args:
-          - {name: aggressive, type: flag, default: true, flag: "-A"}
+          - {name: aggressive, type: flag, default: true, flag: "-A", label: "Aggressive (-A)"}
           - {name: target, type: string, default: "192.168.1.1", required: true}
         needs_root: true
   - id: zenmap
@@ -66,7 +68,7 @@ tools:
         cmd: arp-scan
         args:
           - {name: interface, type: string, default: "", required: false, flag: "-I"}
-          - {name: localnet, type: flag, default: true, flag: "--localnet"}
+          - {name: localnet, type: flag, default: true, flag: "--localnet", label: "Local network"}
         needs_root: true
   - id: netdiscover
     name: Netdiscover
@@ -78,8 +80,8 @@ tools:
         cmd: netdiscover
         args:
           - {name: interface, type: string, default: "", required: false, flag: "-i"}
-          - {name: range, type: string, default: "192.168.1.0/24", required: true, flag: "-r"}
-          - {name: print_only, type: flag, default: true, flag: "-P"}
+          - {name: range, type: string, default: "192.168.1.0/24", required: true, flag: "-r", label: "Range"}
+          - {name: print_only, type: flag, default: true, flag: "-P", label: "Print only"}
         needs_root: true
   - id: lldpd
     name: LLDP neighbours
@@ -90,7 +92,7 @@ tools:
       - label: Show neighbours
         cmd: lldpcli
         args:
-          - {name: show, type: choice, default: "neighbors", options: ["neighbors", "interfaces", "chassis"], required: true}
+          - {name: show, type: choice, default: "neighbors", options: ["neighbors", "interfaces", "chassis"], required: true, label: "Show"}
         needs_root: true
   - id: ipscan
     name: Angry IP Scanner
@@ -117,8 +119,8 @@ tools:
       - label: Trace (report mode)
         cmd: mtr
         args:
-          - {name: report, type: flag, default: true, flag: "--report"}
-          - {name: count, type: int, default: 10, flag: "-c"}
+          - {name: report, type: flag, default: true, flag: "--report", label: "Report mode"}
+          - {name: count, type: int, default: 10, flag: "-c", label: "Cycles"}
           - {name: host, type: string, default: "1.1.1.1", required: true}
         needs_root: false
   - id: fping
@@ -130,9 +132,9 @@ tools:
       - label: Sweep subnet
         cmd: fping
         args:
-          - {name: alive, type: flag, default: true, flag: "-a"}
-          - {name: quiet, type: flag, default: true, flag: "-q"}
-          - {name: generate, type: string, default: "192.168.1.0/24", required: true, flag: "-g"}
+          - {name: alive, type: flag, default: true, flag: "-a", label: "Alive only"}
+          - {name: quiet, type: flag, default: true, flag: "-q", label: "Quiet"}
+          - {name: generate, type: string, default: "192.168.1.0/24", required: true, flag: "-g", label: "Subnet"}
         needs_root: false
   - id: ethtool
     name: ethtool
@@ -154,9 +156,9 @@ tools:
       - label: TCP connect test
         cmd: socat
         args:
-          - {name: timeout, type: int, default: 5, flag: "-T"}
-          - {name: stdio, type: string, default: "-", required: true}
-          - {name: target, type: string, default: "TCP:192.168.1.1:80", required: true}
+          - {name: timeout, type: int, default: 5, flag: "-T", label: "Timeout (s)"}
+          - {name: stdio, type: string, default: "-", required: true, label: "Local end"}
+          - {name: target, type: string, default: "TCP:192.168.1.1:80", required: true, label: "Remote end"}
         needs_root: false
   - id: netcat
     name: Netcat
@@ -167,10 +169,10 @@ tools:
       - label: Port check
         cmd: nc
         args:
-          - {name: zero_io, type: flag, default: true, flag: "-z"}
-          - {name: verbose, type: flag, default: true, flag: "-v"}
+          - {name: zero_io, type: flag, default: true, flag: "-z", label: "Scan only (-z)"}
+          - {name: verbose, type: flag, default: true, flag: "-v", label: "Verbose"}
           - {name: host, type: string, default: "192.168.1.1", required: true}
-          - {name: ports, type: string, default: "22-443", required: true}
+          - {name: ports, type: string, default: "22-443", required: true, label: "Ports"}
         needs_root: false
   - id: hping3
     name: hping3
@@ -181,9 +183,9 @@ tools:
       - label: TCP SYN probe
         cmd: hping3
         args:
-          - {name: syn, type: flag, default: true, flag: "-S"}
+          - {name: syn, type: flag, default: true, flag: "-S", label: "SYN flag"}
           - {name: port, type: int, default: 80, flag: "-p"}
-          - {name: count, type: int, default: 5, flag: "-c"}
+          - {name: count, type: int, default: 5, flag: "-c", label: "Packets"}
           - {name: host, type: string, default: "192.168.1.1", required: true}
         needs_root: true
   - id: wpasupplicant
@@ -196,7 +198,7 @@ tools:
         cmd: wpa_cli
         args:
           - {name: interface, type: string, default: "wlan0", required: true, flag: "-i"}
-          - {name: command, type: choice, default: "status", options: ["status", "scan_results", "list_networks"], required: true}
+          - {name: command, type: choice, default: "status", options: ["status", "scan_results", "list_networks"], required: true, label: "Query"}
         needs_root: true
   # ------------------------------------------------------------------ capture
   - id: tcpdump
@@ -209,9 +211,9 @@ tools:
         cmd: tcpdump
         args:
           - {name: interface, type: string, default: "any", required: true, flag: "-i"}
-          - {name: count, type: int, default: 50, flag: "-c"}
-          - {name: no_resolve, type: flag, default: true, flag: "-n"}
-          - {name: filter, type: string, default: "", required: false}
+          - {name: count, type: int, default: 50, flag: "-c", label: "Packets"}
+          - {name: no_resolve, type: flag, default: true, flag: "-n", label: "No DNS lookups"}
+          - {name: filter, type: string, default: "", required: false, label: "Filter"}
         needs_root: true
   - id: tshark
     name: TShark
@@ -223,8 +225,8 @@ tools:
         cmd: tshark
         args:
           - {name: interface, type: string, default: "any", required: true, flag: "-i"}
-          - {name: count, type: int, default: 50, flag: "-c"}
-          - {name: filter, type: string, default: "", required: false, flag: "-f"}
+          - {name: count, type: int, default: 50, flag: "-c", label: "Packets"}
+          - {name: filter, type: string, default: "", required: false, flag: "-f", label: "Capture filter"}
         needs_root: true
   - id: wireshark
     name: Wireshark
@@ -247,9 +249,9 @@ tools:
         cmd: ngrep
         args:
           - {name: interface, type: string, default: "any", required: true, flag: "-d"}
-          - {name: quiet, type: flag, default: true, flag: "-q"}
-          - {name: pattern, type: string, default: "GET", required: true}
-          - {name: filter, type: string, default: "tcp port 80", required: false}
+          - {name: quiet, type: flag, default: true, flag: "-q", label: "Quiet"}
+          - {name: pattern, type: string, default: "GET", required: true, label: "Pattern"}
+          - {name: filter, type: string, default: "tcp port 80", required: false, label: "BPF filter"}
         needs_root: true
   # ----------------------------------------------------------------- wireless
   - id: aircrack-ng
@@ -261,7 +263,7 @@ tools:
       - label: Enable monitor mode
         cmd: airmon-ng
         args:
-          - {name: action, type: choice, default: "start", options: ["start", "stop", "check"], required: true}
+          - {name: action, type: choice, default: "start", options: ["start", "stop", "check"], required: true, label: "Action"}
           - {name: interface, type: string, default: "wlan0", required: true}
         needs_root: true
       - label: Scan networks (airodump)
@@ -296,14 +298,14 @@ tools:
       - label: Run server
         cmd: iperf3
         args:
-          - {name: server, type: flag, default: true, flag: "-s"}
+          - {name: server, type: flag, default: true, flag: "-s", label: "Server mode"}
         needs_root: false
       - label: Run client
         cmd: iperf3
         args:
-          - {name: client, type: string, default: "192.168.1.1", required: true, flag: "-c"}
-          - {name: time, type: int, default: 10, flag: "-t"}
-          - {name: reverse, type: flag, default: false, flag: "-R"}
+          - {name: client, type: string, default: "192.168.1.1", required: true, flag: "-c", label: "Server address"}
+          - {name: time, type: int, default: 10, flag: "-t", label: "Duration (s)"}
+          - {name: reverse, type: flag, default: false, flag: "-R", label: "Reverse (download)"}
         needs_root: false
   - id: iftop
     name: iftop
@@ -316,7 +318,7 @@ tools:
         cmd: iftop
         args:
           - {name: interface, type: string, default: "eth0", required: true, flag: "-i"}
-          - {name: no_resolve, type: flag, default: true, flag: "-n"}
+          - {name: no_resolve, type: flag, default: true, flag: "-n", label: "No DNS lookups"}
         needs_root: true
   - id: nload
     name: nload
@@ -340,7 +342,7 @@ tools:
         tty: true
         cmd: bmon
         args:
-          - {name: policy, type: string, default: "", required: false, flag: "-p"}
+          - {name: policy, type: string, default: "", required: false, flag: "-p", label: "Interface policy"}
         needs_root: false
   - id: speedtest
     name: Speedtest
@@ -351,7 +353,7 @@ tools:
       - label: Run speed test
         cmd: speedtest-cli
         args:
-          - {name: simple, type: flag, default: true, flag: "--simple"}
+          - {name: simple, type: flag, default: true, flag: "--simple", label: "Simple output"}
         needs_root: false
   # ----------------------------------------------------------------- dns-http
   - id: dnsutils
@@ -363,15 +365,15 @@ tools:
       - label: dig
         cmd: dig
         args:
-          - {name: server, type: string, default: "", required: false, flag: "@", sep: ""}
-          - {name: name, type: string, default: "example.com", required: true}
-          - {name: type, type: choice, default: "A", options: ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA", "PTR", "ANY"], required: true}
+          - {name: server, type: string, default: "", required: false, flag: "@", sep: "", label: "Server"}
+          - {name: name, type: string, default: "example.com", required: true, label: "Name"}
+          - {name: type, type: choice, default: "A", options: ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA", "PTR", "ANY"], required: true, label: "Record type"}
         needs_root: false
       - label: nslookup
         cmd: nslookup
         args:
-          - {name: name, type: string, default: "example.com", required: true}
-          - {name: server, type: string, default: "", required: false}
+          - {name: name, type: string, default: "example.com", required: true, label: "Name"}
+          - {name: server, type: string, default: "", required: false, label: "Server"}
         needs_root: false
   - id: curl
     name: curl
@@ -382,16 +384,16 @@ tools:
       - label: HEAD request
         cmd: curl
         args:
-          - {name: head, type: flag, default: true, flag: "-I"}
-          - {name: follow, type: flag, default: true, flag: "-L"}
+          - {name: head, type: flag, default: true, flag: "-I", label: "Headers only"}
+          - {name: follow, type: flag, default: true, flag: "-L", label: "Follow redirects"}
           - {name: url, type: string, default: "https://example.com", required: true}
         needs_root: false
       - label: Timing breakdown
         cmd: curl
         args:
-          - {name: silent, type: flag, default: true, flag: "-s"}
-          - {name: output, type: string, default: "/dev/null", required: true, flag: "-o"}
-          - {name: format, type: string, default: "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s ttfb=%{time_starttransfer}s total=%{time_total}s http=%{http_code}\n", required: true, flag: "-w"}
+          - {name: silent, type: flag, default: true, flag: "-s", label: "Silent"}
+          - {name: output, type: string, default: "/dev/null", required: true, flag: "-o", label: "Save body to"}
+          - {name: format, type: string, default: "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s ttfb=%{time_starttransfer}s total=%{time_total}s http=%{http_code}\n", required: true, flag: "-w", label: "Timing format"}
           - {name: url, type: string, default: "https://example.com", required: true}
         needs_root: false
   # ==================================================================== DATA
@@ -405,13 +407,13 @@ tools:
       - label: List disks
         cmd: lsblk
         args:
-          - {name: fs, type: flag, default: true, flag: "-f"}
-          - {name: paths, type: flag, default: true, flag: "-p"}
+          - {name: fs, type: flag, default: true, flag: "-f", label: "Filesystems"}
+          - {name: paths, type: flag, default: true, flag: "-p", label: "Full device paths"}
         needs_root: false
       - label: Partition tables
         cmd: fdisk
         args:
-          - {name: list, type: flag, default: true, flag: "-l"}
+          - {name: list, type: flag, default: true, flag: "-l", label: "List layout"}
           - {name: device, type: string, default: "", required: false}
         needs_root: true
   - id: smartctl
@@ -423,14 +425,14 @@ tools:
       - label: Health summary
         cmd: smartctl
         args:
-          - {name: health, type: flag, default: true, flag: "-H"}
-          - {name: info, type: flag, default: true, flag: "-i"}
+          - {name: health, type: flag, default: true, flag: "-H", label: "Health status"}
+          - {name: info, type: flag, default: true, flag: "-i", label: "Drive info"}
           - {name: device, type: string, default: "/dev/sda", required: true}
         needs_root: true
       - label: Full report
         cmd: smartctl
         args:
-          - {name: all, type: flag, default: true, flag: "-x"}
+          - {name: all, type: flag, default: true, flag: "-x", label: "Everything"}
           - {name: device, type: string, default: "/dev/sda", required: true}
         needs_root: true
   - id: nvme
@@ -442,12 +444,12 @@ tools:
       - label: List drives
         cmd: nvme
         args:
-          - {name: action, type: choice, default: "list", options: ["list"], required: true}
+          - {name: action, type: choice, default: "list", options: ["list"], required: true, label: "Command"}
         needs_root: true
       - label: Health log
         cmd: nvme
         args:
-          - {name: action, type: choice, default: "smart-log", options: ["smart-log"], required: true}
+          - {name: action, type: choice, default: "smart-log", options: ["smart-log"], required: true, label: "Command"}
           - {name: device, type: string, default: "/dev/nvme0", required: true}
         needs_root: true
   # ---------------------------------------------------------------- recovery
@@ -483,11 +485,11 @@ tools:
         tty: true
         cmd: ddrescue
         args:
-          - {name: direct, type: flag, default: false, flag: "-d"}
-          - {name: retries, type: int, default: 2, flag: "-r"}
+          - {name: direct, type: flag, default: false, flag: "-d", label: "Direct disk access"}
+          - {name: retries, type: int, default: 2, flag: "-r", label: "Retry passes"}
           - {name: source, type: string, default: "/dev/sdb", required: true}
-          - {name: image, type: string, default: "/media/rescue.img", required: true}
-          - {name: mapfile, type: string, default: "/media/rescue.map", required: true}
+          - {name: image, type: string, default: "/media/rescue.img", required: true, label: "Image file"}
+          - {name: mapfile, type: string, default: "/media/rescue.map", required: true, label: "Map file"}
         needs_root: true
   # ------------------------------------------------------------------- files
   - id: hash
@@ -504,9 +506,9 @@ tools:
       - label: Verify SHA256SUMS
         cmd: sha256sum
         args:
-          - {name: check, type: flag, default: true, flag: "-c"}
-          - {name: ignore_missing, type: flag, default: true, flag: "--ignore-missing"}
-          - {name: sums_file, type: string, default: "SHA256SUMS", required: true}
+          - {name: check, type: flag, default: true, flag: "-c", label: "Check mode"}
+          - {name: ignore_missing, type: flag, default: true, flag: "--ignore-missing", label: "Ignore missing files"}
+          - {name: sums_file, type: string, default: "SHA256SUMS", required: true, label: "Sums file"}
         needs_root: false
   - id: exiftool
     name: ExifTool
@@ -539,7 +541,7 @@ tools:
       - label: Dump file
         cmd: xxd
         args:
-          - {name: length, type: int, default: 1024, flag: "-l"}
+          - {name: length, type: int, default: 1024, flag: "-l", label: "Bytes"}
           - {name: file, type: string, default: "", required: true}
         needs_root: false
   - id: ncdu
@@ -552,7 +554,7 @@ tools:
         tty: true
         cmd: ncdu
         args:
-          - {name: one_fs, type: flag, default: true, flag: "-x"}
+          - {name: one_fs, type: flag, default: true, flag: "-x", label: "Stay on one filesystem"}
           - {name: path, type: string, default: "/", required: true}
         needs_root: false
   # ---------------------------------------------------------------- transfer
@@ -565,9 +567,9 @@ tools:
       - label: Copy folder
         cmd: rsync
         args:
-          - {name: archive, type: flag, default: true, flag: "-a"}
-          - {name: progress, type: flag, default: true, flag: "--info=progress2"}
-          - {name: dry_run, type: flag, default: true, flag: "--dry-run"}
+          - {name: archive, type: flag, default: true, flag: "-a", label: "Archive mode"}
+          - {name: progress, type: flag, default: true, flag: "--info=progress2", label: "Show progress"}
+          - {name: dry_run, type: flag, default: true, flag: "--dry-run", label: "Dry run"}
           - {name: source, type: string, default: "", required: true}
           - {name: destination, type: string, default: "", required: true}
         needs_root: false
@@ -584,5 +586,5 @@ tools:
       - label: Open eDEX-UI
         cmd: edex-ui
         args:
-          - {name: no_sandbox, type: flag, default: true, flag: "--no-sandbox"}
+          - {name: no_sandbox, type: flag, default: true, flag: "--no-sandbox", label: "No sandbox"}
         needs_root: false

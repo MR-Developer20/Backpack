@@ -27,7 +27,8 @@ Chamfer {
         }
         Text { font.family: Theme.fontSans
             visible: !meter.compact
-            text: Math.round(value) + "%"; color: Theme.text; font.pixelSize: Theme.s(13)
+            text: Math.round(value) + "%"; color: Theme.text
+            font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
             horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.s(40)
         }
     }

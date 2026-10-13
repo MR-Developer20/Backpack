@@ -174,8 +174,14 @@ class Settings(QObject):
             p.start("sudo", ["-n"] + cmd)
 
     # ------------------------------------------------------------ CLI Mode
+    @Property(str, constant=True)
+    def cliCommand(self):
+        """Shown under Switch to CLI Mode and executed as shown. backpack-cli-mode (in the
+        backpack-touch deb) is `systemctl isolate multi-user.target && chvt 1`: it stops
+        LightDM and with it this sway session; tty1 has the live user's autologin."""
+        cmd = "backpack-cli-mode"
+        return cmd if os.geteuid() == 0 else "sudo -n " + cmd
+
     @Slot()
     def switchToCli(self):
-        # Stops LightDM and with it this sway session; tty1 has the live user's autologin.
-        QProcess.startDetached("sh", ["-c",
-            "sudo -n sh -c 'systemctl isolate multi-user.target && chvt 1'"])
+        QProcess.startDetached("sh", ["-c", self.cliCommand])

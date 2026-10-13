@@ -24,6 +24,10 @@ Button {
     property bool compact: false
     property string command: ""
     property int commandMaxWidth: Theme.s(360)
+    // a toggling button names its other state here, so fullWidth is its width in the WIDER state
+    // and a bar measured from it never re-tiers when the button toggles
+    property string altText: ""
+    property string altCommand: ""
     readonly property bool iconOnly: compact && icon.name !== ""
     readonly property bool showCommand: command !== "" && !iconOnly
     // the command line's colour: muted on a plain button, the label colour on filled/outline ones
@@ -33,11 +37,15 @@ Button {
     // the width this button takes with its label and command shown (the top bar sums these to
     // decide whether it can afford labels); implicitWidth is that, or a square when icon-only
     readonly property real fullWidth: Math.max(Theme.touch, Math.ceil((icon.name !== "" ? Theme.icon + Theme.space2 : 0)
-                                      + Math.max(label.implicitWidth, command !== "" ? Math.min(cmd.implicitWidth, commandMaxWidth) : 0)) + Theme.space4 * 2)
+                                      + Math.max(label.implicitWidth, altLabel.advanceWidth,
+                                                 command !== "" ? Math.min(cmd.implicitWidth, commandMaxWidth) : 0,
+                                                 altCommand !== "" ? Math.min(altCmd.advanceWidth, commandMaxWidth) : 0)) + Theme.space4 * 2)
+    TextMetrics { id: altLabel; font: b.font; text: b.altText }
+    TextMetrics { id: altCmd; font.family: Theme.fontMono; font.pixelSize: Theme.commandFont; font.weight: Font.Normal; font.letterSpacing: 0; text: b.altCommand }
     implicitWidth: iconOnly ? Theme.touch : fullWidth
     font.pixelSize: Theme.fontSize
     font.family: Theme.fontSans
-    font.bold: filled || selected
+    font.bold: filled   // the design bolds the primary; selected = the 2px border, not weight
     background: Item {
         Chamfer {   // focus ring
             visible: b.visualFocus

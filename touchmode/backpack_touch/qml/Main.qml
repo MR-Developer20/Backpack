@@ -21,14 +21,16 @@ ApplicationWindow {
     // "//LIVE" half of the wordmark and the meter's percentages, in that order. Every term is an
     // implicit width that does not depend on the tier chosen, so there is no binding loop.
     readonly property bool portrait: height > width
-    readonly property real barLabels: Theme.gap * 2 + Theme.space2 * 2 + wmShort.advanceWidth + tabs.implicitWidth
-                                      + termBtn.fullWidth + splitBtn.fullWidth + kbdBtn.fullWidth + wifiBtn.fullWidth
-                                      + meter.compactWidth + Theme.touch + Theme.gap * 8 + Theme.space4
-    readonly property real barWordmark: barLabels + (wmLong.advanceWidth - wmShort.advanceWidth)
-    readonly property real barMeter: barWordmark + (meter.fullWidth - meter.compactWidth)
+    // what the bar needs, tier by tier (each adds to the one before; 8 gaps between 9 items):
+    // tabs + five icon buttons + the compact meter; + the wordmark; + the four tool buttons with
+    // label and command; + the Settings label; + the meter's percentages
+    readonly property real barMeterOnly: Theme.gap * 2 + tabs.implicitWidth + Theme.touch * 5 + meter.compactWidth + Theme.gap * 7 + Theme.space4
+    readonly property real barWordmark: barMeterOnly + wordmarkMetrics.advanceWidth + Theme.space2 * 2 + Theme.gap
+    readonly property real barLabels: barWordmark + termBtn.fullWidth + splitBtn.fullWidth + kbdBtn.fullWidth + wifiBtn.fullWidth - Theme.touch * 4
+    readonly property real barSettings: barLabels + gearBtn.fullWidth - Theme.touch
+    readonly property real barMeter: barSettings + meter.fullWidth - meter.compactWidth
     readonly property bool compact: width < barLabels
-    TextMetrics { id: wmShort; text: "BACKPACK"; font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold; font.letterSpacing: Theme.wordmarkFont * 0.08 }
-    TextMetrics { id: wmLong; text: "BACKPACK//LIVE"; font: wmShort.font }
+    TextMetrics { id: wordmarkMetrics; text: "BACKPACK//LIVE"; font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold; font.letterSpacing: Theme.wordmarkFont * 0.08 }
     property string section: (manifest && manifest.sections.length) ? manifest.sections[0].id : "network"
     property string category: firstCategory(section)
     property var tool: null
@@ -52,12 +54,10 @@ ApplicationWindow {
     function selectSection(sec) { section = sec; category = firstCategory(sec); if (tool && tool.section !== sec) tool = null }
 
     function selectTool(t) { cmdIndex = 0; tool = t; runState = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
-    // the command Run will execute with the form's current values; `<arg>` placeholders while a
-    // required field is empty (the runner reports that as an error)
+    // the command Run will execute with the form's current values; `<name>` stays where a
+    // required field is still empty (run() then reports that as an error)
     function updateRunLine() {
-        if (!tool || !runner || cmdIndex >= tool.commands.length) { runLine = ""; return }
-        var line = runner.commandLine(tool.id, cmdIndex, form.values())
-        runLine = line.indexOf("error:") === 0 ? tool.commands[cmdIndex].template : line
+        runLine = (!tool || !runner || cmdIndex >= tool.commands.length) ? "" : runner.commandLine(tool.id, cmdIndex, form.values())
     }
     function toolById(id) {
         if (!manifest) return null
@@ -73,7 +73,8 @@ ApplicationWindow {
     Connections {
         target: runner
         // the status strip states facts in micro caps; the pane itself echoes the command line
-        function onOutput(s) { output.append(s); if (win.appMode) win.runState = "LAUNCHED" }
+        function onOutput(s) { output.append(s) }
+        function onLaunched(line) { output.append(line + "\n"); win.runState = "LAUNCHED" }
         function onStarted(cl) { win.runState = "RUNNING"; output.append("$ " + cl + "\n") }
         function onFinished(code) { win.runState = "EXIT " + code; output.append("\n[exit " + code + "]\n") }
         function onError(e) { win.runState = "ERROR // " + e; output.append("error: " + e + "\n") }
@@ -88,9 +89,9 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: Theme.gap
             spacing: win.compact ? Theme.s(6) : Theme.gap
-            Text {   // wordmark: "//LIVE" only once the labelled buttons fit; dropped entirely when narrow
-                visible: win.width >= Theme.s(960)
-                text: win.width >= win.barWordmark ? "BACKPACK//LIVE" : "BACKPACK"; color: Theme.text
+            Text {   // wordmark: whole, or not at all when the bar cannot fit it beside the tabs and buttons
+                visible: win.width >= win.barWordmark
+                text: "BACKPACK//LIVE"; color: Theme.text
                 font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold
                 font.letterSpacing: Theme.wordmarkFont * 0.08
                 Layout.leftMargin: Theme.space2; Layout.rightMargin: Theme.space2
@@ -133,7 +134,7 @@ ApplicationWindow {
                                 }
                             }
                             Rectangle {
-                                anchors.bottom: parent.bottom; width: parent.width; height: Theme.s(3)
+                                anchors.bottom: parent.bottom; width: parent.width; height: Math.round(Theme.s(3))   // whole pixels: no blended edge row
                                 color: tab.on ? tab.tabAccent : "transparent"
                             }
                             MouseArea { anchors.fill: parent; onClicked: win.selectSection(tab.modelData.id) }
@@ -152,7 +153,9 @@ ApplicationWindow {
                 id: splitBtn
                 text: (system && system.splitActive) ? "Exit split" : "Split"
                 icon.name: (system && system.splitActive) ? "exitsplit" : "split"
-                command: (system && system.splitActive) ? "swaymsg '[app_id=backpack-split] kill'" : "foot --app-id backpack-split"
+                command: (system && system.splitActive) ? "pkill -f backpack-split" : "foot --app-id backpack-split"
+                altText: (system && system.splitActive) ? "Split" : "Exit split"
+                altCommand: (system && system.splitActive) ? "foot --app-id backpack-split" : "pkill -f backpack-split"
                 selected: !!(system && system.splitActive)
                 textColor: selected ? Theme.accent : Theme.text
                 borderColor: selected ? Theme.accent : Theme.borderStrong
@@ -163,6 +166,7 @@ ApplicationWindow {
                 id: kbdBtn
                 text: "Keyboard"; icon.name: "keyboard"; compact: win.compact
                 command: (system && system.keyboardVisible) ? "pkill -USR1 -x wvkbd-mobintl" : "pkill -USR2 -x wvkbd-mobintl"
+                altCommand: (system && system.keyboardVisible) ? "pkill -USR2 -x wvkbd-mobintl" : "pkill -USR1 -x wvkbd-mobintl"
                 // amber while the on-screen keyboard is open: caution, it covers the screen
                 selected: !!(system && system.keyboardVisible)
                 textColor: selected ? Theme.warn : Theme.text
@@ -170,14 +174,15 @@ ApplicationWindow {
                 onClicked: system.toggleKeyboard()
             }
             TouchButton { id: wifiBtn; text: "Wi-Fi"; icon.name: "wifi"; compact: win.compact; onClicked: win.wifiOpen = true }
-            UsageMeter {   // percentages only once the wordmark is whole; dropped entirely when narrow
+            UsageMeter {   // percentages once everything else has its label; dropped entirely when narrow
                 id: meter
-                visible: win.width >= Theme.s(880)
+                visible: win.width >= win.barMeterOnly
                 compact: win.width < win.barMeter
                 onTapped: win.monitorOpen = true
             }
-            TouchButton {
-                text: "Settings"; icon.name: "settings"; compact: true
+            TouchButton {   // its label is the last to appear: the gear reads on its own
+                id: gearBtn
+                text: "Settings"; icon.name: "settings"; compact: win.width < win.barSettings
                 selected: win.settingsOpen; borderColor: selected ? Theme.accent : Theme.borderStrong
                 onClicked: { settings.refresh(); win.settingsOpen = true }
             }
@@ -269,11 +274,12 @@ ApplicationWindow {
                 anchors.margins: Theme.space4   // panel padding
                 spacing: Theme.space2
 
-                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02 }
+                // whole-pixel heights, so the rows below (and the form's clip edge) land on pixels
+                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02; Layout.preferredHeight: Math.ceil(implicitHeight) }
                 Text { font.family: Theme.fontSans
-                    Layout.fillWidth: true
+                    Layout.fillWidth: true; Layout.preferredHeight: Math.ceil(implicitHeight)
                     text: win.tool ? win.tool.description : ""
-                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
+                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
                 }
                 Flow {
                     Layout.fillWidth: true
@@ -283,15 +289,12 @@ ApplicationWindow {
                     visible: win.tool && win.tool.commands.length > 1
                     Repeater {
                         model: win.tool ? win.tool.commands : []
-                        delegate: TouchButton {
+                        delegate: Chip {   // the chosen action: 2px accent border and accent label; Run stays the one primary
                             required property int index
                             required property var modelData
                             text: modelData.label
                             command: modelData.template
-                            // the chosen action: 2px accent border and accent label; Run stays the one primary
                             selected: win.cmdIndex === index
-                            textColor: selected ? Theme.accent : Theme.text
-                            borderColor: selected ? Theme.accent : Theme.borderStrong
                             onClicked: win.cmdIndex = index
                         }
                     }
@@ -299,12 +302,15 @@ ApplicationWindow {
                 Flickable {
                     visible: !win.appMode   // the form still supplies its defaults to runCurrent()
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(form.implicitHeight, toolPane.height * 0.4)
+                    Layout.preferredHeight: Math.floor(Math.min(form.implicitHeight, toolPane.height * 0.4))   // whole pixels: a fractional clip edge blurs the row it cuts
+                    id: formFlick
                     contentHeight: form.implicitHeight
                     clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: BpScrollBar { parent: formFlick; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.right: parent.right }
                     ToolForm {
                         id: form
-                        width: parent.width
+                        width: parent.width - (formFlick.ScrollBar.vertical.visible ? formFlick.ScrollBar.vertical.width : 0)
                         command: win.tool ? win.tool.commands[win.cmdIndex] : null
                         onChanged: win.updateRunLine()
                     }

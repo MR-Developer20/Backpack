@@ -16,6 +16,8 @@ Sheet {
     readonly property bool hasDevice: wifi ? wifi.hasDevice : false
     readonly property var networks: wifi ? wifi.networks : []
     readonly property string device: wifi ? wifi.device : ""
+    // nmcli cannot build an 802.1X profile from the connect command: Connect is disabled and says why
+    readonly property bool enterprise: selectedSecurity.indexOf("802.1X") >= 0
     // an SSID as the shell would need it, for the command lines under the buttons
     function quoted(s) { return /^[A-Za-z0-9_.:@-]+$/.test(s) ? s : "'" + s.replace(/'/g, "'\\''") + "'" }
     title: "Wi-Fi"
@@ -34,7 +36,7 @@ Sheet {
         Layout.fillWidth: true
         text: overlay.status
         color: overlay.status.indexOf("Connected") === 0 ? Theme.accent : Theme.muted
-        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
+        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
     }
 
     ListView {
@@ -60,17 +62,10 @@ Sheet {
             }
             RowLayout {
                 anchors.fill: parent; anchors.margins: Theme.space3; spacing: Theme.space3
-                Row {   // signal strength: four square bars
-                    spacing: Theme.s(3)
-                    Repeater {
-                        model: 4
-                        Rectangle {
-                            required property int index
-                            width: Theme.s(6); height: Theme.s(10) + index * Theme.s(7)
-                            anchors.bottom: parent.bottom
-                            color: row.modelData.signal >= (index + 1) * 22 ? Theme.accent : Theme.border
-                        }
-                    }
+                Text {   // signal strength in words (micro), as the design asks outside the top bar
+                    text: row.modelData.signal + "%"; color: row.modelData.signal >= 50 ? Theme.accent : Theme.muted
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                    Layout.preferredWidth: Theme.s(44); horizontalAlignment: Text.AlignRight
                 }
                 Text { text: row.modelData.ssid; color: Theme.text; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; Layout.fillWidth: true; elide: Text.ElideRight }
                 Text {
@@ -126,8 +121,10 @@ Sheet {
         }
         TouchButton {
             text: "Connect"; color: Theme.accent; textColor: Theme.inkOnAccent
-            command: "nmcli dev wifi connect " + overlay.quoted(overlay.selectedSsid) + (overlay.selectedSecured ? " password <password>" : "")
-            enabled: !overlay.busy && (!overlay.selectedSecured || pw.text.length > 0)
+            // the password is shown as dots once typed, never in clear
+            command: "nmcli dev wifi connect " + overlay.quoted(overlay.selectedSsid)
+                     + (overlay.selectedSecured ? (pw.text.length > 0 ? " password " + "\u2022".repeat(Math.min(12, pw.text.length)) : " password <password>") : "")
+            enabled: !overlay.busy && (!overlay.selectedSecured || pw.text.length > 0) && !overlay.enterprise
             onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text, overlay.selectedSecurity) }
         }
         TouchButton {
@@ -137,9 +134,9 @@ Sheet {
     }
     Text {
         Layout.fillWidth: true
-        visible: overlay.lastMessage !== ""
-        text: overlay.lastMessage; color: Theme.warn
-        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
+        visible: overlay.lastMessage !== "" || overlay.enterprise
+        text: overlay.enterprise ? "Enterprise (802.1X) networks need a profile made in the terminal: nmtui" : overlay.lastMessage; color: Theme.warn
+        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
     }
     RowLayout {
         Layout.fillWidth: true
@@ -150,7 +147,8 @@ Sheet {
             visible: overlay.status.indexOf("Connected") === 0; onClicked: wifi.disconnect()
         }
         TouchButton {
-            text: overlay.busy ? "Scanning…" : "Rescan"; command: "nmcli dev wifi list --rescan yes"
+            text: overlay.busy ? "Scanning…" : "Rescan"; command: "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY dev wifi list --rescan yes"
+            commandMaxWidth: Theme.s(470)   // the whole line fits the sheet
             enabled: !overlay.busy; onClicked: wifi.scan()
         }
         Item { Layout.fillWidth: true }

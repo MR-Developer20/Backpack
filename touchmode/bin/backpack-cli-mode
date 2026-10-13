@@ -1,0 +1,5 @@
+#!/bin/sh
+# Switch to CLI Mode: stop the display manager (and with it GUI Mode) and show tty1, where the
+# live user is logged in. Shown verbatim under the Settings button that runs it (as root).
+set -e
+systemctl isolate multi-user.target && chvt 1

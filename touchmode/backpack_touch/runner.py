@@ -15,6 +15,7 @@ KEYBOARD_PROC = "wvkbd-mobintl"
 class Runner(QObject):
     output = Signal(str)
     started = Signal(str)
+    launched = Signal(str)   # a GUI/terminal tool was started detached: the line for the pane + LAUNCHED
     finished = Signal(int)
     runningChanged = Signal()
     error = Signal(str)
@@ -35,9 +36,9 @@ class Runner(QObject):
 
     @Slot(str, int, "QVariantMap", result=str)
     def commandLine(self, tool_id, cmd_index, values):
+        """The line run() would execute as the form stands, with `<name>` for an empty required field."""
         cmd = self._tools[tool_id]["commands"][cmd_index]
-        argv, err = manifest.build_argv(cmd, dict(values))
-        return err and f"error: {err}" or manifest.display(argv)
+        return manifest.preview(cmd, dict(values))
 
     @Slot(str, int, "QVariantMap")
     def run(self, tool_id, cmd_index, values):
@@ -49,15 +50,17 @@ class Runner(QObject):
             return
         if tool["gui"]:
             # like openTerminal: leave fullscreen first or the app opens behind the launcher
+            self.started.emit(manifest.display(argv))
             QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec " + shlex.join(argv)])
-            self.output.emit(f"launched {manifest.display(argv)}\n")
+            self.launched.emit(f"launched {manifest.display(argv)}")
             return
         if cmd["tty"]:
             script = manifest.display(argv) + '; echo; echo "[press Enter to close]"; read _'
             # like openTerminal/toggleSplit: leave fullscreen first or foot opens behind the launcher
+            self.started.emit(manifest.display(argv))
             QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec "
                                           + shlex.join([TERMINAL, "sh", "-c", script])])
-            self.output.emit(f"opened in terminal: {manifest.display(argv)}\n")
+            self.launched.emit(f"opened in terminal: {manifest.display(argv)}")
             return
         self.stop()
         p = QProcess(self)
@@ -149,7 +152,8 @@ class System(QObject):
     @Slot(bool)
     def toggleSplit(self, portrait):
         if self._split:
-            QProcess.startDetached("swaymsg", [f"[app_id={SPLIT_APP_ID}] kill"])
+            # shown as `pkill -f backpack-split` under Exit split; the only process with that app id
+            QProcess.startDetached("pkill", ["-f", SPLIT_APP_ID])
             self._split = False
             self.splitActiveChanged.emit()
             return
@@ -174,13 +178,28 @@ class System(QObject):
     def toggleKeyboard(self):
         self.hideKeyboard() if self._kbd else self.showKeyboard()
 
+    # Power: one string each, shown under the button and executed as shown. The live user has
+    # passwordless sudo (live-config), so `sudo -n` is the command when not root.
+    @Property(str, constant=True)
+    def poweroffCommand(self):
+        return _as_root("systemctl poweroff")
+
+    @Property(str, constant=True)
+    def rebootCommand(self):
+        return _as_root("systemctl reboot")
+
     @Slot()
     def poweroff(self):
-        QProcess.startDetached("sh", ["-c", "systemctl poweroff || sudo -n systemctl poweroff"])
+        QProcess.startDetached("sh", ["-c", self.poweroffCommand])
 
     @Slot()
     def reboot(self):
-        QProcess.startDetached("sh", ["-c", "systemctl reboot || sudo -n systemctl reboot"])
+        QProcess.startDetached("sh", ["-c", self.rebootCommand])
+
+
+def _as_root(command):
+    """`command` as this process would have to run it to be root: itself, or behind `sudo -n`."""
+    return command if os.geteuid() == 0 else "sudo -n " + command
 
 
 def _nmcli_fields(line):

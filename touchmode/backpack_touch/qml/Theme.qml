@@ -56,6 +56,9 @@ QtObject {
     readonly property int labelFont: s(13)      // uppercase, tracked 0.14em
     readonly property int microFont: s(11)      // uppercase, tracked 0.16em
     readonly property int commandFont: s(12)    // the command a button runs: regular, no tracking, never uppercased
+    // line heights of the type scale (body 19/26, small 15/21, label 13/16, micro 11/14, command 12/16), for wrapped text
+    readonly property int bodyLine: s(26)
+    readonly property int smallLine: s(21)
 
     // space, shape, size
     readonly property int space1: s(4)
@@ -63,6 +66,7 @@ QtObject {
     readonly property int space3: s(12)
     readonly property int space4: s(16)
     readonly property int space6: s(24)
+    readonly property int space10: s(40)
     readonly property int cutSm: s(6)           // buttons, chips, inputs
     readonly property int cutMd: s(12)          // tiles, output pane
     readonly property int cutLg: s(20)          // panels, sheets
@@ -87,7 +91,7 @@ QtObject {
         case "recovery": return "#ff8c42"
         case "files": return "#f2e15c"
         case "transfer": return "#b496ff"
-        case "extra": return "#ff9a7a"
+        case "extra": return acid       // the Extra section accent; tokens.json has no cat-extra
         }
         return inkMuted
     }

@@ -35,11 +35,10 @@ Chamfer {
                 var x = x0 + i * step, y = Math.round(h - h * Math.max(0, Math.min(100, s[i])) / 100)
                 if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
             }
-            ctx.strokeStyle = graph.lineColor; ctx.lineWidth = Math.max(2, Theme.s(2)); ctx.stroke()
-            ctx.lineTo(w, h); ctx.lineTo(x0, h); ctx.closePath()
-            ctx.globalAlpha = 0.18; ctx.fillStyle = graph.lineColor; ctx.fill(); ctx.globalAlpha = 1
+            ctx.strokeStyle = graph.lineColor; ctx.lineWidth = Math.max(2, Theme.s(2)); ctx.stroke()   // the line only: no fill, no glow
         }
     }
-    Text { font.family: Theme.fontSans; anchors { right: parent.right; top: parent.top; margins: Theme.s(12) } text: "100%"; color: Theme.muted; font.pixelSize: Theme.s(12) }
-    Text { font.family: Theme.fontSans; anchors { right: parent.right; bottom: parent.bottom; margins: Theme.s(12) } text: "60 s"; color: Theme.muted; font.pixelSize: Theme.s(12) }
+    // axis facts in micro
+    Text { font.family: Theme.fontSans; anchors { right: parent.right; top: parent.top; margins: Theme.space3 } text: "100%"; color: Theme.muted; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16 }
+    Text { font.family: Theme.fontSans; anchors { right: parent.right; bottom: parent.bottom; margins: Theme.space3 } text: "60 S"; color: Theme.muted; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16 }
 }

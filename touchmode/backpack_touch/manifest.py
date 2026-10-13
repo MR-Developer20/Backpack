@@ -45,25 +45,48 @@ def load(path=None):
                 a.setdefault("flag", "")
                 a.setdefault("sep", " ")
                 a.setdefault("options", [])
+                a.setdefault("label", a["name"].replace("_", " "))   # what a person recognises
             c["template"] = template(c)
     return tools
 
 
 def template(command):
     """The command line a button stands for, with <name> where a form value goes:
-    `nmap -sn <target>`. Flags that default to on are shown; off ones are left out."""
-    parts = ["sudo -n"] if command["needs_root"] else []
-    parts.append(command["cmd"])
+    `nmap -sn <target>`. Flags that default to on are shown; off ones are left out.
+    Same shape as what run() executes (the `sudo -n` prefix follows the same rule)."""
+    return preview(command, {}, placeholders=True)
+
+
+def preview(command, values, placeholders=False):
+    """The command line as the form stands, for display: like build_argv, but an empty
+    required field shows as a `<name>` placeholder instead of an error, a non-numeric int
+    is shown as typed, and the result is one string with shell quoting. With `placeholders`
+    every value is a `<name>` slot (the action chip's template)."""
+    parts = [command["cmd"]]
     for a in command["args"]:
-        if a["type"] == "flag":
-            if a["default"] is True:
+        name, t = a["name"], a["type"]
+        v = values.get(name, a["default"]) if values else a["default"]
+        if t == "flag":
+            if v in (True, "true", 1, "1"):
                 parts.append(a["flag"])
             continue
-        slot = "<" + a["name"] + ">"
-        if a["flag"]:
-            parts.append(a["flag"] + slot if a["sep"] == "" else a["flag"] + " " + slot)
+        s = "" if v is None else str(v).strip()
+        if placeholders:
+            quoted = "<" + name + ">"          # the action's shape: every value is a slot
+        elif s == "":
+            if not a["required"]:
+                continue
+            quoted = "<" + name + ">"
         else:
-            parts.append(slot)
+            quoted = shlex.quote(s)
+        if a["flag"] and a["sep"] == "":   # one word, quoted as display() quotes the argv
+            parts.append(a["flag"] + quoted if quoted.startswith("<") else shlex.quote(a["flag"] + s))
+        elif a["flag"]:
+            parts.append(a["flag"] + " " + quoted)
+        else:
+            parts.append(quoted)
+    if command["needs_root"] and os.geteuid() != 0:
+        parts.insert(0, "sudo -n")
     return " ".join(parts)
 
 

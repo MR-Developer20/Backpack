@@ -38,7 +38,7 @@ Sheet {
                     color: isLabel ? Theme.muted : Theme.text
                     font.family: Theme.fontSans; font.pixelSize: Theme.smallFont
                     Layout.fillWidth: !isLabel
-                    wrapMode: Text.WordWrap
+                    wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
                 }
             }
         }

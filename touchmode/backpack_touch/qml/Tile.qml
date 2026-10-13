@@ -43,7 +43,7 @@ Chamfer {
             text: tool.description
             color: Theme.muted
             font.family: Theme.fontSans; font.pixelSize: Theme.smallFont
-            wrapMode: Text.WordWrap
+            wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
             maximumLineCount: 2
             elide: Text.ElideRight
         }

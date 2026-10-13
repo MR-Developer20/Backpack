@@ -75,6 +75,8 @@ def validate(doc):
                     fail(f"{tid}/{c['label']}: int arg {a['name']} default must be an int")
                 if a.get("sep", " ") not in ("", " "):
                     fail(f"{tid}/{c['label']}: arg {a['name']} sep must be \"\" or \" \"")
+                if "label" in a and (not isinstance(a["label"], str) or not a["label"].strip()):
+                    fail(f"{tid}/{c['label']}: arg {a['name']} label must be a non-empty string")
     return tools
 
 
