@@ -138,7 +138,13 @@ func (a *App) Write(r WriteRequest) error {
 }
 
 func (a *App) runElevated(r WriteRequest) {
-	dir, err := os.MkdirTemp("", "backpack-usb-writer-")
+	// /tmp, not the per-user $TMPDIR under /var/folders: the root worker must create and
+	// append to files here whatever the user's temp folder allows it
+	base := ""
+	if runtime.GOOS == "darwin" {
+		base = "/tmp"
+	}
+	dir, err := os.MkdirTemp(base, "backpack-usb-writer-")
 	if err != nil {
 		a.emit(flash.Event{Error: err.Error(), End: true})
 		return
