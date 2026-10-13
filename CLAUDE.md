@@ -282,3 +282,12 @@ make release
   theme.txt are "<-n name> Regular <size>". The progress_bar keeps ~28px height whatever `height` says.
   vesamenu item text is always the VGA bitmap font. Verified in QEMU with stand-in ISOs only (isolinux
   BIOS, grub-mkrescue + OVMF); not yet in a real `make build` (check grub-pc/backpack/ lands in /boot/grub).
+- (usb writer app) `tools/usb-writer/app` = standalone writer for Linux/Windows/macOS (Go + Wails v2.12,
+  plain HTML/CSS/JS frontend in `frontend/dist`, Field Terminal tokens copied into `style.css`).
+  `flash/` writes the ISO, appends p3 to the image's MBR (1 MiB aligned, like `sfdisk --append`) and
+  formats it with its own ext3 writer (`flash/ext3.go`: Windows/macOS have no mkfs.ext4); tests run
+  `e2fsck -fn` on the result. Same binary is the CLI and the elevated worker: the window re-runs itself
+  via pkexec (Linux) / osascript admin prompt (macOS) with `--yes --json FILE` and tails FILE; the
+  Windows .exe is requireAdministrator (`build/windows/wails.exe.manifest`) and writes in-process.
+  UI previews without a build: `NODE_PATH=$(npm root -g) node preview/shoot.mjs OUTDIR` (fake Go side).
+  The repo-wide `build/` ignore is undone in the app's `.gitignore` (Wails keeps packaging inputs there).

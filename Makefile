@@ -9,7 +9,7 @@ SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
 
 .PHONY: all check-manifest manifest fetch docker-image build clean distclean \
-        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui usb-writer release check-tools touch-deb test-touch ventoy
+        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui usb-writer usb-writer-app release check-tools touch-deb test-touch ventoy
 
 all: build
 
@@ -72,6 +72,9 @@ mkusb-gui:
 
 usb-writer: ## package the GUI as .deb + AppImage -> build/dist/ (VERSION=1.2.0 optional)
 	scripts/build-usb-writer.sh
+
+usb-writer-app: ## standalone writer (Go + Wails) -> tools/usb-writer/app/build/bin/
+	cd tools/usb-writer/app && go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build -skipbindings -tags webkit2_41
 
 check-tools:
 	scripts/check-tools.sh manifest/tools.yaml

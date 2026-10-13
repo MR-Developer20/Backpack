@@ -1,0 +1,145 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
+
+	"backpack/usbwriter/flash"
+)
+
+const usage = `Backpack USB Writer %s: write the Backpack Live ISO to a USB drive and add a persistence partition.
+
+Usage:
+  backpack-usb-writer                          open the window
+  backpack-usb-writer --list                   list USB drives
+  backpack-usb-writer [options] DEVICE         write from the command line (needs root / Administrator)
+
+DEVICE is /dev/sdX (Linux), /dev/diskN (macOS) or \\.\PhysicalDriveN (Windows), or a disk image file.
+
+Options:
+`
+
+// cli runs the command-line mode and returns the exit code.
+func cli(args []string) int {
+	attachConsole()
+	fs := flag.NewFlagSet("backpack-usb-writer", flag.ContinueOnError)
+	iso := fs.String("iso", "", "ISO image to write (default: newest backpack*.iso in Downloads or the current directory)")
+	size := fs.String("size", "5G", "persistence partition size (fresh install)")
+	keep := fs.Bool("keep-persistence", false, "update the system only: keep the existing persistence partition")
+	force := fs.Bool("force", false, "allow drives larger than 256 GB")
+	yes := fs.Bool("yes", false, "do not ask for confirmation")
+	jsonOut := fs.String("json", "", "append progress events as JSON lines to this file (used by the window)")
+	list := fs.Bool("list", false, "list USB drives and exit")
+	ver := fs.Bool("version", false, "print the version and exit")
+	fs.Usage = func() {
+		fmt.Fprintf(fs.Output(), usage, version)
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	switch {
+	case *ver:
+		fmt.Println(version)
+		return 0
+	case *list:
+		drives, err := flash.ListDrives()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		if len(drives) == 0 {
+			fmt.Println("No USB drive found.")
+		}
+		for _, d := range drives {
+			extra := ""
+			if d.Persistence {
+				extra = "  [persistence]"
+			}
+			fmt.Printf("%-22s %-9s %-5s %s%s\n", d.Path, flash.Human(d.Size), d.Bus, d.Name, extra)
+		}
+		return 0
+	}
+	if fs.NArg() != 1 {
+		fs.Usage()
+		return 2
+	}
+	o := flash.Options{ISO: *iso, Device: fs.Arg(0), Keep: *keep, Force: *force}
+	if o.ISO == "" {
+		if info := findDefaultISO(); info != nil {
+			o.ISO = info.Path
+		} else {
+			fmt.Fprintln(os.Stderr, "no ISO given and no backpack*.iso found: use --iso FILE")
+			return 2
+		}
+	}
+	if !o.Keep {
+		n, err := flash.ParseSize(*size)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+		o.Persist = n
+	}
+
+	var emit func(flash.Event)
+	if *jsonOut != "" {
+		f, err := os.OpenFile(*jsonOut, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		defer f.Close()
+		var mu sync.Mutex
+		enc := json.NewEncoder(f)
+		emit = func(e flash.Event) {
+			mu.Lock()
+			enc.Encode(e)
+			f.Sync()
+			mu.Unlock()
+		}
+	} else {
+		emit = printEvent
+	}
+	if !*yes && *jsonOut == "" {
+		if o.Keep {
+			fmt.Printf("The system on %s will be replaced with %s. The persistence partition is kept.\n", o.Device, o.ISO)
+		} else {
+			fmt.Printf("EVERYTHING on %s will be erased and replaced with %s + %s persistence.\n", o.Device, o.ISO, *size)
+		}
+		fmt.Printf("Type the device name (%s) to continue: ", o.Device)
+		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		if strings.TrimSpace(line) != o.Device {
+			fmt.Println("aborted")
+			return 1
+		}
+	}
+	if err := flash.Run(o, emit); err != nil {
+		if *jsonOut == "" {
+			fmt.Fprintln(os.Stderr, "\nerror:", err)
+		}
+		return 1
+	}
+	return 0
+}
+
+var lastPhase string
+
+func printEvent(e flash.Event) {
+	if e.Log != "" {
+		if lastPhase == "progress" {
+			fmt.Println()
+		}
+		fmt.Println(e.Log)
+		lastPhase = ""
+	}
+	if e.Total > 0 && e.Error == "" {
+		fmt.Printf("\r%-9s %3d%%  %s of %s   ", e.Phase, e.Done*100/e.Total, flash.Human(e.Done), flash.Human(e.Total))
+		lastPhase = "progress"
+	}
+}

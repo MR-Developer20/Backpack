@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Backpack USB Writer",
+  "outputfilename": "backpack-usb-writer",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dir": "frontend",
+  "wailsjsdir": "",
+  "author": {
+    "name": "Backpack Live"
+  },
+  "info": {
+    "companyName": "Backpack Live",
+    "productName": "Backpack USB Writer",
+    "productVersion": "1.0.0",
+    "copyright": "Backpack Live",
+    "comments": "Writes Backpack Live to a USB drive with a persistence partition"
+  }
+}

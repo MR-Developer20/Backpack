@@ -1,0 +1,352 @@
+"use strict";
+// Backpack USB Writer window. Talks to the Go side through Wails: window.go.main.App.* calls and
+// "job" events (see app.go).
+
+const $ = (id) => document.getElementById(id);
+const api = () => window.go.main.App;
+const GiB = 1024 ** 3;
+
+const state = { info: null, iso: null, drives: [], sel: null, keep: false, size: 5, running: false, finished: false, phases: {}, t0: 0 };
+
+function human(n) {
+  let f = n;
+  for (const u of ["B", "KB", "MB", "GB"]) {
+    if (f < 1000) return u === "B" ? `${n} B` : `${f.toFixed(1)} ${u}`;
+    f /= 1000;
+  }
+  return `${f.toFixed(1)} TB`;
+}
+
+function drive() { return state.drives.find((d) => d.path === state.sel) || null; }
+
+function maxSize() {
+  const d = drive();
+  if (!d) return 64;
+  const free = d.size - (state.iso ? state.iso.size : 0) - 16 * 1024 * 1024;
+  return Math.max(1, Math.min(256, Math.floor(free / GiB)));
+}
+
+// ---------------------------------------------------------------- render
+function renderISO() {
+  const t = $("iso-tile"), iso = state.iso;
+  t.classList.toggle("empty", !iso);
+  if (!iso) {
+    $("iso-name").textContent = "No image chosen";
+    $("iso-path").textContent = "Choose the Backpack ISO, or drop an .iso file on this window.";
+    $("iso-facts").textContent = "";
+    $("iso-meta").textContent = "STEP 1 OF 3";
+    return;
+  }
+  $("iso-name").textContent = iso.name;
+  $("iso-path").textContent = iso.path;
+  $("iso-path").title = iso.path;
+  if (iso.error) {
+    $("iso-facts").innerHTML = "";
+    const s = document.createElement("span");
+    s.className = "err"; s.textContent = "Cannot use this file: " + iso.error;
+    $("iso-facts").append(s);
+  } else {
+    $("iso-facts").textContent = `ISO 9660 // ${iso.volume || "NO LABEL"} // ${human(iso.size)}`;
+  }
+  $("iso-meta").textContent = iso.error ? "STEP 1 OF 3 // INVALID" : "STEP 1 OF 3 // READY";
+}
+
+function renderDrives() {
+  const box = $("drives");
+  box.innerHTML = "";
+  $("drive-meta").textContent = `STEP 2 OF 3 // ${state.drives.length} FOUND`;
+  if (!state.drives.length) {
+    const n = document.createElement("div");
+    n.className = "none cut small";
+    n.style.gridColumn = "1 / -1";
+    n.textContent = "No USB drive found. Plug one in and press Refresh drives.";
+    box.append(n);
+    return;
+  }
+  for (const d of state.drives) {
+    const b = document.createElement("button");
+    b.className = "drive cut";
+    b.setAttribute("aria-pressed", String(d.path === state.sel));
+    b.disabled = state.running;
+    b.innerHTML = `<div class="rail"></div><div class="info">
+      <div class="tile-name ellipsis"></div>
+      <div class="small muted ellipsis"></div>
+      <div class="foot"><span class="micro"></span><span class="micro tag"></span></div></div>`;
+    b.querySelector(".tile-name").textContent = d.name;
+    b.querySelector(".small").textContent = `${d.display} · ${human(d.size)}`;
+    b.querySelector(".foot .micro").textContent = d.bus || "USB";
+    b.querySelector(".tag").textContent = d.persistence ? "PERSISTENCE" : (d.mounted && d.mounted.length ? "MOUNTED" : "");
+    b.onclick = () => { state.sel = d.path; state.keep = !!d.persistence; state.finished = false; render(); };
+    box.append(b);
+  }
+}
+
+function renderMode() {
+  const d = drive();
+  const canKeep = !!(d && d.persistence);
+  if (!canKeep) state.keep = false;
+  $("mode-fresh").setAttribute("aria-pressed", String(!state.keep));
+  $("mode-keep").setAttribute("aria-pressed", String(state.keep));
+  $("mode-keep").disabled = !canKeep || state.running;
+  $("mode-fresh").disabled = state.running;
+  $("keep-note").textContent = canKeep ? "Keep saved files and settings" : "Needs a drive with persistence";
+  const max = maxSize();
+  state.size = Math.min(state.size, max);
+  $("size").max = max;
+  $("size").value = state.size;
+  $("size-val").textContent = `${state.size} GB`;
+  $("size-max").textContent = d ? `MAX ${max} GB` : "";
+  $("size-block").classList.toggle("disabled-block", state.keep || state.running);
+}
+
+function request() {
+  return { iso: state.iso ? state.iso.path : "", device: state.sel || "", sizeGB: state.size, keep: state.keep };
+}
+
+let cmdSeq = 0;
+async function renderCommand() {
+  const ready = state.iso && !state.iso.error && drive();
+  const ph = $("cmdline");
+  if (!ready) {
+    const parts = [state.iso && !state.iso.error ? "--iso " + state.iso.name : "--iso <image>",
+      state.keep ? "--keep-persistence" : `--size ${state.size}G`, drive() ? drive().path : "<drive>"];
+    ph.textContent = "$ backpack-usb-writer ";
+    const s = document.createElement("span"); s.className = "placeholder"; s.textContent = parts.join(" ");
+    ph.append(s);
+    return;
+  }
+  const seq = ++cmdSeq;
+  const cmd = await api().Command(request());
+  if (seq === cmdSeq) ph.textContent = "$ " + cmd;
+}
+
+function renderWrite() {
+  const d = drive();
+  const ok = state.iso && !state.iso.error && d && !state.running;
+  $("write").disabled = !ok;
+  $("write-lbl").textContent = state.running ? "Writing…" : state.finished ? "Write again" : state.keep ? "Update" : "Write";
+  if (!state.running && !state.finished) {
+    let s = "";
+    if (!state.iso) s = "Choose an image and a drive.";
+    else if (state.iso.error) s = "That file is not a Backpack ISO.";
+    else if (!d) s = state.drives.length ? "Choose the USB drive to write." : "Plug in a USB drive.";
+    else if (state.keep) s = "Ready. The system is replaced, persistence is kept.";
+    else s = `Ready. Everything on ${d.display} will be erased.`;
+    setStatus(s, state.iso && d && !state.iso.error ? (state.keep ? "" : "warn") : "");
+  }
+}
+
+function render() { renderISO(); renderDrives(); renderMode(); renderWrite(); renderCommand(); }
+
+function setStatus(text, cls) {
+  const s = $("status");
+  s.textContent = text;
+  s.className = "status small" + (cls ? " " + cls : "");
+}
+
+// ---------------------------------------------------------------- output pane
+function log(text, err) {
+  const pre = $("log");
+  const line = document.createElement("span");
+  if (err) line.className = "e";
+  line.textContent = text + "\n";
+  pre.append(line);
+  pre.scrollTop = pre.scrollHeight;
+  $("out").classList.remove("empty");
+  $("dragon").style.display = "none";
+  $("empty-note").style.display = "none";
+}
+
+function resetJob() {
+  $("log").textContent = "";
+  state.phases = {};
+  for (const p of document.querySelectorAll(".phase")) p.className = "phase micro";
+  $("meter").className = "meter";
+  $("meter").firstElementChild.style.width = "0";
+  $("rate").textContent = "";
+}
+
+const order = ["image", "partition", "format", "sync"];
+function setPhase(p) {
+  if (!order.includes(p)) return;
+  const i = order.indexOf(p);
+  for (const el of document.querySelectorAll(".phase")) {
+    const j = order.indexOf(el.dataset.p);
+    el.className = "phase micro" + (j < i ? " done" : j === i ? " active" : "");
+  }
+}
+
+function onJob(e) {
+  if (e.log) log(e.log, false);
+  if (e.phase === "auth") setStatus("Waiting for your password…", "warn");
+  if (e.phase === "prepare") setStatus("Preparing the drive…", "warn");
+  if (e.phase && order.includes(e.phase)) {
+    setPhase(e.phase === "sync" && state.phases.format ? "sync" : e.phase);
+    state.phases[e.phase] = true;
+  }
+  if (e.total > 0) {
+    const pct = Math.min(100, (e.done / e.total) * 100);
+    $("meter").firstElementChild.style.width = pct + "%";
+    if (e.phase === "image") {
+      if (!state.t0) state.t0 = performance.now();
+      const secs = (performance.now() - state.t0) / 1000;
+      const rate = secs > 0.5 ? ` // ${human(e.done / secs)}/S` : "";
+      $("rate").textContent = `${pct.toFixed(0)}% // ${human(e.done)} OF ${human(e.total)}${rate}`;
+      setStatus("Writing the image. Do not unplug the drive.", "warn");
+    } else if (e.phase === "format") {
+      $("rate").textContent = `${pct.toFixed(0)}%`;
+      setStatus("Creating the persistence partition…", "warn");
+    }
+  }
+  if (e.error) {
+    log("error: " + e.error, true);
+    $("rate").textContent = "";
+    setStatus("Failed: " + e.error, "err");
+    $("meter").classList.add("failed");
+    const act = document.querySelector(".phase.active");
+    if (act) act.className = "phase micro failed";
+  }
+  if (e.end) {
+    state.running = false;
+    state.t0 = 0;
+    if (!e.error) {
+      state.finished = true;
+      for (const el of document.querySelectorAll(".phase")) el.className = "phase micro done";
+      $("meter").firstElementChild.style.width = "100%";
+      $("rate").textContent = "DONE";
+      setStatus("Finished. You can remove the drive.", "ok");
+    }
+    refreshDrives(true);
+  }
+}
+
+// ---------------------------------------------------------------- actions
+async function refreshDrives(keepStatus) {
+  try {
+    state.drives = (await api().Drives()) || [];
+  } catch (err) {
+    state.drives = [];
+    log("error: " + err, true);
+  }
+  if (!drive()) state.sel = state.drives.length === 1 ? state.drives[0].path : null;
+  const d = drive();
+  if (d && !state.running && !keepStatus) state.keep = !!d.persistence;
+  const status = $("status").textContent, cls = $("status").className;
+  render();
+  if (keepStatus) { $("status").textContent = status; $("status").className = cls; }
+}
+
+async function setISO(info) {
+  if (!info) return;
+  state.iso = info;
+  state.finished = false;
+  render();
+}
+
+function openConfirm() {
+  const d = drive(), iso = state.iso;
+  $("c-drive").textContent = `${d.display} · ${d.name} · ${human(d.size)}`;
+  $("c-iso").textContent = `${iso.name} (${human(iso.size)})`;
+  if (state.keep) {
+    $("c-head").textContent = "Replaces the system";
+    $("c-head").className = "label warnhead keep";
+    $("c-title").textContent = "Update the system?";
+    $("c-body").textContent = "The system on this drive is replaced with the new image. The persistence partition, with your files, Wi-Fi and settings, is kept.";
+    $("c-persist").textContent = "Kept as it is";
+    $("c-ok").className = "btn primary cut";
+    $("c-ok-lbl").textContent = "Update";
+  } else {
+    $("c-head").textContent = "Erases the drive";
+    $("c-head").className = "label warnhead";
+    $("c-title").textContent = `Erase ${d.display}?`;
+    $("c-body").textContent = "Everything on this drive is erased and replaced with the image and a new, empty persistence partition.";
+    $("c-persist").textContent = `${state.size} GB, new and empty`;
+    $("c-ok").className = "btn danger cut";
+    $("c-ok-lbl").textContent = "Erase and write";
+  }
+  $("c-ok-cmd").textContent = $("cmdline").textContent.replace(/^\$ /, "");
+  $("confirm").hidden = false;
+  $("c-cancel").focus();
+}
+
+async function start() {
+  $("confirm").hidden = true;
+  resetJob();
+  state.running = true;
+  state.finished = false;
+  render();
+  log($("cmdline").textContent);
+  try {
+    await api().Write(request());
+  } catch (err) {
+    onJob({ error: String(err), end: true });
+  }
+}
+
+function step(n) {
+  state.size = Math.max(1, Math.min(maxSize(), state.size + n));
+  render();
+}
+
+// ---------------------------------------------------------------- empty state: dragon curve
+function drawDragon() {
+  const c = $("dragon"), r = c.getBoundingClientRect();
+  if (!r.width) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = r.width * dpr; c.height = r.height * dpr;
+  const g = c.getContext("2d");
+  g.scale(dpr, dpr);
+  // turn sequence for iteration n
+  const n = 11;
+  let turns = [];
+  for (let i = 0; i < n; i++) turns = [...turns, 1, ...turns.slice().reverse().map((t) => -t)];
+  let x = 0, y = 0, dir = 0;
+  const pts = [[0, 0]];
+  const dx = [1, 0, -1, 0], dy = [0, 1, 0, -1];
+  for (const t of [0, ...turns]) {
+    dir = (dir + t + 4) % 4;
+    x += dx[dir]; y += dy[dir];
+    pts.push([x, y]);
+  }
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const s = Math.min((r.width * 0.6) / (maxX - minX), (r.height - 120) * 0.8 / (maxY - minY));
+  const ox = (r.width - (maxX - minX) * s) / 2 - minX * s, oy = (r.height - 90 - (maxY - minY) * s) / 2 - minY * s;
+  g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--grid-strong");
+  g.lineWidth = 1;
+  g.beginPath();
+  pts.forEach(([px, py], i) => (i ? g.lineTo(ox + px * s, oy + py * s) : g.moveTo(ox + px * s, oy + py * s)));
+  g.stroke();
+  $("iter").textContent = `ITERATION ${n}`;
+}
+
+// ---------------------------------------------------------------- boot
+async function boot() {
+  $("iso-pick").onclick = async () => setISO(await api().PickISO());
+  $("refresh").onclick = () => refreshDrives(false);
+  $("mode-fresh").onclick = () => { state.keep = false; state.finished = false; render(); };
+  $("mode-keep").onclick = () => { state.keep = true; state.finished = false; render(); };
+  $("size").oninput = (e) => { state.size = +e.target.value; render(); };
+  $("size-dec").onclick = () => step(-1);
+  $("size-inc").onclick = () => step(1);
+  $("write").onclick = openConfirm;
+  $("c-cancel").onclick = () => { $("confirm").hidden = true; };
+  $("c-ok").onclick = start;
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("confirm").hidden = true; });
+  window.runtime.EventsOn("job", onJob);
+  if (window.runtime.OnFileDrop) {
+    window.runtime.OnFileDrop(async (_x, _y, paths) => {
+      const p = (paths || []).find((q) => q.toLowerCase().endsWith(".iso"));
+      if (p && !state.running) setISO(await api().Inspect(p));
+    }, false);
+  }
+  state.info = await api().Info();
+  $("fact-os").textContent = state.info.os;
+  $("fact-ver").textContent = `WRITER // ${state.info.version}`;
+  if (state.info.iso) state.iso = state.info.iso;
+  await refreshDrives(false);
+  drawDragon();
+  new ResizeObserver(() => { if ($("out").classList.contains("empty")) drawDragon(); }).observe($("out"));
+}
+
+window.addEventListener("DOMContentLoaded", boot);

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backpack USB Writer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="wordmark">BACKPACK<span class="muted">//</span>LIVE</div>
+    <div class="tab">
+      <div class="label">USB writer</div>
+      <div class="micro" id="tab-meta">SEC.01 // FLASH</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="facts">
+      <div class="label" id="fact-os">—</div>
+      <div class="micro" id="fact-ver">—</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="col">
+      <section>
+        <div class="sec-head">
+          <span class="label">Image</span>
+          <span class="micro" id="iso-meta">STEP 1 OF 3</span>
+        </div>
+        <div class="tile cut" id="iso-tile">
+          <div class="rail"></div>
+          <div class="info">
+            <div class="tile-name ellipsis" id="iso-name">No image chosen</div>
+            <div class="small muted ellipsis" id="iso-path">Choose the Backpack ISO, or drop an .iso file on this window.</div>
+            <div class="micro" id="iso-facts"></div>
+          </div>
+          <button class="btn cut" id="iso-pick"><span class="lbl">Choose ISO</span></button>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-head">
+          <span class="label">USB drive</span>
+          <span class="micro" id="drive-meta">STEP 2 OF 3</span>
+        </div>
+        <div class="drives" id="drives"></div>
+        <div>
+          <button class="btn small-btn cut" id="refresh"><span class="lbl">Refresh drives</span></button>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-head">
+          <span class="label">Mode</span>
+          <span class="micro">STEP 3 OF 3</span>
+        </div>
+        <div class="chips">
+          <button class="chip cut" id="mode-fresh" aria-pressed="true">
+            <span class="label">Fresh install</span>
+            <span class="small">Erase the drive, new persistence</span>
+          </button>
+          <button class="chip cut" id="mode-keep" aria-pressed="false">
+            <span class="label">Update system</span>
+            <span class="small" id="keep-note">Keep saved files and settings</span>
+          </button>
+        </div>
+        <div id="size-block">
+          <div class="sec-head"><span class="small muted">Persistence size</span><span class="micro" id="size-max"></span></div>
+          <div class="size-row">
+            <button class="btn step cut" id="size-dec" aria-label="Smaller">−</button>
+            <div class="val cut" id="size-val">5 GB</div>
+            <input type="range" id="size" min="1" max="64" value="5" aria-label="Persistence size in GB">
+            <button class="btn step cut" id="size-inc" aria-label="Larger">+</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pane panel cut">
+      <h1 class="title">Write to USB</h1>
+      <p class="desc small">Writes the image to the drive, then adds a persistence partition so your files, Wi-Fi and settings survive a reboot.</p>
+      <div class="run-row">
+        <button class="btn primary cut" id="write" disabled>
+          <span class="lbl" id="write-lbl">Write</span>
+          <span class="command">backpack-usb-writer</span>
+        </button>
+      </div>
+      <div class="cmdline" id="cmdline">$ backpack-usb-writer <span class="placeholder">--iso &lt;image&gt; --size 5G &lt;drive&gt;</span></div>
+      <div class="phases" id="phases">
+        <div class="phase micro" data-p="image">01 // IMAGE</div>
+        <div class="phase micro" data-p="partition">02 // TABLE</div>
+        <div class="phase micro" data-p="format">03 // FORMAT</div>
+        <div class="phase micro" data-p="sync">04 // FLUSH</div>
+      </div>
+      <div class="meter" id="meter"><div></div></div>
+      <div class="status-line">
+        <div class="status small" id="status">Choose an image and a drive.</div>
+        <div class="micro" id="rate"></div>
+      </div>
+      <div class="out cut empty" id="out">
+        <canvas id="dragon"></canvas>
+        <pre id="log"></pre>
+        <div class="empty-note" id="empty-note"><div class="body">Output appears here</div><div class="micro" id="iter">ITERATION 11</div></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="scrim" id="confirm" hidden>
+    <div class="sheet cut" role="dialog" aria-modal="true" aria-labelledby="c-title">
+      <div class="label warnhead" id="c-head">Erases the drive</div>
+      <h2 class="title" id="c-title">Erase and write?</h2>
+      <p class="small" id="c-body" style="margin:0"></p>
+      <div class="facts">
+        <span class="micro">Drive</span><span class="small" id="c-drive"></span>
+        <span class="micro">Image</span><span class="small ellipsis" id="c-iso"></span>
+        <span class="micro">Persistence</span><span class="small" id="c-persist"></span>
+      </div>
+      <div class="actions">
+        <button class="btn cut" id="c-cancel"><span class="lbl">Cancel</span></button>
+        <button class="btn danger cut" id="c-ok"><span class="lbl" id="c-ok-lbl">Erase and write</span><span class="command" id="c-ok-cmd"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

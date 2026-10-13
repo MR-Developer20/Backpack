@@ -1,0 +1,4 @@
+# the repo ignores build/; here build/ holds Wails' packaging inputs (icon, Windows manifest)
+!build/
+build/bin/
+frontend/wailsjs/
