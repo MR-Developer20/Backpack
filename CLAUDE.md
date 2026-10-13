@@ -194,7 +194,7 @@ make release
   parse_dmidecode_memory (empty slots skipped). Adding the meter moved `compact` to
   width < Theme.s(1400). Test hook: BACKPACK_DEMO_MONITOR=1.
 - (extra tab) The eDEX top-bar button is gone; eDEX-UI is the `edex-ui` manifest tool in category
-  `apps` (Extra tab), marked `optional: true` with `packages: []`: manifest.load() drops optional
+  `extra` (Extra tab; app tiles show only an Open button, no form or output), marked `optional: true` with `packages: []`: manifest.load() drops optional
   tools whose command is missing (so the tab disappears without the deb) and `--print-cmds` /
   check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
   like the terminal buttons.

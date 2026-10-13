@@ -21,6 +21,8 @@ ApplicationWindow {
     property string section: (manifest && manifest.sections.length) ? manifest.sections[0].id : "network"
     property string category: firstCategory(section)
     property var tool: null
+    // Extra-tab apps: just an Open button, no argument form or output pane
+    readonly property bool appMode: !!tool && tool.section === "extra"
     property int cmdIndex: 0
     property string confirmAction: ""
     property bool wifiOpen: false
@@ -49,7 +51,7 @@ ApplicationWindow {
 
     Connections {
         target: runner
-        function onOutput(s) { output.append(s) }
+        function onOutput(s) { output.append(s); if (win.appMode) status.text = s.trim() }
         function onStarted(cl) { status.text = "$ " + cl; output.append("$ " + cl + "\n") }
         function onFinished(code) { output.append("\n[exit " + code + "]\n") }
         function onError(e) { status.text = "error: " + e; output.append("error: " + e + "\n") }
@@ -207,6 +209,7 @@ ApplicationWindow {
                     }
                 }
                 Flickable {
+                    visible: !win.appMode   // the form still supplies its defaults to runCurrent()
                     Layout.fillWidth: true
                     Layout.preferredHeight: Math.min(form.implicitHeight, toolPane.height * 0.4)
                     contentHeight: form.implicitHeight
@@ -228,8 +231,8 @@ ApplicationWindow {
                         enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
                     }
-                    TouchButton { text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
-                    TouchButton { text: "Clear"; onClicked: output.clear() }
+                    TouchButton { visible: !win.appMode; text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
+                    TouchButton { visible: !win.appMode; text: "Clear"; onClicked: output.clear() }
                     Text {
                         visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
                         height: Theme.touch; verticalAlignment: Text.AlignVCenter
@@ -241,8 +244,10 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     color: Theme.muted; font.pixelSize: Theme.s(13); font.family: "DejaVu Sans Mono"; elide: Text.ElideMiddle
                 }
+                Item { visible: win.appMode; Layout.fillHeight: true }
                 OutputPane {
                     id: output
+                    visible: !win.appMode
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: Theme.s(100)

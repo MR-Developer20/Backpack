@@ -7,7 +7,7 @@
 #   description one plain-English sentence
 #   category    Network tab: discovery | connectivity | capture | wireless | throughput | dns-http
 #               Data tab:    disks | recovery | files | transfer
-#               Extra tab:   apps
+#               Extra tab:   extra (other software; usually `optional: true`)
 #   packages    Debian package names (required; for upstream sources = extra deps)
 #   source      optional: {type: upstream, url, sha256, apt_repo, apt_key_url, apt_key_sha256}
 #   gui         optional bool; GUI Mode launches GUI tools detached instead of streaming output
@@ -572,11 +572,11 @@ tools:
           - {name: destination, type: string, default: "", required: true}
         needs_root: false
   # =================================================================== EXTRA
-  # -------------------------------------------------------------------- apps
+  # ------------------------------------------------------------------- extra
   - id: edex-ui
     name: eDEX-UI
     description: Sci-fi full-screen terminal with live system, network and file panels.
-    category: apps
+    category: extra
     packages: []          # edex-ui_*.deb from scripts/build-edex-deb.sh, when built
     optional: true
     gui: true

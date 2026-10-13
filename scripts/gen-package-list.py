@@ -7,7 +7,7 @@ import argparse, re, sys
 import yaml
 
 CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
-              "disks", "recovery", "files", "transfer", "apps"}
+              "disks", "recovery", "files", "transfer", "extra"}
 ARG_TYPES = {"string", "int", "flag", "choice"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 

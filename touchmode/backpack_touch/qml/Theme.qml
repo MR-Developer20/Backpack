@@ -44,7 +44,7 @@ QtObject {
         case "recovery": return "#fb923c"
         case "files": return "#facc15"
         case "transfer": return "#a3e635"
-        case "apps": return "#c084fc"
+        case "extra": return "#c084fc"
         }
         return "#8b9bb0"
     }

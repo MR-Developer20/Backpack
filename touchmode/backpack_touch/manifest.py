@@ -8,7 +8,7 @@ import yaml
 SECTIONS = [
     ("network", "Network", ["discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"]),
     ("data", "Data", ["disks", "recovery", "files", "transfer"]),
-    ("extra", "Extra", ["apps"]),
+    ("extra", "Extra", ["extra"]),
 ]
 CATEGORY_ORDER = [c for _, _, cats in SECTIONS for c in cats]
 CATEGORY_SECTION = {c: sid for sid, _, cats in SECTIONS for c in cats}
@@ -16,7 +16,7 @@ CATEGORY_LABELS = {
     "discovery": "Discovery", "connectivity": "Connectivity", "capture": "Capture",
     "wireless": "Wireless", "throughput": "Throughput", "dns-http": "DNS / HTTP",
     "disks": "Disks", "recovery": "Recovery", "files": "Files", "transfer": "Transfer",
-    "apps": "Apps",
+    "extra": "Apps",
 }
 DEFAULT_PATH = "/etc/backpack/tools.yaml"
 
