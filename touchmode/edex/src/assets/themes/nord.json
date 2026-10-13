@@ -23,8 +23,8 @@
         "grey": "#4c566a"
     },
     "cssvars": {
-        "font_main": "United Sans Medium",
-        "font_main_light": "United Sans Light"
+        "font_main": "JetBrains Mono Medium",
+        "font_main_light": "JetBrains Mono Regular"
     },
     "terminal": {
         "fontFamily": "Fira Mono",

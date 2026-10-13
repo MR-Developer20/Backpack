@@ -206,6 +206,10 @@ See [`CLAUDE.md`](CLAUDE.md) for the repository layout, build internals, and not
 
 ## Licenses
 
-This repository's own scripts, configuration and the GUI Mode app: see `LICENSE`.
-The vendored eDEX-UI fork in `touchmode/edex/` is GPL-3.0 (its `LICENSE` file). The built
-image packages Debian and third-party software under their respective licenses.
+This repository's own scripts, configuration, GUI Mode app and USB writer are licensed under the
+GNU General Public License v3.0 (see [`LICENSE`](LICENSE)).
+The vendored eDEX-UI fork in `touchmode/edex/` is GPL-3.0 (its `LICENSE` file). The bundled
+JetBrains Mono and Fira fonts are under the SIL Open Font License 1.1 (`OFL.txt` next to them).
+The built image packages Debian and third-party software under their respective licenses; their
+license texts are in `/usr/share/doc/<package>/copyright` on the live system, and the source for
+the Debian packages is available from Debian (https://snapshot.debian.org/ keeps every version).

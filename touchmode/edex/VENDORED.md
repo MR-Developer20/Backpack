@@ -29,3 +29,9 @@ Verified: launches on Electron 37.2.0, node-pty terminal backend initialized, fu
 - Touch tweak: default termFontSize 15 -> 18 (written on first run).
 - Touch Mode gains an "eDEX" top-bar button (shown when edex-ui is on PATH) that unfullscreens
   the launcher and `swaymsg exec 'edex-ui --no-sandbox'`; eDEX is full-screen and returns on exit.
+
+## Fonts
+- United Sans (`united_sans_{light,medium}.woff2`, a commercial typeface with no redistribution
+  license in upstream) was removed. Every theme's `font_main` / `font_main_light` now name
+  "JetBrains Mono Medium" / "JetBrains Mono Regular" (OFL; `_renderer.js` loads
+  `fonts/<name lowercased, spaces -> _>.woff2`). See `src/assets/fonts/FONTS.md`.
