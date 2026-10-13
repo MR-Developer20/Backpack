@@ -7,8 +7,13 @@ firmware-linux
 firmware-iwlwifi
 firmware-realtek
 firmware-atheros
+firmware-misc-nonfree
+firmware-mediatek
+firmware-brcm80211
+firmware-libertas
 network-manager
 polkitd
+libpam-systemd
 network-manager-gnome
 sudo
 less
