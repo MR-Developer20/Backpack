@@ -29,15 +29,15 @@ cut() { echo "polygon $1,$2 $(($3-$5)),$2 $3,$(($2+$5)) $3,$4 $(($1+$5)),$4 $1,$
 # the menu sits in x 88..552 from y 200 (title row) down; the panel is drawn behind it and the
 # timeout line prints near the bottom edge, so nothing else is drawn there.
 convert -size 640x480 xc:"$VOID" \
-  -fill "$HULL" -stroke "$GRID_STRONG" -strokewidth 1 -draw "$(cut 64 184 575 344 14)" \
+  -fill "$HULL" -stroke "$GRID" -strokewidth 1 -draw "$(cut 64 184 575 344 10)" \
   -stroke none -fill "$ACID" -draw "$(cut 64 40 351 60 8)" \
   -fill "$CYAN" -draw "$(cut 359 40 455 60 8)" \
   -fill "$AMBER" -draw "$(cut 463 40 527 60 6)" \
   -fill "$SIGNAL" -draw "$(cut 535 48 575 60 4)" \
-  -fill "$INK" -font "$XBOLD" -pointsize 34 -annotate +62+114 'BACKPACK//LIVE' \
-  -fill "$MUTED" -font "$BOLD" -pointsize 11 -annotate +65+140 'SEC.00 // BOOT // 4 MODES' \
+  -fill "$INK" -font "$XBOLD" -pointsize 34 -kerning 2.7 -annotate +62+114 'BACKPACK//LIVE' \
+  -fill "$MUTED" -font "$BOLD" -pointsize 11 -kerning 1.8 -annotate +65+140 'BOOT // 4 MODES // 10 S TO AUTO BOOT' -kerning 0 \
   -stroke "$GRID" -strokewidth 1 -draw "line 64,156 575,156" \
-  -stroke none -fill "$MUTED" -font "$REG" -pointsize 12 -annotate +64+376 'DEBIAN 13 // NETWORK // DATA // FIELD TOOLS' \
+  -stroke none -fill "$MUTED" -font "$REG" -pointsize 11 -kerning 1.8 -annotate +64+376 'DEBIAN 13 // NETWORK // DATA // FIELD TOOLS' \
   -depth 8 "$OUT/sys.png"
 convert "$OUT/sys.png" -colors 256 PNG8:"$OUT/splash.png"
 cp "$OUT/splash.png" $BL/syslinux_common/splash.png
@@ -60,27 +60,27 @@ convert -size 1024x768 xc:"$VOID" \
   -fill "$CYAN" -draw "$(cut 483 56 671 88 14)" \
   -fill "$SIGNAL" -draw "$(cut 803 72 943 88 6)" \
   "$OUT/hazard.png" -geometry +687+56 -composite \
-  -fill "$INK" -font "$XBOLD" -pointsize 60 -annotate +76+164 'BACKPACK//LIVE' \
-  -fill "$MUTED" -font "$BOLD" -pointsize 15 -annotate +80+198 'SEC.00 // BOOT // SELECT A MODE' \
+  -fill "$INK" -font "$XBOLD" -pointsize 56 -kerning 4.5 -annotate +76+164 'BACKPACK//LIVE' -kerning 0 \
+  -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 2 -annotate +80+198 'BOOT // 4 MODES // 10 S TO AUTO BOOT' -kerning 0 \
   -stroke "$GRID" -strokewidth 1 -draw "line 80,216 943,216" \
-  -fill "$HULL" -stroke "$GRID_STRONG" -draw "$(cut 80 236 655 628 20)" \
+  -fill "$HULL" -stroke "$GRID" -draw "$(cut 80 236 655 628 20)" \
   -fill "$HULL" -stroke "$GRID" -draw "$(cut 688 236 943 640 20)" \
-  -stroke none -fill "$MUTED" -font "$BOLD" -pointsize 13 -annotate +708+272 'MODES' \
-  -fill "$INK" -font "$REG" -pointsize 15 \
+  -stroke none -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 1.8 -annotate +708+272 'MODES' \
+  -fill "$INK" -font "$REG" -pointsize 15 -kerning 0 \
   -annotate +708+304 'GUI' -annotate +708+328 'CLI' -annotate +752+304 'touch launcher' -annotate +752+328 'full-screen shell' \
-  -fill "$MUTED" -font "$BOLD" -pointsize 13 -annotate +708+380 'COPY TO RAM' \
-  -fill "$INK" -font "$REG" -pointsize 15 \
+  -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 1.8 -annotate +708+380 'COPY TO RAM' \
+  -fill "$INK" -font "$REG" -pointsize 15 -kerning 0 \
   -annotate +708+412 'Loads about 1 GB,' -annotate +708+436 'then the USB stick' -annotate +708+460 'can be removed.' \
-  -fill "$MUTED" -font "$BOLD" -pointsize 13 -annotate +708+512 'KEYS' \
-  -fill "$INK" -font "$REG" -pointsize 15 \
+  -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 1.8 -annotate +708+512 'KEYS' \
+  -fill "$INK" -font "$REG" -pointsize 15 -kerning 0 \
   -annotate +708+544 'Enter' -annotate +708+568 'E' -annotate +708+592 'C' -annotate +776+544 'boot' -annotate +776+568 'edit' -annotate +776+592 'console' \
-  -fill "$MUTED" -font "$REG" -pointsize 14 -annotate +80+706 'Boots the highlighted mode when the bar runs out.' \
-  -font "$BOLD" -pointsize 12 -annotate +80+738 'DEBIAN 13 // NETWORK // DATA // FIELD TOOLS' \
+  -fill "$MUTED" -font "$REG" -pointsize 15 -kerning 0 -annotate +80+706 'Boots the highlighted mode when the bar runs out.' \
+  -font "$BOLD" -pointsize 11 -kerning 1.8 -annotate +80+738 'DEBIAN 13 // NETWORK // DATA // FIELD TOOLS' \
   -depth 8 PNG24:"$THEME/background.png"
 
 # GRUB reads only 8-bit-per-channel RGB(A) PNGs (no palette, no 16-bit: colour fringes), hence PNG24:/PNG32:.
 # selection box: acid fill chamfered top-right and bottom-left, as GRUB 9-slice pieces (select_*.png)
-convert -size 20x20 xc:none -fill "$ACID" -draw "polygon 0,0 12,0 19,7 19,19 7,19 0,12" "$OUT/sel.png"
+convert -size 20x20 xc:none -fill "$ACID" -draw "polygon 0,0 13,0 19,6 19,19 6,19 0,13" "$OUT/sel.png"
 convert "$OUT/sel.png" -crop 10x10+0+0 +repage PNG32:"$THEME/select_nw.png"
 convert "$OUT/sel.png" -crop 10x10+10+0 +repage PNG32:"$THEME/select_ne.png"
 convert "$OUT/sel.png" -crop 10x10+0+10 +repage PNG32:"$THEME/select_sw.png"
