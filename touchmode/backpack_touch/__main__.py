@@ -10,6 +10,7 @@ from PySide6.QtQuick import QQuickWindow  # noqa: F401  (makes rootObjects() ret
 from . import manifest
 from .runner import Runner, System, Wifi
 from .settings import Settings
+from .sysmon import SysMonitor
 
 
 class Manifest(QObject):
@@ -58,10 +59,13 @@ def main():
     ctx.setContextProperty("system", system)
     ctx.setContextProperty("wifi", wifi)
     ctx.setContextProperty("settings", settings)
+    sysmon = SysMonitor()
+    ctx.setContextProperty("sysmon", sysmon)
     ctx.setContextProperty("demoTool", demo_tool() or "")
     ctx.setContextProperty("demoWifi", bool(os.environ.get("BACKPACK_DEMO_WIFI")))
     ctx.setContextProperty("demoSettings", bool(os.environ.get("BACKPACK_DEMO_SETTINGS")))
     ctx.setContextProperty("demoSection", os.environ.get("BACKPACK_DEMO_SECTION", ""))
+    ctx.setContextProperty("demoMonitor", bool(os.environ.get("BACKPACK_DEMO_MONITOR")))
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():

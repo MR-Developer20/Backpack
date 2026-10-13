@@ -13,6 +13,8 @@ Two ways to use it, chosen from the boot menu:
   files, transfer). The **Settings** button (gear, top right) holds a UI size slider (80–150%,
   remembered across boots with persistence), **Load to RAM** (moves the running system into memory
   so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and Shut down.
+  A CPU/RAM meter in the top bar opens a system monitor with live graphs plus the CPU model,
+  core count, RAM capacity and installed memory modules.
   Top bar: full-screen terminal, split view
   (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
   a phone-style on-screen keyboard, a Wi-Fi scan/connect overlay, and an optional

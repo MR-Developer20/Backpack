@@ -187,6 +187,12 @@ make release
   the image already sits on tmpfs, so the button reads "Running from RAM". **Switch to CLI Mode**
   = `sudo -n sh -c 'systemctl isolate multi-user.target && chvt 1'` (untested on the ISO).
   Test hooks: BACKPACK_UI_SCALE, BACKPACK_DEMO_SETTINGS=1, BACKPACK_DEMO_SECTION=data.
+- (system monitor) sysmon.py SysMonitor samples /proc/stat + /proc/meminfo every 1 s (60-sample
+  history) for UsageMeter.qml (top bar, hidden below Theme.s(720) wide) and SysMonitorSheet.qml
+  (UsageGraph.qml Canvas graphs). CPU model/cores from /proc/cpuinfo; RAM modules from
+  `sudo -n dmidecode -t 17` (dmidecode added to gui.list.chroot + deb Depends), parsed by
+  parse_dmidecode_memory (empty slots skipped). Adding the meter moved `compact` to
+  width < Theme.s(1400). Test hook: BACKPACK_DEMO_MONITOR=1.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

@@ -17,7 +17,7 @@ ApplicationWindow {
 
     // layout modes: narrow (split view or portrait) -> icon-only top bar; portrait -> stacked panes
     readonly property bool portrait: height > width
-    readonly property bool compact: width < Theme.s(1100)   // icon-only tool buttons when narrow (or UI size is large)
+    readonly property bool compact: width < Theme.s(1400)   // icon-only tool buttons when narrow (or UI size is large)
     property string section: (manifest && manifest.sections.length) ? manifest.sections[0].id : "network"
     property string category: firstCategory(section)
     property var tool: null
@@ -25,6 +25,7 @@ ApplicationWindow {
     property string confirmAction: ""
     property bool wifiOpen: false
     property bool settingsOpen: false
+    property bool monitorOpen: false
 
     Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
 
@@ -98,6 +99,11 @@ ApplicationWindow {
                 color: Theme.edexFill
                 visible: system ? system.edexAvailable() : false
                 onClicked: system.launchEdex()
+            }
+            UsageMeter {
+                visible: win.width >= Theme.s(720)
+                compact: win.compact
+                onTapped: win.monitorOpen = true
             }
             TouchButton {
                 text: "Settings"; iconSource: "../icons/settings.png"; compact: true
@@ -258,6 +264,12 @@ ApplicationWindow {
         onClosed: { win.wifiOpen = false; system.hideKeyboard() }
     }
 
+    SysMonitorSheet {
+        visible: win.monitorOpen
+        anchors.fill: parent
+        onClosed: win.monitorOpen = false
+    }
+
     SettingsSheet {
         visible: win.settingsOpen
         anchors.fill: parent
@@ -318,6 +330,7 @@ ApplicationWindow {
     }
     Timer { id: runTimer; interval: 1500; onTriggered: runCurrent() }
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
+    Timer { running: demoMonitor; interval: 4000; onTriggered: win.monitorOpen = true }
     Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true } }
     Component.onCompleted: if (demoSection !== "") selectSection(demoSection)
 }
