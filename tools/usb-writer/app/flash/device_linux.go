@@ -93,14 +93,18 @@ func ListDrives() ([]Drive, error) {
 	return out, nil
 }
 
+// allowLoop lets the tests write a loop device as if it were a USB stick.
+var allowLoop bool
+
 func openDisk(path string, emit func(Event)) (*device, error) {
 	devs, err := lsblk("-d", path)
 	if err != nil || len(devs) != 1 {
 		return nil, fmt.Errorf("%s is not a block device", path)
 	}
-	if devs[0].Type != "disk" {
+	if devs[0].Type != "disk" && !(allowLoop && devs[0].Type == "loop") {
 		return nil, fmt.Errorf("%s is a %s, not a whole disk", path, devs[0].Type)
 	}
+	loop := devs[0].Type == "loop"
 	if path == rootDisk() {
 		return nil, fmt.Errorf("%s holds the running system", path)
 	}
@@ -108,18 +112,8 @@ func openDisk(path string, emit func(Event)) (*device, error) {
 		return nil, errors.New("writing a drive needs root (run with sudo, or start the app normally and it will ask for your password)")
 	}
 	// unmount everything on the disk (the desktop may have auto-mounted it)
-	if all, err := lsblk(path); err == nil && len(all) == 1 {
-		parts := append([]lsblkDev{all[0]}, all[0].Children...)
-		for _, p := range parts {
-			for _, m := range p.Mountpoints {
-				if m != nil && *m != "" {
-					emit(Event{Log: "Unmounting " + *m})
-					if out, err := exec.Command("umount", *m).CombinedOutput(); err != nil {
-						return nil, fmt.Errorf("could not unmount %s: %s", *m, strings.TrimSpace(string(out)))
-					}
-				}
-			}
-		}
+	if err := unmountAll(path, emit); err != nil {
+		return nil, err
 	}
 	f, err := os.OpenFile(path, os.O_RDWR|unix.O_EXCL, 0)
 	if err != nil {
@@ -138,6 +132,39 @@ func openDisk(path string, emit func(Event)) (*device, error) {
 			exec.Command("partx", "-u", path).Run()
 		}
 		exec.Command("udevadm", "settle").Run()
+		f.Close() // the open disk would keep it busy
+		// the desktop may have auto-mounted the new partitions; then power the stick off, as
+		// macOS ejects it, so it is safe to pull when the window says so
+		if err := unmountAll(path, emit); err != nil {
+			emit(Event{Log: err.Error()})
+			return
+		}
+		if loop {
+			return // no stick to power off
+		}
+		emit(Event{Log: "Ejecting " + path})
+		if exec.Command("udisksctl", "power-off", "--no-user-interaction", "-b", path).Run() != nil {
+			exec.Command("eject", path).Run()
+		}
 	}
 	return d, nil
+}
+
+// unmountAll unmounts the disk and every partition on it.
+func unmountAll(path string, emit func(Event)) error {
+	all, err := lsblk(path)
+	if err != nil || len(all) != 1 {
+		return nil
+	}
+	for _, p := range append([]lsblkDev{all[0]}, all[0].Children...) {
+		for _, m := range p.Mountpoints {
+			if m != nil && *m != "" {
+				emit(Event{Log: "Unmounting " + *m})
+				if out, err := exec.Command("umount", *m).CombinedOutput(); err != nil {
+					return fmt.Errorf("could not unmount %s: %s", *m, strings.TrimSpace(string(out)))
+				}
+			}
+		}
+	}
+	return nil
 }

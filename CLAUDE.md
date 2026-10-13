@@ -314,3 +314,8 @@ make release
   writes in-process (inProcess() in elevate_darwin.go) and flash/device_darwin.go opens the drive through
   /usr/libexec/authopen (-stdoutpipe: macOS's password dialog, fd passed back over a socketpair) whenever a plain
   open is refused. CI can only test authopen as root (TestAuthOpen); the dialog path needs a real Mac.
+  Linux: window icon = embedded build/appicon.png (linux.Options.Icon); GTK_THEME=Adwaita:dark unless set (dark title
+  bar like Windows/macOS); pkexec exit 126 = dismissed, 127 = no polkit agent / not allowed (shown as such); after a
+  write the stick is unmounted again and powered off (udisksctl power-off, else eject), like macOS ejects. ISO
+  downloads go to XDG_DOWNLOAD_DIR (user-dirs.dirs) when set. CI writes a loop device as root (TestLoopDevice,
+  BACKPACK_TEST_LOOP; `allowLoop` lets openDisk take a loop device in tests only).

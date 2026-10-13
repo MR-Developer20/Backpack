@@ -29,6 +29,11 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// appIcon is the Linux window icon (the Windows and macOS builds carry theirs in the package).
+//
+//go:embed build/appicon.png
+var appIcon []byte
+
 // App is bound to the window; its exported methods are callable from frontend/dist/app.js.
 type App struct {
 	ctx     context.Context
@@ -240,6 +245,11 @@ func osName() string {
 
 func runGUI() error {
 	app := &App{}
+	// Windows and macOS get a dark title bar below; GTK takes its dark variant from the theme
+	// name. A theme the user chose explicitly is kept.
+	if runtime.GOOS == "linux" && os.Getenv("GTK_THEME") == "" {
+		os.Setenv("GTK_THEME", "Adwaita:dark")
+	}
 	return wails.Run(&options.App{
 		Title:            "Backpack USB Writer",
 		Width:            560,
@@ -256,6 +266,6 @@ func runGUI() error {
 			Appearance: mac.NSAppearanceNameDarkAqua,
 			About:      &mac.AboutInfo{Title: "Backpack USB Writer", Message: "Writes Backpack Live to a USB drive. " + version},
 		},
-		Linux: &linux.Options{ProgramName: "backpack-usb-writer"},
+		Linux: &linux.Options{ProgramName: "backpack-usb-writer", Icon: appIcon},
 	})
 }
