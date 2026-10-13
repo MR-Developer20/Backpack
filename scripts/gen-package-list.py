@@ -8,7 +8,8 @@ import yaml
 
 CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
               "disks", "recovery", "files", "transfer", "extra"}
-ARG_TYPES = {"string", "int", "flag", "choice"}
+ARG_TYPES = {"string", "int", "flag", "choice", "interface"}
+INTERFACE_KINDS = {"any", "wifi", "monitor", "wired"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 
 
@@ -73,6 +74,10 @@ def validate(doc):
                     fail(f"{tid}/{c['label']}: flag arg {a['name']} needs a flag and a bool default")
                 if a["type"] == "int" and not isinstance(a.get("default", 0), int):
                     fail(f"{tid}/{c['label']}: int arg {a['name']} default must be an int")
+                if a["type"] == "interface" and a.get("kind", "any") not in INTERFACE_KINDS:
+                    fail(f"{tid}/{c['label']}: interface arg {a['name']} kind must be one of {sorted(INTERFACE_KINDS)}")
+                if a["type"] == "interface" and not all(isinstance(o, str) and o for o in a.get("options", [])):
+                    fail(f"{tid}/{c['label']}: interface arg {a['name']} options must be non-empty strings")
                 if a.get("sep", " ") not in ("", " "):
                     fail(f"{tid}/{c['label']}: arg {a['name']} sep must be \"\" or \" \"")
                 if "label" in a and (not isinstance(a["label"], str) or not a["label"].strip()):

@@ -14,7 +14,7 @@
 #   optional    optional bool; the program is installed separately (not from `packages`), so GUI Mode
 #               hides the tile when its command is missing and check-tools.sh does not require it
 #   commands[]  {label, cmd, args[], needs_root, tty?}  tty: true = run inside foot (curses UIs)
-#   args[]      {name, type: string|int|flag|choice, default, required, flag, options, sep?, label?}
+#   args[]      {name, type: string|int|flag|choice|interface, default, required, flag, options, sep?, label?, kind?}
 #               label: what the GUI form calls the field (a thing a person recognises, e.g.
 #               "Ping only" for -sn); defaults to the name with underscores as spaces
 #               sep: "" joins flag and value with no space (e.g. dig @server)
@@ -67,7 +67,7 @@ tools:
       - label: Scan local network
         cmd: arp-scan
         args:
-          - {name: interface, type: string, default: "", required: false, flag: "-I"}
+          - {name: interface, type: interface, label: "Interface", default: "", required: false, flag: "-I"}
           - {name: localnet, type: flag, default: true, flag: "--localnet", label: "Local network"}
         needs_root: true
   - id: netdiscover
@@ -79,7 +79,7 @@ tools:
       - label: Active scan
         cmd: netdiscover
         args:
-          - {name: interface, type: string, default: "", required: false, flag: "-i"}
+          - {name: interface, type: interface, label: "Interface", default: "", required: false, flag: "-i"}
           - {name: range, type: string, default: "192.168.1.0/24", required: true, flag: "-r", label: "Range"}
           - {name: print_only, type: flag, default: true, flag: "-P", label: "Print only"}
         needs_root: true
@@ -145,7 +145,7 @@ tools:
       - label: Link status
         cmd: ethtool
         args:
-          - {name: interface, type: string, default: "eth0", required: true}
+          - {name: interface, type: interface, label: "Interface", kind: wired, default: "", required: true}
         needs_root: true
   - id: socat
     name: socat
@@ -197,7 +197,7 @@ tools:
       - label: Show Wi-Fi status
         cmd: wpa_cli
         args:
-          - {name: interface, type: string, default: "wlan0", required: true, flag: "-i"}
+          - {name: interface, type: interface, label: "Interface", kind: wifi, default: "", required: true, flag: "-i"}
           - {name: command, type: choice, default: "status", options: ["status", "scan_results", "list_networks"], required: true, label: "Query"}
         needs_root: true
   # ------------------------------------------------------------------ capture
@@ -210,7 +210,7 @@ tools:
       - label: Capture (count-limited)
         cmd: tcpdump
         args:
-          - {name: interface, type: string, default: "any", required: true, flag: "-i"}
+          - {name: interface, type: interface, label: "Interface", options: ["any"], default: "any", required: true, flag: "-i"}
           - {name: count, type: int, default: 50, flag: "-c", label: "Packets"}
           - {name: no_resolve, type: flag, default: true, flag: "-n", label: "No DNS lookups"}
           - {name: filter, type: string, default: "", required: false, label: "Filter"}
@@ -224,7 +224,7 @@ tools:
       - label: Capture (count-limited)
         cmd: tshark
         args:
-          - {name: interface, type: string, default: "any", required: true, flag: "-i"}
+          - {name: interface, type: interface, label: "Interface", options: ["any"], default: "any", required: true, flag: "-i"}
           - {name: count, type: int, default: 50, flag: "-c", label: "Packets"}
           - {name: filter, type: string, default: "", required: false, flag: "-f", label: "Capture filter"}
         needs_root: true
@@ -248,7 +248,7 @@ tools:
       - label: Match pattern
         cmd: ngrep
         args:
-          - {name: interface, type: string, default: "any", required: true, flag: "-d"}
+          - {name: interface, type: interface, label: "Interface", options: ["any"], default: "any", required: true, flag: "-d"}
           - {name: quiet, type: flag, default: true, flag: "-q", label: "Quiet"}
           - {name: pattern, type: string, default: "GET", required: true, label: "Pattern"}
           - {name: filter, type: string, default: "tcp port 80", required: false, label: "BPF filter"}
@@ -264,13 +264,13 @@ tools:
         cmd: airmon-ng
         args:
           - {name: action, type: choice, default: "start", options: ["start", "stop", "check"], required: true, label: "Action"}
-          - {name: interface, type: string, default: "wlan0", required: true}
+          - {name: interface, type: interface, label: "Interface", kind: wifi, default: "", required: true}
         needs_root: true
       - label: Scan networks (airodump)
         tty: true
         cmd: airodump-ng
         args:
-          - {name: interface, type: string, default: "wlan0mon", required: true}
+          - {name: interface, type: interface, label: "Interface", kind: monitor, default: "", required: true}
         needs_root: true
   - id: kismet
     name: Kismet
@@ -286,7 +286,7 @@ tools:
       - label: Start Kismet (web UI on :2501)
         cmd: kismet
         args:
-          - {name: interface, type: string, default: "wlan0", required: true, flag: "-c"}
+          - {name: interface, type: interface, label: "Interface", kind: wifi, default: "", required: true, flag: "-c"}
         needs_root: true
   # --------------------------------------------------------------- throughput
   - id: iperf3
@@ -317,7 +317,7 @@ tools:
         tty: true
         cmd: iftop
         args:
-          - {name: interface, type: string, default: "eth0", required: true, flag: "-i"}
+          - {name: interface, type: interface, label: "Interface", default: "", required: true, flag: "-i"}
           - {name: no_resolve, type: flag, default: true, flag: "-n", label: "No DNS lookups"}
         needs_root: true
   - id: nload
@@ -330,7 +330,7 @@ tools:
         tty: true
         cmd: nload
         args:
-          - {name: interface, type: string, default: "eth0", required: true}
+          - {name: interface, type: interface, label: "Interface", default: "", required: true}
         needs_root: false
   - id: bmon
     name: bmon
