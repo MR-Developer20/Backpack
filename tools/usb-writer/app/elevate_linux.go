@@ -9,9 +9,6 @@ import (
 func elevated() bool { return os.Geteuid() == 0 }
 func attachConsole() {}
 
-// workerISO: pkexec'd root reads the ISO where it is.
-func workerISO(iso, dir string, emit func(string)) (string, error) { return iso, nil }
-
 // elevate runs exe args as root through pkexec (the desktop's password dialog).
 func elevate(exe string, args []string, logPath string) (cancelled bool, err error) {
 	if _, err := exec.LookPath("pkexec"); err != nil {

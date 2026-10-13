@@ -1,4 +1,4 @@
-package main
+package flash
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ func TestWorkerISO(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(d)
-		got, err := workerISO(src, d, func(string) {})
+		got, err := WorkerISO(src, d, func(string) {})
 		if err != nil {
 			t.Fatal(err)
 		}

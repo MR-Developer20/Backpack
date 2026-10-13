@@ -311,4 +311,4 @@ make release
   reports every failure through its --json file; its stdout/stderr go to output.log, shown when no result.
   macOS TCC keeps the root worker (started via osascript's password prompt) out of ~/Downloads, ~/Desktop and
   ~/Documents ("operation not permitted") although `sudo` from Terminal works: the window first puts the ISO in the
-  worker's /tmp folder (workerISO: APFS clonefile, else a copy).
+  worker's /tmp folder (flash.WorkerISO: APFS clonefile, else a copy).

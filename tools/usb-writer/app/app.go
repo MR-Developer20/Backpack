@@ -167,7 +167,7 @@ func (a *App) runElevated(r WriteRequest) {
 		a.emit(flash.Event{Error: err.Error(), End: true})
 		return
 	}
-	if r.ISO, err = workerISO(r.ISO, dir, func(s string) { a.emit(flash.Event{Phase: "prepare", Log: s}) }); err != nil {
+	if r.ISO, err = flash.WorkerISO(r.ISO, dir, func(s string) { a.emit(flash.Event{Phase: "prepare", Log: s}) }); err != nil {
 		a.emit(flash.Event{Error: err.Error(), End: true})
 		return
 	}
