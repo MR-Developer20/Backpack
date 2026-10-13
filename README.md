@@ -5,29 +5,38 @@
 A bootable Debian 13 ("trixie") live USB for network discovery and testing — think
 "Hiren's BootCD, but Linux with network tools." x86_64, BIOS and UEFI.
 
-Three ways to use it, chosen from the boot menu:
+Two ways to use it, chosen from the boot menu:
 
-- **Desktop (LXQt)** — a full graphical desktop with NetworkManager and the tools installed.
-- **Terminal** — boots to a multi-user console, no X.
-- **Touch Mode** — a full-screen, touch-friendly tile launcher (PySide6/QML under sway) that
-  builds a form for each tool and streams its output. Top bar: full-screen terminal, split view
+- **GUI Mode** (default) — a full-screen, touch-friendly tile launcher (PySide6/QML under sway)
+  that builds a form for each tool and streams its output. Every button shows the command it
+  runs, and the line above the output is exactly what Run executes. Tools sit in tabs: **Network**
+  (discovery, connectivity, capture, wireless, throughput, DNS/HTTP), **Data** (disks, recovery,
+  files, transfer) and **Extra** (other software, such as the optional
+  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when
+  something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (0.75–1.6×,
+  applies as you drag, remembered across boots with persistence), **Load to RAM** (moves the running
+  system into memory so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and
+  Shut down; the last three ask once more inside the sheet before acting.
+  A CPU/RAM meter in the top bar opens a system monitor with live graphs plus the CPU model,
+  core count, RAM capacity and installed memory modules.
+  Top bar: full-screen terminal, split view
   (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
-  a phone-style on-screen keyboard, a Wi-Fi scan/connect overlay, and an optional
-  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal. When the launcher is narrow
-  (split view or portrait) the top bar collapses to icons.
+  a phone-style on-screen keyboard and a Wi-Fi scan/connect overlay. When the launcher is narrow
+  (split view, portrait, or a large UI size) the top bar collapses to icons.
+- **CLI Mode** — boots to a multi-user console, no display server.
 
 Each entry also has a **copy to RAM** (`toram`) variant that runs entirely from memory so the
 USB stick can be removed after boot; the boot splash shows a progress bar while it copies.
 
 ## Screenshots
 
-| Boot splash | LXQt desktop |
+| Boot splash | GUI Mode |
 |---|---|
-| ![boot splash](docs/screenshots/boot-splash.png) | ![desktop](docs/screenshots/desktop-lxqt.png) |
+| ![boot splash](docs/screenshots/boot-splash.png) | ![gui mode](docs/screenshots/touch-mode-v2.png) |
 
-| Touch Mode | Touch Mode — tool running |
+| GUI Mode — tool running | eDEX-UI |
 |---|---|
-| ![touch mode](docs/screenshots/touch-mode-v2.png) | ![touch run](docs/screenshots/touch-mode-run.png) |
+| ![gui run](docs/screenshots/touch-mode-run.png) | ![edex](docs/screenshots/edex-ui.png) |
 
 | On-screen keyboard | Wi-Fi overlay |
 |---|---|
@@ -36,10 +45,6 @@ USB stick can be removed after boot; the boot splash shows a progress bar while 
 | Portrait | Copy-to-RAM progress |
 |---|---|
 | ![portrait](docs/screenshots/touch-mode-portrait.png) | ![toram](docs/screenshots/copy-to-ram-progress.png) |
-
-| eDEX-UI | |
-|---|---|
-| ![edex](docs/screenshots/edex-ui.png) | |
 
 ## Tools
 
@@ -72,7 +77,7 @@ package cache.
 
 ### eDEX-UI (optional)
 
-The Touch Mode "eDEX" button needs the `edex-ui` Debian package, built from the vendored and
+The eDEX-UI tile in GUI Mode's Extra tab needs the `edex-ui` Debian package, built from the vendored and
 modernized fork in `touchmode/edex/` (Electron 37). It is not built by `make build`; build it
 once and it is picked up by the next `make build`:
 
@@ -81,7 +86,7 @@ docker build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
 scripts/build-edex-deb.sh        # -> live/config/packages.chroot/edex-ui_*.deb
 ```
 
-Without it the image still builds; the eDEX button simply does not appear.
+Without it the image still builds; the tile (and the Extra tab, while eDEX-UI is its only entry) simply does not appear.
 
 ### Releases
 
@@ -151,16 +156,15 @@ Everything is driven by one file, `manifest/tools.yaml`. To add a tool:
 3. `make build`. For an upstream `.deb` or apt key, `make fetch` downloads and checksum-verifies
    it first (`make build` runs it automatically).
 
-The same entry drives the Touch Mode tile, its input form, and this documentation — there is no
+The same entry drives the GUI Mode tile, its input form, and this documentation — there is no
 second place to edit.
 
 ## Boot menu entries
 
 | Entry | Kernel parameters |
 |---|---|
-| Desktop (LXQt) | *(default)* |
-| Terminal | `systemd.unit=multi-user.target` |
-| Touch Mode | `backpack.ui=touch` |
+| GUI Mode *(default)* | `backpack.ui=touch` |
+| CLI Mode | `systemd.unit=multi-user.target` |
 | … copy to RAM | the above plus `toram` |
 
 ## Layout
@@ -169,6 +173,6 @@ See [`CLAUDE.md`](CLAUDE.md) for the repository layout, build internals, and not
 
 ## Licenses
 
-This repository's own scripts, configuration and the Touch Mode app: see `LICENSE`.
+This repository's own scripts, configuration and the GUI Mode app: see `LICENSE`.
 The vendored eDEX-UI fork in `touchmode/edex/` is GPL-3.0 (its `LICENSE` file). The built
 image packages Debian and third-party software under their respective licenses.

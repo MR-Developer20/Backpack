@@ -1,7 +1,8 @@
 
-  Backpack Live - network discovery & testing
+  BACKPACK//LIVE // CLI MODE
 
-  Tools:    nmap, arp-scan, tcpdump, tshark, iperf3, kismet, aircrack-ng, ... (see /etc/backpack/tools.yaml)
-  Touch UI: boot the "Touch Mode" entry, or start it with:  backpack-touch-session
-  Persist:  mount a partition labelled 'persistence' (see README)
+  Tools      nmap, arp-scan, tcpdump, tshark, iperf3, kismet, aircrack-ng and more.
+             The full list is in /etc/backpack/tools.yaml.
+  GUI Mode   Reboot into the "GUI Mode" entry, or run: backpack-touch-session
+  Persist    Mount a partition labelled 'persistence' (see the README).
 

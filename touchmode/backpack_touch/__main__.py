@@ -9,6 +9,8 @@ from PySide6.QtQuick import QQuickWindow  # noqa: F401  (makes rootObjects() ret
 
 from . import manifest
 from .runner import Runner, System, Wifi
+from .settings import Settings
+from .sysmon import SysMonitor
 
 
 class Manifest(QObject):
@@ -16,6 +18,7 @@ class Manifest(QObject):
         super().__init__()
         self._tools = tools
         self._cats = manifest.categories(tools)
+        self._sections = manifest.sections(tools)
 
     @Property("QVariantList", constant=True)
     def tools(self):
@@ -24,6 +27,10 @@ class Manifest(QObject):
     @Property("QVariantList", constant=True)
     def categories(self):
         return self._cats
+
+    @Property("QVariantList", constant=True)
+    def sections(self):
+        return self._sections
 
 
 def demo_tool():
@@ -46,13 +53,20 @@ def main():
     tools = manifest.load()
     engine = QQmlApplicationEngine()
     ctx = engine.rootContext()
-    mf, runner, system, wifi = Manifest(tools), Runner(tools), System(), Wifi()
+    mf, runner, system, wifi, settings = Manifest(tools), Runner(tools), System(), Wifi(), Settings()
     ctx.setContextProperty("manifest", mf)
     ctx.setContextProperty("runner", runner)
     ctx.setContextProperty("system", system)
     ctx.setContextProperty("wifi", wifi)
+    ctx.setContextProperty("settings", settings)
+    sysmon = SysMonitor()
+    ctx.setContextProperty("sysmon", sysmon)
     ctx.setContextProperty("demoTool", demo_tool() or "")
     ctx.setContextProperty("demoWifi", bool(os.environ.get("BACKPACK_DEMO_WIFI")))
+    ctx.setContextProperty("demoSettings", bool(os.environ.get("BACKPACK_DEMO_SETTINGS")))
+    ctx.setContextProperty("demoSection", os.environ.get("BACKPACK_DEMO_SECTION", ""))
+    ctx.setContextProperty("demoMonitor", bool(os.environ.get("BACKPACK_DEMO_MONITOR")))
+    ctx.setContextProperty("demoAsk", os.environ.get("BACKPACK_DEMO_ASK", ""))   # reboot|poweroff|cli
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():

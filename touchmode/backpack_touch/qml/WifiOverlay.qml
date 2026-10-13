@@ -2,18 +2,29 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Wi-Fi discovery + connect overlay (NetworkManager via nmcli in the backend).
-Rectangle {
+// Wi-Fi discovery + connect sheet (NetworkManager via nmcli in the backend).
+Sheet {
     id: overlay
     property string selectedSsid: ""
     property bool selectedSecured: false
     property string selectedSecurity: ""
     property string lastMessage: ""
-    signal closed()
-    color: "#c0000000"
-    MouseArea { anchors.fill: parent; onClicked: overlay.closed() }
+    property bool showPw: false
+    // read through guards: the backend object goes away before the QML tree at shutdown
+    readonly property bool busy: wifi ? wifi.busy : false
+    readonly property string status: wifi ? wifi.status : ""
+    readonly property bool hasDevice: wifi ? wifi.hasDevice : false
+    readonly property var networks: wifi ? wifi.networks : []
+    readonly property string device: wifi ? wifi.device : ""
+    // nmcli cannot build an 802.1X profile from the connect command: Connect is disabled and says why
+    readonly property bool enterprise: selectedSecurity.indexOf("802.1X") >= 0
+    // an SSID as the shell would need it, for the command lines under the buttons
+    function quoted(s) { return /^[A-Za-z0-9_.:@-]+$/.test(s) ? s : "'" + s.replace(/'/g, "'\\''") + "'" }
+    title: "Wi-Fi"
+    facts: overlay.busy ? "SCANNING" : (overlay.status.indexOf("Connected") === 0 ? "CONNECTED" : (overlay.hasDevice ? "NOT CONNECTED" : "NO ADAPTER"))
+    sheetWidth: Theme.s(760)
 
-    // The overlay is created hidden at startup, often before NetworkManager has the adapter up,
+    // The sheet is created hidden at startup, often before NetworkManager has the adapter up,
     // so scan each time it is opened rather than once at creation.
     onVisibleChanged: if (visible) wifi.scan()
     Connections {
@@ -21,112 +32,126 @@ Rectangle {
         function onMessage(m) { overlay.lastMessage = m }
     }
 
-    Rectangle {
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 40, 760)
-        height: Math.min(parent.height - 40, 640)
-        radius: 16
-        color: Theme.panel; border.color: Theme.border
-        MouseArea { anchors.fill: parent }   // swallow clicks
+    Text {
+        Layout.fillWidth: true
+        text: overlay.status
+        color: overlay.status.indexOf("Connected") === 0 ? Theme.accent : Theme.muted
+        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
+    }
 
-        ColumnLayout {
-            anchors.fill: parent; anchors.margins: 18; spacing: 10
+    ListView {
+        id: list
+        Layout.fillWidth: true
+        Layout.preferredHeight: Theme.s(300)
+        clip: true
+        model: overlay.networks
+        spacing: Theme.space2
+        ScrollBar.vertical: BpScrollBar {}
+        delegate: Item {
+            id: row
+            required property var modelData
+            readonly property bool on: overlay.selectedSsid === modelData.ssid
+            width: list.width - Theme.s(24)
+            height: Theme.touch
+            Chamfer {
+                anchors.fill: parent
+                cut: Theme.cutSm
+                color: Theme.panelAlt
+                borderColor: row.on ? Theme.accent : Theme.borderStrong
+                borderWidth: row.on ? 2 : 1
+            }
             RowLayout {
-                Layout.fillWidth: true
-                Image { source: "../icons/wifi.png"; width: 32; height: 32; sourceSize.width: 96; sourceSize.height: 96 }
-                Text { text: "Wi-Fi"; color: Theme.text; font.pixelSize: 26; font.bold: true }
-                Item { Layout.fillWidth: true }
-                TouchButton { text: wifi.busy ? "Scanning…" : "Rescan"; enabled: !wifi.busy; onClicked: wifi.scan() }
-                TouchButton { text: "Close"; onClicked: overlay.closed() }
-            }
-            Text {
-                Layout.fillWidth: true
-                text: wifi.status
-                color: wifi.status.indexOf("Connected") === 0 ? Theme.accent : Theme.muted
-                font.pixelSize: Theme.fontSize; elide: Text.ElideRight
-            }
-
-            ListView {
-                id: list
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                model: wifi.networks
-                spacing: 6
-                ScrollBar.vertical: ScrollBar { width: 18 }
-                delegate: Rectangle {
-                    required property var modelData
-                    width: list.width - 24
-                    height: 62
-                    radius: 10
-                    color: overlay.selectedSsid === modelData.ssid ? Qt.darker(Theme.accent, 2.2) : Theme.panelAlt
-                    border.color: overlay.selectedSsid === modelData.ssid ? Theme.accent : Theme.border
-                    RowLayout {
-                        anchors.fill: parent; anchors.margins: 12; spacing: 12
-                        // signal bars
-                        Row {
-                            spacing: 3
-                            Repeater {
-                                model: 4
-                                Rectangle {
-                                    required property int index
-                                    width: 7; height: 10 + index * 7
-                                    anchors.bottom: parent.bottom
-                                    radius: 2
-                                    color: modelData.signal >= (index + 1) * 22 ? Theme.accent : Theme.border
-                                }
-                            }
-                        }
-                        Text { text: modelData.ssid; color: Theme.text; font.pixelSize: Theme.fontSize; Layout.fillWidth: true; elide: Text.ElideRight }
-                        Text { text: modelData.inUse ? "connected" : ""; color: Theme.accent; font.pixelSize: Theme.smallFont }
-                        Text { text: modelData.secured ? "🔒 " + modelData.security : "open"; color: Theme.muted; font.pixelSize: Theme.smallFont }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: { overlay.selectedSsid = modelData.ssid; overlay.selectedSecured = modelData.secured; overlay.selectedSecurity = modelData.security; pw.text = "" }
-                    }
+                anchors.fill: parent; anchors.margins: Theme.space3; spacing: Theme.space3
+                Text {   // signal strength in words (micro), as the design asks outside the top bar
+                    text: row.modelData.signal + "%"; color: row.modelData.signal >= 50 ? Theme.accent : Theme.muted
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                    Layout.preferredWidth: Theme.s(44); horizontalAlignment: Text.AlignRight
                 }
+                Text { text: row.modelData.ssid; color: Theme.text; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; Layout.fillWidth: true; elide: Text.ElideRight }
                 Text {
-                    anchors.centerIn: parent
-                    visible: list.count === 0
-                    text: wifi.busy ? "Scanning for networks…" : (wifi.hasDevice ? "No networks found" : "No Wi-Fi adapter detected")
-                    color: Theme.muted; font.pixelSize: Theme.fontSize
+                    visible: row.modelData.inUse
+                    text: "CONNECTED"; color: Theme.accent
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                }
+                Text {   // the security in words, never a lock glyph
+                    text: row.modelData.secured ? row.modelData.security : "OPEN"; color: Theme.muted
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                    font.capitalization: Font.AllUppercase
                 }
             }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-                visible: overlay.selectedSsid !== ""
-                Text { text: overlay.selectedSsid; color: Theme.text; font.pixelSize: Theme.fontSize; elide: Text.ElideRight; Layout.maximumWidth: 200 }
-                Rectangle {
-                    Layout.fillWidth: true; Layout.preferredHeight: Theme.touch
-                    radius: 8; color: Theme.panelAlt; border.color: Theme.border
-                    visible: overlay.selectedSecured
-                    TextInput {
-                        id: pw
-                        anchors.fill: parent; anchors.margins: 12
-                        color: Theme.text; font.pixelSize: Theme.fontSize
-                        echoMode: showPw.checked ? TextInput.Normal : TextInput.Password
-                        verticalAlignment: TextInput.AlignVCenter
-                        clip: true
-                        onActiveFocusChanged: if (activeFocus) system.showKeyboard()
-                        Text { visible: !pw.text && !pw.activeFocus; text: "password"; color: Theme.muted; font.pixelSize: Theme.fontSize; anchors.verticalCenter: parent.verticalCenter }
-                    }
-                }
-                CheckBox { id: showPw; visible: overlay.selectedSecured; text: "show"; font.pixelSize: Theme.smallFont; contentItem: Text { text: showPw.text; color: Theme.muted; leftPadding: showPw.indicator.width + 6; verticalAlignment: Text.AlignVCenter; font.pixelSize: Theme.smallFont } }
-                TouchButton {
-                    text: "Connect"; color: Theme.accent; textColor: Theme.bg
-                    enabled: !wifi.busy && (!overlay.selectedSecured || pw.text.length > 0)
-                    onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text, overlay.selectedSecurity) }
-                }
-                TouchButton { text: "Forget"; visible: overlay.selectedSsid !== ""; onClicked: wifi.forget(overlay.selectedSsid) }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                Text { Layout.fillWidth: true; text: overlay.lastMessage; color: Theme.warn; font.pixelSize: Theme.smallFont; elide: Text.ElideRight }
-                TouchButton { text: "Disconnect"; visible: wifi.status.indexOf("Connected") === 0; onClicked: wifi.disconnect() }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: { overlay.selectedSsid = row.modelData.ssid; overlay.selectedSecured = row.modelData.secured; overlay.selectedSecurity = row.modelData.security; pw.text = "" }
             }
         }
+        Text {
+            anchors.centerIn: parent
+            visible: list.count === 0
+            text: overlay.busy ? "Scanning for networks…" : (overlay.hasDevice ? "No networks found" : "No Wi-Fi adapter detected")
+            color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize
+        }
+    }
+
+    RowLayout {   // connect to the selected network
+        Layout.fillWidth: true
+        spacing: Theme.gap
+        visible: overlay.selectedSsid !== ""
+        Text { text: overlay.selectedSsid; color: Theme.text; font.family: Theme.fontSans; font.pixelSize: Theme.fontSize; elide: Text.ElideRight; Layout.maximumWidth: Theme.s(200) }
+        Chamfer {
+            Layout.fillWidth: true; Layout.preferredHeight: Theme.touch
+            visible: overlay.selectedSecured
+            cut: Theme.cutSm; color: Theme.panelAlt
+            borderColor: pw.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: pw.activeFocus ? 2 : 1
+            TextInput {
+                id: pw
+                anchors.fill: parent; anchors.margins: Theme.space3
+                color: Theme.text; font.family: Theme.fontMono; font.pixelSize: Theme.fontSize
+                echoMode: overlay.showPw ? TextInput.Normal : TextInput.Password
+                verticalAlignment: TextInput.AlignVCenter
+                clip: true
+                onActiveFocusChanged: if (activeFocus) system.showKeyboard()
+                Text { visible: !pw.text && !pw.activeFocus; text: "password"; color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: Theme.fontSize; anchors.verticalCenter: parent.verticalCenter }
+            }
+        }
+        TouchButton {
+            visible: overlay.selectedSecured
+            text: overlay.showPw ? "Hide" : "Show"; selected: overlay.showPw
+            textColor: overlay.showPw ? Theme.accent : Theme.text; borderColor: overlay.showPw ? Theme.accent : Theme.borderStrong
+            onClicked: overlay.showPw = !overlay.showPw
+        }
+        TouchButton {
+            text: "Connect"; color: Theme.accent; textColor: Theme.inkOnAccent
+            // the password is shown as dots once typed, never in clear
+            command: "nmcli dev wifi connect " + overlay.quoted(overlay.selectedSsid)
+                     + (overlay.selectedSecured ? (pw.text.length > 0 ? " password " + "\u2022".repeat(Math.min(12, pw.text.length)) : " password <password>") : "")
+            enabled: !overlay.busy && (!overlay.selectedSecured || pw.text.length > 0) && !overlay.enterprise
+            onClicked: { system.hideKeyboard(); wifi.connectTo(overlay.selectedSsid, pw.text, overlay.selectedSecurity) }
+        }
+        TouchButton {
+            text: "Forget"; command: "nmcli con delete id " + overlay.quoted(overlay.selectedSsid)
+            textColor: Theme.danger; borderColor: Theme.danger; onClicked: wifi.forget(overlay.selectedSsid)
+        }
+    }
+    Text {
+        Layout.fillWidth: true
+        visible: overlay.lastMessage !== "" || overlay.enterprise
+        text: overlay.enterprise ? "Enterprise (802.1X) networks need a profile made in the terminal: nmtui" : overlay.lastMessage; color: Theme.warn
+        font.family: Theme.fontSans; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
+    }
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: Theme.space4
+        spacing: Theme.gap
+        TouchButton {
+            text: "Disconnect"; command: "nmcli dev disconnect " + (overlay.device !== "" ? overlay.device : "<device>")
+            visible: overlay.status.indexOf("Connected") === 0; onClicked: wifi.disconnect()
+        }
+        TouchButton {
+            text: overlay.busy ? "Scanning…" : "Rescan"; command: "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY dev wifi list --rescan yes"
+            commandMaxWidth: Theme.s(470)   // the whole line fits the sheet
+            enabled: !overlay.busy; onClicked: wifi.scan()
+        }
+        Item { Layout.fillWidth: true }
+        TouchButton { text: "Close"; onClicked: overlay.closed() }
     }
 }

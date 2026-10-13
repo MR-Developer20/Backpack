@@ -5,8 +5,12 @@ build spec with the fixed decisions is `docs/SPEC.md`. User-facing docs: `README
 
 ## Decisions (fixed)
 - Debian trixie amd64, `live-build`, zstd squashfs, `--apt-recommends false`, no installer.
-- Desktop: LXQt + LightDM (X11). Touch Mode: PySide6/QML under sway (Wayland), `foot` terminal.
-- Boot entries: Terminal / Desktop / Touch Mode, each also as `toram`. Touch = `backpack.ui=touch`.
+- Two modes. **GUI Mode** (default): PySide6/QML tile launcher under sway (Wayland) in a LightDM
+  autologin session, `foot` terminal. **CLI Mode**: `systemd.unit=multi-user.target`, no display server.
+  The LXQt/X11 "Desktop" mode was removed (no xserver-xorg; GUI tools run via xwayland).
+- Boot entries: GUI Mode / CLI Mode, each also as `toram`. GUI = `backpack.ui=touch` (the kernel
+  param, the `backpack-touch` deb, the `backpack-touch` session and `touchmode/` keep the old
+  internal "touch" name; only the user-facing label changed).
 - Persistence: 5 GB ext4 labelled `persistence`, targeted dirs `/home /var/lib/backpack /etc/NetworkManager`.
 - Upstream: Kismet apt repo (trixie suite exists), Angry IP Scanner `.deb` 3.10.0 + `openjdk-21-jre`.
 
@@ -26,7 +30,7 @@ scripts/fetch-upstream.sh      upstream .debs → live/config/packages.chroot, k
 scripts/test-qemu.sh           boot ISO in QEMU (BIOS/UEFI/direct-kernel), waits for selftest marker
 scripts/mkusb.sh               write USB or test image + persistence partition
 live/auto/{config,build,clean} live-build config
-touchmode/                     PySide6/QML Touch Mode app + sway config + session files (phase 4)
+touchmode/                     PySide6/QML GUI Mode app + sway config + session files (phase 4)
 scripts/build-touchmode-deb.sh dpkg-deb -> live/config/packages.chroot/backpack-touch_*.deb (run by make build)
 build/                         ignored: ISO, logs, cache, test images
 ```
@@ -63,7 +67,7 @@ make release
   serial log `build/logs/serial-<tag>.log`, screenshots `build/shots/<tag>.png`. Selftest unit
   (`backpack-selftest`, VM-only, writes to ttyS0) prints BOOTTIME / TOOLS / MISSING / PERSIST-MARKER-*.
 - `--apt-recommends false` drops live-config's Recommends: **`user-setup` is required** or the
-  live user is never created (LightDM then shows a greeter, nothing autologs in). base.list.chroot
+  live user is never created (LightDM then tries the greeter, nothing autologs in). base.list.chroot
   lists it explicitly. Debug a running VM without rebuilding: `scripts/test-qemu.sh --keep-alive 150`
   in the background, then `scripts/qemu-type.sh 'cmd > /dev/ttyS0\n'` (switch tty with
   `echo "sendkey ctrl-alt-f2" | socat - UNIX-CONNECT:build/qemu-mon.sock`).
@@ -71,7 +75,7 @@ make release
   adds p3. Image mode formats via `mkfs.ext4 -E offset=... -d <dir>` so no root/loop needed.
   live-boot finds the `persistence`-labelled partition on any disk, including with `toram`.
   `scripts/test-persist.sh` = 6 boots (bios/uefi x normal,normal,toram) on a fresh image.
-- (phase 4) Touch Mode = `backpack-touch` deb: python package in /usr/lib/python3/dist-packages,
+- (phase 4) GUI Mode (was "Touch Mode") = `backpack-touch` deb: python package in /usr/lib/python3/dist-packages,
   `/usr/bin/backpack-touch-session` (sway -c /etc/backpack/sway.config), wayland-sessions
   entry `backpack-touch`, unit `backpack-ui.service` (ConditionKernelCommandLine
   backpack.ui=touch) writes lightdm.conf.d/60-backpack-touch.conf before lightdm starts.
@@ -92,9 +96,10 @@ make release
     Hardware tablet taps via the monitor are flaky under nested virt; not a product defect —
     libinput enumerates the touch device under sway, so real touchscreens deliver events.
   * `scripts/qemu-shot.sh NAME` screendumps to build/shots/NAME.png.
-- (phase 5) Branding + splash: assets generated in branding/ by tools/assets/gen-branding.sh (ImageMagick via backpack-edex),
-  staged into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png + LXQt skel,
-  greeter bg via lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd). Boot menus branded:
+- (phase 5) Branding + splash: tools/assets/gen-branding.sh (ImageMagick + python3, run from the repo root) writes the
+  Backpack Field Terminal wallpaper (JetBrains Mono, dragon curve from tools/assets/dragon.py) and plymouth art straight
+  into includes.chroot (wallpaper -> /usr/share/backgrounds/backpack.png, greeter bg via
+  lightdm-gtk-greeter.conf.d, /etc/issue + /etc/motd; the LXQt skel went with Desktop mode). Boot menus branded:
   syslinux stdmenu.cfg colors + splash.png + "Backpack Live" title; GRUB background_image.
   Plymouth theme "backpack" (script module, splash.png) set in hook 0300 + update-initramfs.
   Plymouth cost: +74 MiB (plymouth-label pulls pango/cairo/fonts) but **no boot-time regression**
@@ -116,6 +121,13 @@ make release
   For Ventoy use (memdisk mode); does NOT fix Ventoy normal/grub2 mode (that is the Ventoy GRUB
   vs trixie-kernel issue). Verified: boot structure identical to the source ISO; BIOS boot runs.
 
+- (modes) Desktop (LXQt) mode removed; "Terminal" -> "CLI Mode", "Touch Mode" -> "GUI Mode".
+  `desktop.list.chroot` is gone; `gui.list.chroot` (was touch.list.chroot) carries sway/Qt/foot plus
+  `lightdm` + `lightdm-gtk-greeter` (lightdm Depends on a greeter; it never shows with autologin).
+  lightdm.conf.d/50-backpack.conf autologs straight into `backpack-touch`; `backpack-ui.service`
+  still writes 60-backpack-touch.conf on `backpack.ui=touch` (harmless duplicate, keeps selftest
+  TOUCH-CONF + `backpack.demo=` working). Selftest prints GUI-SESSION instead of DESKTOP-SESSION.
+  Not rebuilt/booted in this change: verify with `make clean build && make test-bios test-touch`.
 - (ventoy SOLUTION) `make ventoy` (scripts/make-ventoy-iso.sh) now produces build/ventoy-dist/:
   the persistence-stripped ISO + `ventoy/ventoy.json` with Ventoy's **auto_memdisk** plugin
   (`{"auto_memdisk":["/backpack-ventoy.iso"]}`) + README-VENTOY.txt. The user copies BOTH to
@@ -126,9 +138,10 @@ make release
   guest RAM for a 1 GB ISO-to-RAM load (fine on real HW; this host's ~3 GB free is marginal).
   Ventoy repro tooling: tools/ventoy/ (make-ventoy-usb.sh, add-auto-memdisk-json.sh, loopback-emul.sh).
 
-- (touch mode v2) Top bar is responsive: `compact` (width < 1100) collapses the tool buttons to
-  icon-only (icons in touchmode/backpack_touch/icons/, generated by tools/assets/gen-icons.sh; the
-  eDEX one is the vendored project's 128x128 icon); Reboot/Shutdown are always icon-only; the
+- (touch mode v2) Top bar is responsive: `compact` (now measured, see "command lines on buttons") collapses the tool buttons to
+  icon-only (the top-bar icons are vector glyphs in touchmode/backpack_touch/qml/Icon.qml:
+  QtQuick.Shapes, 24-unit SVG paths scaled in JS with pixel snapping, named via TouchButton's `icon.name`;
+  no PNGs are shipped); Reboot/Shutdown are always icon-only; the
   "Touch Mode" subtitle needs >= 1400 px. `portrait` (height > width) stacks tiles over the tool
   pane (GridLayout columns 1) and makes Split use `splitv` (terminal BELOW) instead of `splith`.
   Split is single-instance: foot is launched with `--app-id backpack-split`; System polls
@@ -161,8 +174,111 @@ make release
   BELOW (800x640 each); copy-to-RAM shows the plymouth bar (frames at 64% and 100%).
   Don't put `pkill ... qemu-system` at the top of a Bash call that also starts a VM: its non-zero
   exit (no process) or the kill aborts the rest of the call. Kill in a separate call.
+- (gui tabs + settings) Manifest categories are grouped into GUI tabs by `SECTIONS` in
+  touchmode/backpack_touch/manifest.py: Network = the six network categories, Data = `disks`,
+  `recovery`, `files`, `transfer` (also listed in scripts/gen-package-list.py CATEGORIES). Reboot/
+  Shutdown moved from the top bar into SettingsSheet.qml (gear button). Settings QObject
+  (settings.py): `uiScale` 0.75–1.6 saved to ~/.config/backpack/gui.json and bound to
+  `Theme.scale`; every size in QML comes from Theme (`Theme.s(px)`), and `compact` triggers at
+  `width < Theme.s(1100)`. **Load to RAM** = `sudo -n python3 -m backpack_touch.toram run`: copies
+  the squashfs behind live-boot's read-only loop device into a tmpfs at /run/backpack-ram, swaps the
+  loop's backing file with the LOOP_CHANGE_FD ioctl (same size + RO loop required), then unmounts
+  /run/live/medium; a persistence partition on the stick keeps it busy (message says so). Verified
+  with a real squashfs loop mount in a container (data intact after deleting the original file);
+  not yet run on a booted ISO. `toram status` (JSON) works unprivileged; with boot-time `toram`
+  the image already sits on tmpfs, so the button reads "Running from RAM". **Switch to CLI Mode**
+  = `sudo -n sh -c 'systemctl isolate multi-user.target && chvt 1'` (untested on the ISO).
+  Test hooks: BACKPACK_UI_SCALE, BACKPACK_DEMO_SETTINGS=1, BACKPACK_DEMO_SECTION=data.
+- (system monitor) sysmon.py SysMonitor samples /proc/stat + /proc/meminfo every 1 s (60-sample
+  history) for UsageMeter.qml (top bar, hidden below Theme.s(720) wide) and SysMonitorSheet.qml
+  (UsageGraph.qml Canvas graphs). CPU model/cores from /proc/cpuinfo; RAM modules from
+  `sudo -n dmidecode -t 17` (dmidecode added to gui.list.chroot + deb Depends), parsed by
+  parse_dmidecode_memory (empty slots skipped). Adding the meter moved `compact` to
+  width < Theme.s(1400). Test hook: BACKPACK_DEMO_MONITOR=1.
+- (extra tab) The eDEX top-bar button is gone; eDEX-UI is the `edex-ui` manifest tool in category
+  `extra` (Extra tab; app tiles show only an Open button, no form or output), marked `optional: true` with `packages: []`: manifest.load() drops optional
+  tools whose command is missing (so the tab disappears without the deb) and `--print-cmds` /
+  check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
+  like the terminal buttons.
+- (backpack field terminal look) GUI Mode is styled after Marc's "Backpack Field Terminal" design
+  system (https://claude.ai/artifact/QBvYFJMqGGPx2XKYYL6tm2; the other "Field Terminal" system
+  and a Settings switch between looks were dropped at his request). Theme.qml holds its tokens:
+  void/hull/acid/cyan/amber/signal palette, one font (JetBrains Mono, `fonts-jetbrains-mono`),
+  `accent` follows `Theme.section` (acid in Network/Extra, cyan in Data). Chamfer.qml (QtQuick.Shapes,
+  `qml6-module-qtquick-shapes`) draws the cut top-right/bottom-left corners for panels, tiles,
+  buttons and fields (cutSm/cutMd/cutLg) with `Shape.CurveRenderer` (Qt >= 6.6; analytic AA, no
+  layer texture: a layer over a fractional-width item gets stretched sub-pixel and blurs the right
+  edge) and snaps its size to whole pixels; text-sized buttons/chips/tabs ceil() their widths and
+  the sheets round their centred position so every 1px border lands on one pixel. Verify with a
+  pixel scan of offscreen screenshots: all 1px box edges must be exact token colours. Icons and the
+  empty-state dragon are vector (Icon.qml / EmptyState.qml Shapes), and the section-tab micro strip
+  is always visible (no `compact` condition). Section tabs are label + `SEC.NN // count` strip with an
+  underline; chips 48px; tile meta strip = N ACTIONS / GUI / ROOT // TTY; empty tool pane =
+  EmptyState.qml (24px scan grid + dragon curve). Buttons: TouchButton filled when `color` is not
+  panelAlt; outline variants via `borderColor` + `textColor` (Stop/Reboot/Shut down = signal,
+  CLI Mode = amber); `selected: true` = the design's 2px accent border (toggled chips, Split,
+  Keyboard, the gear while Settings is open, the selected tile and Wi-Fi row; a focused text field
+  likewise); keyboard focus = 2px acid ring 2px outside. One filled primary per view (Run / Connect /
+  Load to RAM / Open); command and choice chips are outline-selected. UI size range 0.75–1.6, the
+  slider applies live. Sheets (Settings, System monitor, Wi-Fi) share Sheet.qml (scrim over the whole
+  window via `parent: Overlay.overlay`, hull panel cut-lg padded space-6, title + micro facts strip,
+  scrolls with BpScrollBar placed in the right padding) and SheetHeading.qml (uppercase label +
+  hairline). Reboot / Shut down / Switch to CLI Mode confirm inside the sheet (`ask` state; the confirm
+  button is signal-filled, the consequence is spelled out); no separate dialog. Status line under the
+  tool pane is a micro uppercase strip (LAUNCHED / RUNNING / EXIT n / ERROR // …). BpScrollBar.qml =
+  square 6px handle, hidden unless the content scrolls. Top bar drops the wordmark below width
+  Theme.s(960) and the meter below Theme.s(880). Theme property names must not start with `on` +
+  capital (QML reads them as signal handlers): hence `inkOnAccent` / `inkOnDanger`. Test hook:
+  BACKPACK_DEMO_ASK=reboot|poweroff|cli (with BACKPACK_DEMO_SETTINGS=1) opens a confirm state.
+- (command lines on buttons) Design rule: every button that runs a command shows it under its label in
+  `command` type (Theme.commandFont = 12px mono, regular, letter-spacing 0, never uppercased; ink-muted
+  on a plain button, the label colour at 75% on a filled one, 0.8 on an outline one); buttons that only
+  change the screen (tabs, category chips, Close, Cancel, Settings, Wi-Fi) show none. TouchButton has
+  `command` (+ `commandMaxWidth`, elided) and `fullWidth` (its width with label + command); Chip.qml is
+  the design's 48px chip (uppercase `label` over the command, left-aligned, 2px accent border when
+  selected) used for the action chips and the choice chips of a form. One source of truth per line:
+  manifest.preview(cmd, values[, placeholders]) builds the display string the way build_argv builds
+  argv (same `sudo -n` euid rule, shell quoting, `<name>` for an empty required field, every value a
+  `<name>` slot with placeholders=True = the chip's `template`); runner.commandLine() returns it and
+  Main.updateRunLine() re-runs it on ToolForm.changed / chip / tool change; the Run row echoes it as
+  `$ …` (phosphor) beside the micro status strip (LAUNCHED also for gui/tty tools, which now emit
+  `started`); Stop shows `kill -TERM <pid>` with runner.pid. Settings: Load to RAM = settings.ramCommand,
+  Switch to CLI Mode = settings.cliCommand (`[sudo -n ]backpack-cli-mode`, a 2-line sh script in
+  touchmode/bin shipped by the deb: `systemctl isolate multi-user.target && chvt 1`), Reboot/Shut down =
+  system.rebootCommand/poweroffCommand (`[sudo -n ]systemctl reboot|poweroff`; the live user has
+  passwordless sudo) and the Python runs exactly those strings. Wi-Fi: real nmcli lines (Rescan shows
+  the `-t -f …` scan line), SSID shell-quoted (WifiOverlay.quoted), password as dots once typed,
+  `<device>` placeholder; Connect is disabled with a message on 802.1X networks. Top bar: Terminal/Split/
+  Keyboard show `foot --app-id …` / `pkill -f backpack-split` (Exit split now kills foot that way) /
+  `pkill -USR1|USR2 -x wvkbd-mobintl` (the `swaymsg fullscreen disable; swaymsg exec` plumbing around
+  foot is not shown); toggling buttons give TouchButton `altText`/`altCommand` so `fullWidth` is the
+  wider state and the bar never re-tiers on a toggle. Form labels come
+  from the manifest's optional arg `label` (`Ping only` for -sn; default = name with `_` as spaces);
+  the flag switch is touch-tall with a chamfered track and shows its flag in command type.
+  The top bar is MEASURED, not thresholded (Main.qml): tiers barMeterOnly < barWordmark < barLabels <
+  barSettings < barMeter are sums of implicit widths that do not depend on the tier chosen (no binding
+  loop): tabs (an Item wrapping a Row + Repeater) + five icon buttons + the compact meter; + the whole
+  "BACKPACK//LIVE" wordmark (TextMetrics; it is never shortened, only dropped); + the four tool buttons'
+  `fullWidth` (`compact` = width < barLabels, ~1902px at 1.0x: 1920x1080 shows the commands); + the
+  Settings label; + the meter's percentages. Settings sheet is acid whatever the section; `extra`'s cat
+  colour is acid (tokens.json has no cat-extra); meter/graph numbers are micro, the graph has no area
+  fill; wrapped small text uses lineHeight Theme.smallLine (21px). The form Flickable (capped at 40% of
+  the pane) has a BpScrollBar. Verified offscreen at 1024, 1280, 1800, 1920, 2048, 2200, 2560,
+  portrait 800x1280 and 0.75/1.3/1.6x (logs clean, pixel scan clean). Offscreen gotcha: the
+  `offscreen` platform uses the SOFTWARE scenegraph, where a Shape (Chamfer) inside a clipped
+  Flickable is NOT clipped (a Rectangle is): a form row cut by the 40% cap shows through the Run
+  row in screenshots (rsync at 1280x800). Not a product defect (the ISO renders with the RHI
+  backend); check such artefacts in QEMU before chasing them.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not
   self-contained: it uses the host's python3-gi/GTK 4. Its AppRun copies the scripts out of the
   AppImage mount before running, because pkexec'd root cannot read a user FUSE mount.
+- (boot menu, Backpack Field Terminal) BIOS + UEFI menus restyled to the GUI Mode look "Backpack Field Terminal"
+  (JetBrains Mono, acid/cyan, chamfered corners). Art is generated by `tools/assets/gen-bootmenu.sh` (ImageMagick +
+  grub-mkfont; OFL JetBrains Mono in tools/assets/fonts/): syslinux 640x480 splash.png + stdmenu.cfg colours, and a GRUB theme in
+  bootloaders/grub-pc/backpack/ (background, select_*.png 9-slice, text-*.pf2). GRUB reads only 8-bit RGB(A)
+  PNGs (no palette, no 16-bit: a 16-bit background shows colour fringes; write PNG24:/PNG32:), GRUB script has no `&&` (loadfont takes several files), font refs in
+  theme.txt are "<-n name> Regular <size>". The progress_bar keeps ~28px height whatever `height` says.
+  vesamenu item text is always the VGA bitmap font. Verified in QEMU with stand-in ISOs only (isolinux
+  BIOS, grub-mkrescue + OVMF); not yet in a real `make build` (check grub-pc/backpack/ lands in /boot/grub).

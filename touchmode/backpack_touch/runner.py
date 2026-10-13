@@ -15,6 +15,7 @@ KEYBOARD_PROC = "wvkbd-mobintl"
 class Runner(QObject):
     output = Signal(str)
     started = Signal(str)
+    launched = Signal(str)   # a GUI/terminal tool was started detached: the line for the pane + LAUNCHED
     finished = Signal(int)
     runningChanged = Signal()
     error = Signal(str)
@@ -28,11 +29,16 @@ class Runner(QObject):
     def running(self):
         return self._proc is not None and self._proc.state() != QProcess.NotRunning
 
+    @Property(int, notify=runningChanged)
+    def pid(self):
+        """The running tool's pid (0 when idle), so Stop can show `kill -TERM <pid>`."""
+        return int(self._proc.processId()) if self.running else 0
+
     @Slot(str, int, "QVariantMap", result=str)
     def commandLine(self, tool_id, cmd_index, values):
+        """The line run() would execute as the form stands, with `<name>` for an empty required field."""
         cmd = self._tools[tool_id]["commands"][cmd_index]
-        argv, err = manifest.build_argv(cmd, dict(values))
-        return err and f"error: {err}" or manifest.display(argv)
+        return manifest.preview(cmd, dict(values))
 
     @Slot(str, int, "QVariantMap")
     def run(self, tool_id, cmd_index, values):
@@ -43,15 +49,18 @@ class Runner(QObject):
             self.error.emit(err)
             return
         if tool["gui"]:
-            QProcess.startDetached(argv[0], argv[1:])
-            self.output.emit(f"launched {manifest.display(argv)}\n")
+            # like openTerminal: leave fullscreen first or the app opens behind the launcher
+            self.started.emit(manifest.display(argv))
+            QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec " + shlex.join(argv)])
+            self.launched.emit(f"launched {manifest.display(argv)}")
             return
         if cmd["tty"]:
             script = manifest.display(argv) + '; echo; echo "[press Enter to close]"; read _'
             # like openTerminal/toggleSplit: leave fullscreen first or foot opens behind the launcher
+            self.started.emit(manifest.display(argv))
             QProcess.startDetached("sh", ["-c", "swaymsg fullscreen disable; exec "
                                           + shlex.join([TERMINAL, "sh", "-c", script])])
-            self.output.emit(f"opened in terminal: {manifest.display(argv)}\n")
+            self.launched.emit(f"opened in terminal: {manifest.display(argv)}")
             return
         self.stop()
         p = QProcess(self)
@@ -66,6 +75,7 @@ class Runner(QObject):
                 self._proc = None
                 self.runningChanged.emit()
         p.errorOccurred.connect(_error)
+        p.started.connect(self.runningChanged.emit)   # the pid is known only once it has started
         p.setProgram(argv[0])
         p.setArguments(argv[1:])
         self._proc = p
@@ -142,7 +152,8 @@ class System(QObject):
     @Slot(bool)
     def toggleSplit(self, portrait):
         if self._split:
-            QProcess.startDetached("swaymsg", [f"[app_id={SPLIT_APP_ID}] kill"])
+            # shown as `pkill -f backpack-split` under Exit split; the only process with that app id
+            QProcess.startDetached("pkill", ["-f", SPLIT_APP_ID])
             self._split = False
             self.splitActiveChanged.emit()
             return
@@ -167,23 +178,28 @@ class System(QObject):
     def toggleKeyboard(self):
         self.hideKeyboard() if self._kbd else self.showKeyboard()
 
-    @Slot(result=bool)
-    def edexAvailable(self):
-        import shutil
-        return shutil.which("edex-ui") is not None
+    # Power: one string each, shown under the button and executed as shown. The live user has
+    # passwordless sudo (live-config), so `sudo -n` is the command when not root.
+    @Property(str, constant=True)
+    def poweroffCommand(self):
+        return _as_root("systemctl poweroff")
 
-    @Slot()
-    def launchEdex(self):
-        QProcess.startDetached("sh", ["-c",
-            "swaymsg fullscreen disable; swaymsg exec 'edex-ui --no-sandbox'"])
+    @Property(str, constant=True)
+    def rebootCommand(self):
+        return _as_root("systemctl reboot")
 
     @Slot()
     def poweroff(self):
-        QProcess.startDetached("sh", ["-c", "systemctl poweroff || sudo -n systemctl poweroff"])
+        QProcess.startDetached("sh", ["-c", self.poweroffCommand])
 
     @Slot()
     def reboot(self):
-        QProcess.startDetached("sh", ["-c", "systemctl reboot || sudo -n systemctl reboot"])
+        QProcess.startDetached("sh", ["-c", self.rebootCommand])
+
+
+def _as_root(command):
+    """`command` as this process would have to run it to be root: itself, or behind `sudo -n`."""
+    return command if os.geteuid() == 0 else "sudo -n " + command
 
 
 def _nmcli_fields(line):
@@ -235,6 +251,10 @@ class Wifi(QObject):
     @Property(bool, notify=statusChanged)
     def hasDevice(self):
         return bool(self._device)
+
+    @Property(str, notify=statusChanged)
+    def device(self):
+        return self._device
 
     def _run(self, args, done):
         p = QProcess(self)

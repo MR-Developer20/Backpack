@@ -1,16 +1,16 @@
 import QtQuick
 import QtQuick.Controls
 
-Rectangle {
+Chamfer {
     id: pane
     property alias text: area.text
-    radius: 10
-    color: "#0a0e12"
-    border.color: Theme.border
+    cut: Theme.cutMd
+    color: Theme.outputBg
+    borderColor: Theme.border
 
     function append(s) {
         area.text += s
-        if (area.text.length > 200000) area.text = area.text.slice(-150000)
+        if (area.text.length > 150000) area.text = area.text.slice(-150000)   // keeps the last 150,000 characters
         flick.contentY = Math.max(0, area.height - flick.height)
     }
     function clear() { area.text = "" }
@@ -18,21 +18,21 @@ Rectangle {
     Flickable {
         id: flick
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: Theme.space3
         contentHeight: area.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         TextEdit {
             id: area
-            width: flick.width
+            width: flick.width - (sb.visible ? sb.width : 0)
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.WrapAnywhere
-            color: "#cfe3d8"
-            font.family: "DejaVu Sans Mono"
+            color: Theme.outputInk
+            font.family: Theme.fontMono
             font.pixelSize: Theme.smallFont
             text: ""
         }
-        ScrollBar.vertical: ScrollBar { width: 18; policy: ScrollBar.AsNeeded }
+        ScrollBar.vertical: BpScrollBar { id: sb }
     }
 }

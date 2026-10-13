@@ -15,16 +15,50 @@ ApplicationWindow {
     color: Theme.bg
     title: "Backpack Live"
 
-    // layout modes: narrow (split view or portrait) -> icon-only top bar; portrait -> stacked panes
+    // layout modes: portrait -> stacked panes. The top bar is measured, not thresholded: it shows the
+    // tool buttons with label + command line when their full widths fit beside the wordmark, the tabs
+    // and the gear (`compact` = they do not: icon-only buttons), then spends what is left on the
+    // "//LIVE" half of the wordmark and the meter's percentages, in that order. Every term is an
+    // implicit width that does not depend on the tier chosen, so there is no binding loop.
     readonly property bool portrait: height > width
-    readonly property bool compact: width < 1100   // icon-only tool buttons when narrow
-    property string category: (manifest && manifest.categories.length) ? manifest.categories[0].id : ""
+    // what the bar needs, tier by tier (each adds to the one before; 8 gaps between 9 items):
+    // tabs + five icon buttons + the compact meter; + the wordmark; + the four tool buttons with
+    // label and command; + the Settings label; + the meter's percentages
+    readonly property real barMeterOnly: Theme.gap * 2 + tabs.implicitWidth + Theme.touch * 5 + meter.compactWidth + Theme.gap * 7 + Theme.space4
+    readonly property real barWordmark: barMeterOnly + wordmarkMetrics.advanceWidth + Theme.space2 * 2 + Theme.gap
+    readonly property real barLabels: barWordmark + termBtn.fullWidth + splitBtn.fullWidth + kbdBtn.fullWidth + wifiBtn.fullWidth - Theme.touch * 4
+    readonly property real barSettings: barLabels + gearBtn.fullWidth - Theme.touch
+    readonly property real barMeter: barSettings + meter.fullWidth - meter.compactWidth
+    readonly property bool compact: width < barLabels
+    TextMetrics { id: wordmarkMetrics; text: "BACKPACK//LIVE"; font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold; font.letterSpacing: Theme.wordmarkFont * 0.08 }
+    property string section: (manifest && manifest.sections.length) ? manifest.sections[0].id : "network"
+    property string category: firstCategory(section)
     property var tool: null
+    // Extra-tab apps: just an Open button, no argument form or output pane
+    readonly property bool appMode: !!tool && tool.section === "extra"
     property int cmdIndex: 0
-    property string confirmAction: ""
     property bool wifiOpen: false
+    property bool settingsOpen: false
+    property bool monitorOpen: false
+    property string runState: ""     // the status strip: LAUNCHED / RUNNING / EXIT n / ERROR // ...
+    property string runLine: ""      // the command line Run will execute, as the form stands
 
-    function selectTool(t) { cmdIndex = 0; tool = t; status.text = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
+    Binding { target: Theme; property: "scale"; value: settings ? settings.uiScale : 1.0 }
+    Binding { target: Theme; property: "section"; value: win.section }
+
+    function sectionCategories(sec) {
+        return manifest ? manifest.categories.filter(function (c) { return c.section === sec }) : []
+    }
+    function firstCategory(sec) { var c = sectionCategories(sec); return c.length ? c[0].id : "" }
+    // switching section resets the chip to its first category and keeps the open tool only if it belongs there
+    function selectSection(sec) { section = sec; category = firstCategory(sec); if (tool && tool.section !== sec) tool = null }
+
+    function selectTool(t) { cmdIndex = 0; tool = t; runState = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
+    // the command Run will execute with the form's current values; `<name>` stays where a
+    // required field is still empty (run() then reports that as an error)
+    function updateRunLine() {
+        runLine = (!tool || !runner || cmdIndex >= tool.commands.length) ? "" : runner.commandLine(tool.id, cmdIndex, form.values())
+    }
     function toolById(id) {
         if (!manifest) return null
         for (var i = 0; i < manifest.tools.length; i++) if (manifest.tools[i].id === id) return manifest.tools[i]
@@ -38,55 +72,129 @@ ApplicationWindow {
 
     Connections {
         target: runner
+        // the status strip states facts in micro caps; the pane itself echoes the command line
         function onOutput(s) { output.append(s) }
-        function onStarted(cl) { status.text = "$ " + cl; output.append("$ " + cl + "\n") }
-        function onFinished(code) { output.append("\n[exit " + code + "]\n") }
-        function onError(e) { status.text = "error: " + e; output.append("error: " + e + "\n") }
+        function onLaunched(line) { output.append(line + "\n"); win.runState = "LAUNCHED" }
+        function onStarted(cl) { win.runState = "RUNNING"; output.append("$ " + cl + "\n") }
+        function onFinished(code) { win.runState = "EXIT " + code; output.append("\n[exit " + code + "]\n") }
+        function onError(e) { win.runState = "ERROR // " + e; output.append("error: " + e + "\n") }
     }
 
     // ---------------------------------------------------------------- top bar
     header: Rectangle {
-        height: 84
+        height: Theme.barH
         color: Theme.panel
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.border }
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 10
-            spacing: win.compact ? 6 : 10
-            Text { text: win.compact ? "Backpack" : "Backpack Live"; color: Theme.text; font.pixelSize: 28; font.bold: true }
-            Text { visible: win.width >= 1400; text: "Touch Mode"; color: Theme.accent; font.pixelSize: 18; Layout.leftMargin: 4 }
+            anchors.margins: Theme.gap
+            spacing: win.compact ? Theme.s(6) : Theme.gap
+            Text {   // wordmark: whole, or not at all when the bar cannot fit it beside the tabs and buttons
+                visible: win.width >= win.barWordmark
+                text: "BACKPACK//LIVE"; color: Theme.text
+                font.family: Theme.fontDisplay; font.pixelSize: Theme.wordmarkFont; font.weight: Font.ExtraBold
+                font.letterSpacing: Theme.wordmarkFont * 0.08
+                Layout.leftMargin: Theme.space2; Layout.rightMargin: Theme.space2
+            }
+            // section tabs: label over a micro strip (section index // tool count), underlined when open
+            Item {
+                id: tabs
+                Layout.fillHeight: true
+                Layout.bottomMargin: -Theme.gap   // the underline sits on the bar's bottom edge
+                implicitWidth: tabRow.implicitWidth
+                Row {
+                    id: tabRow
+                    height: parent.height
+                    spacing: Theme.gap
+                    Repeater {
+                        model: manifest ? manifest.sections : []
+                        delegate: Item {
+                            id: tab
+                            required property var modelData
+                            required property int index
+                            readonly property bool on: win.section === modelData.id
+                            readonly property color tabAccent: modelData.id === "data" ? Theme.cyan : Theme.acid
+                            height: tabRow.height
+                            implicitWidth: Math.max(Theme.touch, Math.ceil(tabCol.implicitWidth) + Theme.space4 * 2)
+                            Column {
+                                id: tabCol
+                                anchors.centerIn: parent
+                                spacing: Theme.s(2)
+                                Text {
+                                    text: tab.modelData.label.toUpperCase()
+                                    color: tab.on ? tab.tabAccent : Theme.muted
+                                    font.family: Theme.fontSans; font.pixelSize: Theme.labelFont; font.bold: true
+                                    font.letterSpacing: Theme.labelFont * 0.14
+                                }
+                                Text {   // micro strip: always shown, stays ink-muted on the active tab
+                                    text: "SEC." + ("0" + (tab.index + 1)).slice(-2) + " // " + tab.modelData.count
+                                    color: Theme.muted
+                                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+                                    font.letterSpacing: Theme.microFont * 0.16
+                                }
+                            }
+                            Rectangle {
+                                anchors.bottom: parent.bottom; width: parent.width; height: Math.round(Theme.s(3))   // whole pixels: no blended edge row
+                                color: tab.on ? tab.tabAccent : "transparent"
+                            }
+                            MouseArea { anchors.fill: parent; onClicked: win.selectSection(tab.modelData.id) }
+                        }
+                    }
+                }
+            }
             Item { Layout.fillWidth: true }
-            TouchButton { text: "Terminal"; iconSource: "../icons/terminal.png"; compact: win.compact; onClicked: system.openTerminal() }
             TouchButton {
+                id: termBtn
+                text: "Terminal"; icon.name: "terminal"; compact: win.compact
+                command: "foot --app-id backpack-term"
+                onClicked: system.openTerminal()
+            }
+            TouchButton {
+                id: splitBtn
                 text: (system && system.splitActive) ? "Exit split" : "Split"
-                iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
-                color: (system && system.splitActive) ? "#3a2a2a" : Theme.panelAlt
+                icon.name: (system && system.splitActive) ? "exitsplit" : "split"
+                command: (system && system.splitActive) ? "pkill -f backpack-split" : "foot --app-id backpack-split"
+                altText: (system && system.splitActive) ? "Split" : "Exit split"
+                altCommand: (system && system.splitActive) ? "foot --app-id backpack-split" : "pkill -f backpack-split"
+                selected: !!(system && system.splitActive)
+                textColor: selected ? Theme.accent : Theme.text
+                borderColor: selected ? Theme.accent : Theme.borderStrong
                 compact: win.compact
                 onClicked: system.toggleSplit(win.portrait)
             }
             TouchButton {
-                text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
-                color: (system && system.keyboardVisible) ? Theme.accent : Theme.panelAlt
-                textColor: (system && system.keyboardVisible) ? Theme.bg : Theme.text
+                id: kbdBtn
+                text: "Keyboard"; icon.name: "keyboard"; compact: win.compact
+                command: (system && system.keyboardVisible) ? "pkill -USR1 -x wvkbd-mobintl" : "pkill -USR2 -x wvkbd-mobintl"
+                altCommand: (system && system.keyboardVisible) ? "pkill -USR2 -x wvkbd-mobintl" : "pkill -USR1 -x wvkbd-mobintl"
+                // amber while the on-screen keyboard is open: caution, it covers the screen
+                selected: !!(system && system.keyboardVisible)
+                textColor: selected ? Theme.warn : Theme.text
+                borderColor: selected ? Theme.warn : Theme.borderStrong
                 onClicked: system.toggleKeyboard()
             }
-            TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
-            TouchButton {
-                text: "eDEX"; iconSource: "../icons/edex.png"; compact: win.compact
-                color: "#13303a"
-                visible: system ? system.edexAvailable() : false
-                onClicked: system.launchEdex()
+            TouchButton { id: wifiBtn; text: "Wi-Fi"; icon.name: "wifi"; compact: win.compact; onClicked: win.wifiOpen = true }
+            UsageMeter {   // percentages once everything else has its label; dropped entirely when narrow
+                id: meter
+                visible: win.width >= win.barMeterOnly
+                compact: win.width < win.barMeter
+                onTapped: win.monitorOpen = true
             }
-            TouchButton { text: "Reboot"; iconSource: "../icons/reboot.png"; compact: true; color: "#3a3f2a"; onClicked: confirmAction = "reboot" }
-            TouchButton { text: "Shutdown"; iconSource: "../icons/power.png"; compact: true; color: "#4a2328"; onClicked: confirmAction = "poweroff" }
+            TouchButton {   // its label is the last to appear: the gear reads on its own
+                id: gearBtn
+                text: "Settings"; icon.name: "settings"; compact: win.width < win.barSettings
+                selected: win.settingsOpen; borderColor: selected ? Theme.accent : Theme.borderStrong
+                onClicked: { settings.refresh(); win.settingsOpen = true }
+            }
         }
     }
 
     // ---------------------------------------------------------------- body (2 columns, or stacked in portrait)
     GridLayout {
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: Theme.space2
         columns: win.portrait ? 1 : 2
-        rowSpacing: 10; columnSpacing: 10
+        rowSpacing: Theme.space4; columnSpacing: Theme.space4   // gap between panes
 
         // tiles pane
         ColumnLayout {
@@ -96,20 +204,36 @@ ApplicationWindow {
             Layout.maximumWidth: win.portrait ? 1000000 : Math.round(win.width * 0.5)
             Layout.preferredHeight: win.portrait ? Math.round(win.height * 0.42) : -1
             Layout.minimumWidth: 0
-            spacing: 10
+            spacing: Theme.gap
             Flow {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: 0
-                spacing: 8
+                spacing: Theme.space2
                 Repeater {
-                    model: manifest ? manifest.categories : []
-                    delegate: TouchButton {
+                    model: win.sectionCategories(win.section)
+                    delegate: Item {   // category chip: 48px tall inside a touch-tall row
+                        id: chip
                         required property var modelData
-                        text: modelData.label
-                        color: win.category === modelData.id ? Theme.categoryColor(modelData.id) : Theme.panelAlt
-                        textColor: win.category === modelData.id ? Theme.bg : Theme.text
-                        onClicked: win.category = modelData.id
+                        readonly property bool on: win.category === modelData.id
+                        implicitHeight: Theme.touch
+                        implicitWidth: Math.ceil(chipLabel.implicitWidth) + Theme.space4 * 2
+                        Chamfer {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width; height: Theme.chipH
+                            cut: Theme.cutSm
+                            color: chip.on ? Theme.categoryColor(chip.modelData.id) : Theme.panelAlt
+                            borderColor: chip.on ? Theme.categoryColor(chip.modelData.id) : Theme.borderStrong
+                            Text {
+                                id: chipLabel
+                                anchors.centerIn: parent
+                                text: chip.modelData.label.toUpperCase()
+                                color: chip.on ? Theme.inkOnAccent : Theme.text
+                                font.family: Theme.fontSans; font.pixelSize: Theme.labelFont; font.bold: true
+                                font.letterSpacing: Theme.labelFont * 0.14
+                            }
+                        }
+                        MouseArea { anchors.fill: parent; onClicked: win.category = chip.modelData.id }
                     }
                 }
             }
@@ -127,135 +251,151 @@ ApplicationWindow {
                     selected: win.tool !== null && win.tool.id === modelData.id
                     onTapped: win.selectTool(modelData)
                 }
-                ScrollBar.vertical: ScrollBar { width: 18 }
+                ScrollBar.vertical: BpScrollBar {}
             }
         }
 
         // tool pane
-        Rectangle {
+        Chamfer {
             id: toolPane
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: 0
             Layout.minimumHeight: 0
-            radius: 14
+            cut: Theme.cutLg
             color: Theme.panel
-            border.color: Theme.border
+            borderColor: Theme.border
 
-            Text {
-                visible: !win.tool
-                anchors.centerIn: parent
-                text: "Tap a tool to begin"
-                color: Theme.muted
-                font.pixelSize: 24
-            }
+            EmptyState { visible: !win.tool; anchors.fill: parent; anchors.margins: Theme.cutLg / 2 }
 
             ColumnLayout {
                 visible: !!win.tool
                 anchors.fill: parent
-                anchors.margins: 14
-                spacing: 10
+                anchors.margins: Theme.space4   // panel padding
+                spacing: Theme.space2
 
-                Text { text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: 26; font.bold: true }
-                Text {
-                    Layout.fillWidth: true
+                // whole-pixel heights, so the rows below (and the form's clip edge) land on pixels
+                Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02; Layout.preferredHeight: Math.ceil(implicitHeight) }
+                Text { font.family: Theme.fontSans
+                    Layout.fillWidth: true; Layout.preferredHeight: Math.ceil(implicitHeight)
                     text: win.tool ? win.tool.description : ""
-                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap
+                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; lineHeightMode: Text.FixedHeight; lineHeight: Theme.smallLine
                 }
                 Flow {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
-                    spacing: 8
+                    spacing: Theme.space2
                     visible: win.tool && win.tool.commands.length > 1
                     Repeater {
                         model: win.tool ? win.tool.commands : []
-                        delegate: TouchButton {
+                        delegate: Chip {   // the chosen action: 2px accent border and accent label; Run stays the one primary
                             required property int index
                             required property var modelData
                             text: modelData.label
-                            color: win.cmdIndex === index ? Theme.accent : Theme.panelAlt
-                            textColor: win.cmdIndex === index ? Theme.bg : Theme.text
+                            command: modelData.template
+                            selected: win.cmdIndex === index
                             onClicked: win.cmdIndex = index
                         }
                     }
                 }
                 Flickable {
+                    visible: !win.appMode   // the form still supplies its defaults to runCurrent()
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(form.implicitHeight, toolPane.height * 0.4)
+                    Layout.preferredHeight: Math.floor(Math.min(form.implicitHeight, toolPane.height * 0.4))   // whole pixels: a fractional clip edge blurs the row it cuts
+                    id: formFlick
                     contentHeight: form.implicitHeight
                     clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: BpScrollBar { parent: formFlick; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.right: parent.right }
                     ToolForm {
                         id: form
-                        width: parent.width
+                        width: parent.width - (formFlick.ScrollBar.vertical.visible ? formFlick.ScrollBar.vertical.width : 0)
                         command: win.tool ? win.tool.commands[win.cmdIndex] : null
+                        onChanged: win.updateRunLine()
                     }
                 }
-                RowLayout {
+                Flow {   // wraps when the UI size is large
                     Layout.fillWidth: true
-                    spacing: 10
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
+                    spacing: Theme.gap
                     TouchButton {
                         text: win.tool && win.tool.gui ? "Open" : "Run"
-                        color: Theme.accent; textColor: Theme.bg
+                        command: win.runLine
+                        color: Theme.accent; textColor: Theme.inkOnAccent
                         enabled: !(runner && runner.running)
                         onClicked: win.runCurrent()
                     }
-                    TouchButton { text: "Stop"; color: Theme.danger; enabled: !!(runner && runner.running); onClicked: runner.stop() }
-                    TouchButton { text: "Clear"; onClicked: output.clear() }
-                    Text {
-                        visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
-                        text: "runs as root"; color: Theme.warn; font.pixelSize: Theme.smallFont
+                    TouchButton {
+                        visible: !win.appMode; text: "Stop"; textColor: Theme.danger; borderColor: Theme.danger
+                        command: "kill -TERM " + ((runner && runner.running) ? runner.pid : "<pid>")
+                        enabled: !!(runner && runner.running); onClicked: runner.stop()
                     }
-                    Item { Layout.fillWidth: true }
+                    TouchButton { visible: !win.appMode; text: "Clear"; onClicked: output.clear() }
+                    Text { font.family: Theme.fontSans
+                        visible: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
+                        height: Theme.touch; verticalAlignment: Text.AlignVCenter
+                        text: "RUNS AS ROOT"; color: Theme.warn; font.pixelSize: Theme.labelFont; font.bold: true; font.letterSpacing: Theme.labelFont * 0.14
+                    }
                 }
-                Text {
-                    id: status
+                RowLayout {   // the command Run will execute (phosphor), then the status strip
                     Layout.fillWidth: true
-                    color: Theme.muted; font.pixelSize: 13; font.family: "DejaVu Sans Mono"; elide: Text.ElideMiddle
+                    spacing: Theme.space4
+                    Text {
+                        Layout.fillWidth: true
+                        text: win.runLine !== "" ? "$ " + win.runLine : ""
+                        color: Theme.outputInk; font.family: Theme.fontMono; font.pixelSize: Theme.smallFont; elide: Text.ElideRight
+                    }
+                    Text {   // status strip: micro caps, ink-muted; errors in signal
+                        id: status
+                        readonly property bool root: !!win.tool && win.cmdIndex < win.tool.commands.length && win.tool.commands[win.cmdIndex].needs_root
+                        Layout.maximumWidth: Theme.s(480)
+                        text: win.runState + (win.runState !== "" && root ? " // ROOT" : "")
+                        color: text.indexOf("ERROR") === 0 ? Theme.danger : Theme.muted
+                        font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+                        font.letterSpacing: Theme.microFont * 0.16; font.capitalization: Font.AllUppercase; elide: Text.ElideRight
+                    }
                 }
+                Item { visible: win.appMode; Layout.fillHeight: true }
                 OutputPane {
                     id: output
+                    visible: !win.appMode
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.minimumHeight: Theme.s(100)
                 }
             }
         }
     }
 
     // ---------------------------------------------------------------- overlays
+    // Sheets live in the window overlay so the scrim covers the top bar as well.
     WifiOverlay {
+        parent: Overlay.overlay
         visible: win.wifiOpen
         anchors.fill: parent
         onClosed: { win.wifiOpen = false; system.hideKeyboard() }
     }
 
-    Rectangle {
-        visible: confirmAction !== ""
+    SysMonitorSheet {
+        parent: Overlay.overlay
+        visible: win.monitorOpen
         anchors.fill: parent
-        color: "#b0000000"
-        MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
-        Rectangle {
-            anchors.centerIn: parent
-            width: Math.min(520, parent.width - 40); height: 220; radius: 16
-            color: Theme.panel; border.color: Theme.border
-            ColumnLayout {
-                anchors.fill: parent; anchors.margins: 24; spacing: 20
-                Text {
-                    Layout.fillWidth: true
-                    text: confirmAction === "reboot" ? "Reboot the machine?" : "Shut down the machine?"
-                    color: Theme.text; font.pixelSize: 26; horizontalAlignment: Text.AlignHCenter
-                }
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: 20
-                    TouchButton { text: "Cancel"; onClicked: confirmAction = "" }
-                    TouchButton {
-                        text: confirmAction === "reboot" ? "Reboot" : "Shut down"
-                        color: Theme.danger
-                        onClicked: { var a = confirmAction; confirmAction = ""; a === "reboot" ? system.reboot() : system.poweroff() }
-                    }
-                }
-            }
+        onClosed: win.monitorOpen = false
+    }
+
+    SettingsSheet {
+        id: settingsSheet
+        parent: Overlay.overlay
+        visible: win.settingsOpen
+        anchors.fill: parent
+        onClosed: win.settingsOpen = false
+        onAct: function (action) {
+            win.settingsOpen = false
+            if (action === "reboot") system.reboot()
+            else if (action === "cli") settings.switchToCli()
+            else system.poweroff()
         }
     }
 
@@ -263,8 +403,11 @@ ApplicationWindow {
     Timer {
         running: demoTool !== ""
         interval: 1500
-        onTriggered: { var t = toolById(demoTool); if (t) { category = t.category; selectTool(t); runTimer.start() } }
+        onTriggered: { var t = toolById(demoTool); if (t) { section = t.section; category = t.category; selectTool(t); runTimer.start() } }
     }
     Timer { id: runTimer; interval: 1500; onTriggered: runCurrent() }
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
+    Timer { running: demoMonitor; interval: 4000; onTriggered: win.monitorOpen = true }
+    Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true; if (demoAsk !== "") settingsSheet.ask = demoAsk } }
+    Component.onCompleted: if (demoSection !== "") selectSection(demoSection)
 }

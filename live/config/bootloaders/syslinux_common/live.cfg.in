@@ -1,36 +1,24 @@
-label live-@FLAVOUR@-desktop
-	menu label ^Desktop (LXQt)
+label live-@FLAVOUR@-gui
+	menu label ^GUI Mode
 	menu default
-	linux @LINUX@
-	initrd @INITRD@
-	append @APPEND_LIVE@
-
-label live-@FLAVOUR@-terminal
-	menu label ^Terminal
-	linux @LINUX@
-	initrd @INITRD@
-	append @APPEND_LIVE@ systemd.unit=multi-user.target
-
-label live-@FLAVOUR@-touch
-	menu label Touch ^Mode
 	linux @LINUX@
 	initrd @INITRD@
 	append @APPEND_LIVE@ backpack.ui=touch
 
-label live-@FLAVOUR@-desktop-toram
-	menu label Desktop (LXQt) - copy to ^RAM
+label live-@FLAVOUR@-cli
+	menu label ^CLI Mode
 	linux @LINUX@
 	initrd @INITRD@
-	append @APPEND_LIVE@ toram
+	append @APPEND_LIVE@ systemd.unit=multi-user.target
 
-label live-@FLAVOUR@-terminal-toram
-	menu label Terminal - copy to RAM
-	linux @LINUX@
-	initrd @INITRD@
-	append @APPEND_LIVE@ systemd.unit=multi-user.target toram
-
-label live-@FLAVOUR@-touch-toram
-	menu label Touch Mode - copy to RAM
+label live-@FLAVOUR@-gui-toram
+	menu label GUI Mode - copy to ^RAM
 	linux @LINUX@
 	initrd @INITRD@
 	append @APPEND_LIVE@ backpack.ui=touch toram
+
+label live-@FLAVOUR@-cli-toram
+	menu label CLI Mode - copy to RAM
+	linux @LINUX@
+	initrd @INITRD@
+	append @APPEND_LIVE@ systemd.unit=multi-user.target toram

@@ -2,12 +2,15 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Form generated from the selected command's args. Exposes values() for the runner.
+// Form generated from the selected command's args. Exposes values() for the runner and emits
+// changed() whenever a value is edited, so the command line shown next to Run can follow.
 ColumnLayout {
     id: form
     property var command
     property var fieldItems: []
-    spacing: 10
+    signal changed()
+    spacing: Theme.space2
+    onCommandChanged: Qt.callLater(changed)
 
     function values() {
         var v = {}
@@ -27,18 +30,18 @@ ColumnLayout {
             property string argName: modelData.name
             property var value: modelData.type === "flag" ? (modelData.default === true) : String(modelData.default)
             Layout.fillWidth: true
-            spacing: 12
+            spacing: Theme.space3
 
-            Text {
-                text: modelData.name + (modelData.required ? " *" : "")
+            Text { font.family: Theme.fontSans
+                text: modelData.label + (modelData.required ? " *" : "")   // what a person recognises, from the manifest
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: Theme.s(150)
                 elide: Text.ElideRight
             }
-            Loader {
+            Loader {   // as tall as its control: a choice row wraps when the options do not fit
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.touch
+                Layout.preferredHeight: item ? Math.max(Theme.touch, Math.ceil(item.implicitHeight)) : Theme.touch
                 sourceComponent: modelData.type === "flag" ? flagC : (modelData.type === "choice" ? choiceC : textC)
                 onLoaded: item.row = row
             }
@@ -47,19 +50,20 @@ ColumnLayout {
 
     Component {
         id: textC
-        Rectangle {
+        Chamfer {
             property var row
-            radius: 8; color: Theme.panelAlt; border.color: Theme.border
+            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: input.activeFocus ? 2 : 1
             TextInput {
-                anchors.fill: parent; anchors.margins: 12
+                id: input
+                anchors.fill: parent; anchors.margins: Theme.space3
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
-                font.family: "DejaVu Sans Mono"
+                font.family: Theme.fontMono
                 inputMethodHints: row && row.modelData.type === "int" ? Qt.ImhDigitsOnly : Qt.ImhNone
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
-                onTextChanged: if (row) row.value = text
+                onTextChanged: if (row) { row.value = text; form.changed() }
                 onActiveFocusChanged: if (activeFocus) system.showKeyboard()
             }
         }
@@ -68,25 +72,29 @@ ColumnLayout {
         id: flagC
         Item {
             property var row
-            Switch {
+            Switch {   // touch tall (the hit area), chamfered track; the flag it emits beside it in command type
                 id: sw
                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                padding: 0; implicitHeight: Theme.touch
                 checked: row ? row.modelData.default === true : false
-                onToggled: if (row) row.value = checked
-                indicator: Rectangle {
-                    implicitWidth: 96; implicitHeight: 44; radius: 22
+                onToggled: if (row) { row.value = checked; form.changed() }
+                indicator: Chamfer {
+                    implicitWidth: Theme.s(96); implicitHeight: Theme.s(44)
+                    y: Math.round((sw.height - height) / 2)   // whole pixels: no blended edge row
+                    cut: Theme.cutSm
                     color: sw.checked ? Theme.accent : Theme.panelAlt
-                    border.color: Theme.border
+                    borderColor: sw.checked ? Theme.accent : Theme.borderStrong
                     Rectangle {
-                        x: sw.checked ? parent.width - width - 4 : 4
-                        y: 4; width: 36; height: 36; radius: 18; color: Theme.text
+                        x: sw.checked ? parent.width - width - Theme.s(4) : Theme.s(4)
+                        y: Theme.s(4); width: Theme.s(36); height: Theme.s(36); color: sw.checked ? Theme.bg : Theme.text
                         Behavior on x { NumberAnimation { duration: 80 } }
                     }
                 }
                 contentItem: Text {
-                    leftPadding: sw.indicator.width + 12
+                    leftPadding: sw.indicator.width + Theme.s(12)
                     text: sw.checked ? (row ? row.modelData.flag : "on") : "off"
-                    color: Theme.muted; font.pixelSize: Theme.fontSize
+                    color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: Theme.commandFont
+                    font.weight: Font.Normal; font.letterSpacing: 0
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -96,15 +104,14 @@ ColumnLayout {
         id: choiceC
         Flow {
             property var row
-            spacing: 8
+            spacing: Theme.space2
             Repeater {
                 model: row ? row.modelData.options : []
-                delegate: TouchButton {
+                delegate: Chip {   // one value each; selected = the 2px accent border, not a second primary
                     required property var modelData
                     text: modelData
-                    color: row && row.value === modelData ? Theme.accent : Theme.panelAlt
-                    textColor: row && row.value === modelData ? Theme.bg : Theme.text
-                    onClicked: row.value = modelData
+                    selected: row && row.value === modelData
+                    onClicked: { row.value = modelData; form.changed() }
                 }
             }
         }

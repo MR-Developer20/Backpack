@@ -11,12 +11,12 @@ systemctl --failed --no-legend --plain 2>/dev/null | sed 's/^/FAILED-UNIT: /'
 /usr/local/lib/backpack/check-tools.sh
 if getent passwd user >/dev/null; then echo "LIVE-USER: present ($(id -nG user | tr " " ","))"; else echo "LIVE-USER: absent"; fi
 if systemctl is-active --quiet lightdm 2>/dev/null; then
-	for _ in $(seq 1 25); do pgrep -x lxqt-session >/dev/null && break; sleep 2; done
-	if pgrep -x lxqt-session >/dev/null; then echo "DESKTOP-SESSION: lxqt-session running"; else
-		echo "DESKTOP-SESSION: absent"
+	for _ in $(seq 1 25); do pgrep -f backpack_touch >/dev/null && break; sleep 2; done
+	if pgrep -f backpack_touch >/dev/null; then echo "GUI-SESSION: sway + backpack-touch running"; else
+		echo "GUI-SESSION: absent"
 		echo "--- lightdm effective autologin:"; grep -h '^autologin\|^user-session' /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.d/*.conf 2>&1
 		echo "--- loginctl:"; loginctl list-sessions --no-legend 2>&1
-		for f in /var/log/lightdm/lightdm.log /var/log/lightdm/seat0-greeter.log /var/log/lightdm/x-0.log /home/user/.xsession-errors /home/user/.cache/lxqt-session.log; do
+		for f in /var/log/lightdm/lightdm.log /var/log/lightdm/seat0-greeter.log /home/user/.xsession-errors /home/user/.local/share/sway/log.txt; do
 			[ -f "$f" ] && { echo "--- $f (tail):"; grep -v '^\[+[0-9.]*s\] DEBUG' "$f" | tail -n 25; }
 		done
 		echo "--- journal lightdm/session:"; journalctl -b --no-pager -o short -u lightdm -q 2>&1 | tail -n 20

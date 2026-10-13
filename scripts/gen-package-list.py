@@ -6,7 +6,8 @@ Usage: gen-package-list.py [--check] [--manifest FILE] [--out FILE] [--print-cmd
 import argparse, re, sys
 import yaml
 
-CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http"}
+CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
+              "disks", "recovery", "files", "transfer", "extra"}
 ARG_TYPES = {"string", "int", "flag", "choice"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 
@@ -49,6 +50,8 @@ def validate(doc):
                 fail(f"{tid}: source needs url or apt_repo")
         if not isinstance(t.get("gui", False), bool):
             fail(f"{tid}: gui must be a bool")
+        if not isinstance(t.get("optional", False), bool):
+            fail(f"{tid}: optional must be a bool")
         if not isinstance(t["commands"], list) or not t["commands"]:
             fail(f"{tid}: commands must be a non-empty list")
         for c in t["commands"]:
@@ -72,6 +75,8 @@ def validate(doc):
                     fail(f"{tid}/{c['label']}: int arg {a['name']} default must be an int")
                 if a.get("sep", " ") not in ("", " "):
                     fail(f"{tid}/{c['label']}: arg {a['name']} sep must be \"\" or \" \"")
+                if "label" in a and (not isinstance(a["label"], str) or not a["label"].strip()):
+                    fail(f"{tid}/{c['label']}: arg {a['name']} label must be a non-empty string")
     return tools
 
 
@@ -89,6 +94,8 @@ def main():
 
     if args.print_cmds:
         for t in tools:
+            if t.get("optional"):   # installed separately; GUI Mode hides it when absent
+                continue
             for c in t["commands"]:
                 print(t["id"], c["cmd"])
         return
