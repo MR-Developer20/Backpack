@@ -9,6 +9,8 @@ import (
 func elevated() bool { return os.Geteuid() == 0 }
 func attachConsole() {}
 
+func inProcess() bool { return elevated() }
+
 // elevate runs exe args as root through pkexec (the desktop's password dialog).
 func elevate(exe string, args []string, logPath string) (cancelled bool, err error) {
 	if _, err := exec.LookPath("pkexec"); err != nil {

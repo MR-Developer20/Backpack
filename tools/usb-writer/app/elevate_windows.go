@@ -17,6 +17,8 @@ func elevate(exe string, args []string, logPath string) (bool, error) {
 
 // attachConsole lets the command-line mode print into the terminal it was started from
 // (the .exe is a GUI-subsystem program).
+func inProcess() bool { return elevated() }
+
 func attachConsole() {
 	const attachParentProcess = ^uint32(0)
 	k := windows.NewLazySystemDLL("kernel32.dll")

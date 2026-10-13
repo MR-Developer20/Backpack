@@ -309,6 +309,8 @@ make release
   Wails-built binary as root (env -i, --json) against an hdiutil-attached image; results are posted as a CI
   annotation because job logs (blob storage) are not readable from cloud sessions. The elevated worker
   reports every failure through its --json file; its stdout/stderr go to output.log, shown when no result.
-  macOS TCC keeps the root worker (started via osascript's password prompt) out of ~/Downloads, ~/Desktop and
-  ~/Documents ("operation not permitted") although `sudo` from Terminal works: the window first puts the ISO in the
-  worker's /tmp folder (flash.WorkerISO: APFS clonefile, else a copy).
+  macOS TCC keeps a root process started via osascript's password prompt out of ~/Downloads AND off removable
+  drives (open /dev/rdiskN: "operation not permitted"), although `sudo` from Terminal works. So on macOS the window
+  writes in-process (inProcess() in elevate_darwin.go) and flash/device_darwin.go opens the drive through
+  /usr/libexec/authopen (-stdoutpipe: macOS's password dialog, fd passed back over a socketpair) whenever a plain
+  open is refused. CI can only test authopen as root (TestAuthOpen); the dialog path needs a real Mac.

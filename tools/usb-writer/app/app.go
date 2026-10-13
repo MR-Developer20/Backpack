@@ -128,7 +128,7 @@ func (a *App) Write(r WriteRequest) error {
 	}
 	go func() {
 		defer func() { a.mu.Lock(); a.running = false; a.mu.Unlock() }()
-		if elevated() {
+		if inProcess() {
 			flash.Run(flash.Options{ISO: r.ISO, Device: r.Device, Persist: int64(r.SizeGB) << 30, Keep: r.Keep}, a.emit)
 			return
 		}
@@ -164,10 +164,6 @@ func (a *App) runElevated(r WriteRequest) {
 	}
 	exe, err := os.Executable()
 	if err != nil {
-		a.emit(flash.Event{Error: err.Error(), End: true})
-		return
-	}
-	if r.ISO, err = flash.WorkerISO(r.ISO, dir, func(s string) { a.emit(flash.Event{Phase: "prepare", Log: s}) }); err != nil {
 		a.emit(flash.Event{Error: err.Error(), End: true})
 		return
 	}
