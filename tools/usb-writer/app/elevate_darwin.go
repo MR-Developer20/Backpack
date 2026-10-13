@@ -11,6 +11,11 @@ import (
 func elevated() bool { return os.Geteuid() == 0 }
 func attachConsole() {}
 
+// inProcess: on macOS the window writes itself and opens the drive through authopen (see
+// flash/device_darwin.go). A root worker started through osascript's password prompt is kept
+// out of ~/Downloads and off removable drives by macOS privacy protection (TCC).
+func inProcess() bool { return true }
+
 func shq(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
 // elevate runs exe args as root through the macOS administrator password prompt. The
@@ -20,7 +25,9 @@ func elevate(exe string, args []string, logPath string) (cancelled bool, err err
 	for _, a := range args {
 		cmd += " " + shq(a)
 	}
-	cmd += " >>" + shq(logPath) + " 2>&1"
+	// markers around the worker say whether it started and how it ended
+	cmd = "cd / && { echo \"started as uid $(id -u)\"; " + cmd + "; rc=$?; echo \"exited with status $rc\"; exit $rc; } >>" +
+		shq(logPath) + " 2>&1"
 	as := strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(cmd)
 	script := `do shell script "` + as + `" with prompt "Backpack USB Writer needs an administrator password to write the USB drive." with administrator privileges`
 	out, err := exec.Command("osascript", "-e", script).CombinedOutput()

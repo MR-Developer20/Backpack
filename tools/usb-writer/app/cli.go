@@ -101,6 +101,7 @@ func cli(args []string) int {
 			emit(flash.Event{Error: err.Error(), End: true})
 			return code
 		}
+		emit(flash.Event{Log: fmt.Sprintf("Writer %s running as uid %d", version, os.Geteuid())})
 		defer func() {
 			if r := recover(); r != nil {
 				emit(flash.Event{Error: fmt.Sprintf("internal error: %v", r), End: true})

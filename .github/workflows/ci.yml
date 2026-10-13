@@ -52,7 +52,11 @@ jobs:
           cache-dependency-path: tools/usb-writer/app/go.sum
       - name: writer tests on macOS
         run: go test -short ./flash ./update
+      - name: authopen descriptor passing (as root)
+        run: go test -c -o "$RUNNER_TEMP/flash.test" ./flash && sudo "$RUNNER_TEMP/flash.test" -test.run AuthOpen -test.v
       - name: build the app as release.yml does
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build -platform darwin/universal -skipbindings -trimpath
       - name: worker smoke test as root against a disk image (this build)
         run: test/mac-smoke.sh "$(ls -d "$PWD"/build/bin/*.app)/Contents/MacOS/"* "this build"
+      - name: worker smoke test through osascript, as the window runs it
+        run: VIA=osascript test/mac-smoke.sh "$(ls -d "$PWD"/build/bin/*.app)/Contents/MacOS/"* "osascript"
