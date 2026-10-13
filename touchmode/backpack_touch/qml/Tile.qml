@@ -13,7 +13,7 @@ Chamfer {
     cut: Theme.cutMd
     color: selected ? Theme.panelAlt : Theme.panel
     borderColor: selected ? cat : Theme.border
-    borderWidth: 1   // every border is 1px; selection shows through colour and fill
+    borderWidth: selected ? 2 : 1   // a selected control gets a 2px border in its accent
 
     function meta() {
         if (tool.gui) return "GUI"

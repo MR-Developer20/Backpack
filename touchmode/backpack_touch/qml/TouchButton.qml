@@ -5,13 +5,17 @@ import QtQuick.Controls
 // Variants come from color/textColor/borderColor: default (panelAlt fill, strong border),
 // filled (accent, signal, category colour: the border follows the fill, label bold),
 // outline (panelAlt fill with a coloured border and label: Stop, Reboot, CLI Mode).
-// With `iconSource` set and `compact` true it collapses to a square icon-only button.
+// `selected` is the toggled state: a 2px border in borderColor (the design's "selected or
+// focused control gets a 2px border in its accent"). Keyboard focus draws the 2px acid ring
+// offset 2px outside the control. With `iconSource` set and `compact` true it collapses to
+// a square icon-only button.
 Button {
     id: b
     property color color: Theme.panelAlt
     property color textColor: Theme.text
     readonly property bool filled: !Qt.colorEqual(color, Theme.panelAlt)
     property color borderColor: filled ? color : Theme.borderStrong
+    property bool selected: false
     property string iconSource: ""
     property bool compact: false
     readonly property bool iconOnly: compact && iconSource !== ""
@@ -20,11 +24,21 @@ Button {
     implicitWidth: iconOnly ? Theme.touch : Math.max(Theme.touch, Math.ceil(row.implicitWidth) + Theme.space4 * 2)
     font.pixelSize: Theme.fontSize
     font.family: Theme.fontSans
-    font.bold: filled
-    background: Chamfer {
-        cut: Theme.cutSm
-        color: b.down ? Qt.lighter(b.color, b.filled ? 1.15 : 1.6) : b.color
-        borderColor: b.visualFocus ? Theme.focus : b.borderColor
+    font.bold: filled || selected
+    background: Item {
+        Chamfer {   // focus ring
+            visible: b.visualFocus
+            anchors.fill: parent; anchors.margins: -Theme.s(4)
+            cut: Theme.cutSm + Theme.s(4)
+            color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+        }
+        Chamfer {
+            anchors.fill: parent
+            cut: Theme.cutSm
+            color: b.down ? Qt.lighter(b.color, b.filled ? 1.15 : 1.6) : b.color
+            borderColor: b.borderColor
+            borderWidth: b.selected ? 2 : 1
+        }
     }
     contentItem: Item {
         Row {

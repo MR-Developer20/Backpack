@@ -32,7 +32,7 @@ Chamfer {
             var step = w / (graph.capacity - 1), x0 = w - (n - 1) * step
             ctx.beginPath()
             for (var i = 0; i < n; i++) {
-                var x = x0 + i * step, y = h - h * Math.max(0, Math.min(100, s[i])) / 100
+                var x = x0 + i * step, y = Math.round(h - h * Math.max(0, Math.min(100, s[i])) / 100)
                 if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
             }
             ctx.strokeStyle = graph.lineColor; ctx.lineWidth = Math.max(2, Theme.s(2)); ctx.stroke()

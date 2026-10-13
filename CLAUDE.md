@@ -212,9 +212,20 @@ make release
   underline; chips 48px; tile meta strip = N ACTIONS / GUI / ROOT // TTY; empty tool pane =
   EmptyState.qml (24px scan grid + dragon curve). Buttons: TouchButton filled when `color` is not
   panelAlt; outline variants via `borderColor` + `textColor` (Stop/Reboot/Shut down = signal,
-  CLI Mode = amber). UI size range 0.75–1.6. Top bar drops the wordmark below width
+  CLI Mode = amber); `selected: true` = the design's 2px accent border (toggled chips, Split,
+  Keyboard, the gear while Settings is open, the selected tile and Wi-Fi row; a focused text field
+  likewise); keyboard focus = 2px acid ring 2px outside. One filled primary per view (Run / Connect /
+  Load to RAM / Open); command and choice chips are outline-selected. UI size range 0.75–1.6, the
+  slider applies live. Sheets (Settings, System monitor, Wi-Fi) share Sheet.qml (scrim over the whole
+  window via `parent: Overlay.overlay`, hull panel cut-lg padded space-6, title + micro facts strip,
+  scrolls with BpScrollBar placed in the right padding) and SheetHeading.qml (uppercase label +
+  hairline). Reboot / Shut down / Switch to CLI Mode confirm inside the sheet (`ask` state; the confirm
+  button is signal-filled, the consequence is spelled out); no separate dialog. Status line under the
+  tool pane is a micro uppercase strip (LAUNCHED / RUNNING / EXIT n / ERROR // …). BpScrollBar.qml =
+  square 6px handle, hidden unless the content scrolls. Top bar drops the wordmark below width
   Theme.s(960) and the meter below Theme.s(880). Theme property names must not start with `on` +
-  capital (QML reads them as signal handlers): hence `inkOnAccent` / `inkOnDanger`.
+  capital (QML reads them as signal handlers): hence `inkOnAccent` / `inkOnDanger`. Test hook:
+  BACKPACK_DEMO_ASK=reboot|poweroff|cli (with BACKPACK_DEMO_SETTINGS=1) opens a confirm state.
 - (release workflow) `.github/workflows/release.yml`: tag `v*` -> `make build` + `scripts/release.sh`
   (VERSION=tag names the ISO) and `scripts/build-usb-writer.sh` (GUI as .deb + AppImage in build/dist/)
   -> GitHub release with SHA256SUMS; workflow_dispatch builds artifacts only. The USB writer is not

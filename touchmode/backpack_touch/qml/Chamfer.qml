@@ -4,7 +4,9 @@ import QtQuick.Shapes
 // A filled, bordered box with the top-right and bottom-left corners cut (the design's chamfer).
 // Pure geometry: the path is rebuilt from this item's own size and drawn by the curve renderer
 // with analytic anti-aliasing, so nothing is rasterised and scaled. The shape snaps to whole
-// pixels so the 1px border lands on exactly one pixel row or column.
+// pixels so the 1px border lands on exactly one pixel row or column. A box whose border is its
+// own fill colour (a filled button) is drawn as one solid path, so a disabled one at 45% opacity
+// has no brighter rim where a stroke would overlap the fill.
 Item {
     id: c
     property color color: Theme.panel
@@ -18,11 +20,12 @@ Item {
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
             id: sp
-            readonly property real h: c.borderWidth / 2
+            readonly property bool solid: c.borderWidth <= 0 || Qt.colorEqual(c.borderColor, c.color)
+            readonly property real h: solid ? 0 : c.borderWidth / 2
             readonly property real k: Math.min(c.cut, sh.width / 2, sh.height / 2)
             fillColor: c.color
             strokeColor: c.borderColor
-            strokeWidth: c.borderWidth > 0 ? c.borderWidth : -1
+            strokeWidth: solid ? -1 : c.borderWidth
             joinStyle: ShapePath.MiterJoin
             startX: h; startY: h
             PathLine { x: sh.width - sp.k; y: sp.h }

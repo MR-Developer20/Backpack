@@ -13,8 +13,9 @@ Two ways to use it, chosen from the boot menu:
   files, transfer) and **Extra** (other software, such as the optional
   [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when
   something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (0.75–1.6×,
-  remembered across boots with persistence), **Load to RAM** (moves the running system into memory
-  so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and Shut down.
+  applies as you drag, remembered across boots with persistence), **Load to RAM** (moves the running
+  system into memory so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and
+  Shut down; the last three ask once more inside the sheet before acting.
   A CPU/RAM meter in the top bar opens a system monitor with live graphs plus the CPU model,
   core count, RAM capacity and installed memory modules.
   Top bar: full-screen terminal, split view

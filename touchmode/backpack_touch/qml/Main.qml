@@ -24,7 +24,6 @@ ApplicationWindow {
     // Extra-tab apps: just an Open button, no argument form or output pane
     readonly property bool appMode: !!tool && tool.section === "extra"
     property int cmdIndex: 0
-    property string confirmAction: ""
     property bool wifiOpen: false
     property bool settingsOpen: false
     property bool monitorOpen: false
@@ -36,7 +35,8 @@ ApplicationWindow {
         return manifest ? manifest.categories.filter(function (c) { return c.section === sec }) : []
     }
     function firstCategory(sec) { var c = sectionCategories(sec); return c.length ? c[0].id : "" }
-    function selectSection(sec) { section = sec; category = firstCategory(sec) }
+    // switching section resets the chip to its first category and keeps the open tool only if it belongs there
+    function selectSection(sec) { section = sec; category = firstCategory(sec); if (tool && tool.section !== sec) tool = null }
 
     function selectTool(t) { cmdIndex = 0; tool = t; status.text = "" }   // reset cmdIndex first: bindings index tool.commands[cmdIndex]
     function toolById(id) {
@@ -52,10 +52,11 @@ ApplicationWindow {
 
     Connections {
         target: runner
-        function onOutput(s) { output.append(s); if (win.appMode) status.text = s.trim() }
-        function onStarted(cl) { status.text = "$ " + cl; output.append("$ " + cl + "\n") }
-        function onFinished(code) { output.append("\n[exit " + code + "]\n") }
-        function onError(e) { status.text = "error: " + e; output.append("error: " + e + "\n") }
+        // the status strip states facts in micro caps; the pane itself echoes the command line
+        function onOutput(s) { output.append(s); if (win.appMode) status.text = "LAUNCHED" }
+        function onStarted(cl) { status.text = "RUNNING"; output.append("$ " + cl + "\n") }
+        function onFinished(code) { status.text = "EXIT " + code; output.append("\n[exit " + code + "]\n") }
+        function onError(e) { status.text = "ERROR // " + e; output.append("error: " + e + "\n") }
     }
 
     // ---------------------------------------------------------------- top bar
@@ -116,16 +117,18 @@ ApplicationWindow {
             TouchButton {
                 text: (system && system.splitActive) ? "Exit split" : "Split"
                 iconSource: (system && system.splitActive) ? "../icons/exitsplit.png" : "../icons/split.png"
-                textColor: (system && system.splitActive) ? Theme.warn : Theme.text
-                borderColor: (system && system.splitActive) ? Theme.warn : Theme.borderStrong
+                selected: !!(system && system.splitActive)
+                textColor: selected ? Theme.accent : Theme.text
+                borderColor: selected ? Theme.accent : Theme.borderStrong
                 compact: win.compact
                 onClicked: system.toggleSplit(win.portrait)
             }
             TouchButton {
                 text: "Keyboard"; iconSource: "../icons/keyboard.png"; compact: win.compact
-                // amber outline while the on-screen keyboard is open (caution: it covers the screen)
-                textColor: (system && system.keyboardVisible) ? Theme.warn : Theme.text
-                borderColor: (system && system.keyboardVisible) ? Theme.warn : Theme.borderStrong
+                // amber while the on-screen keyboard is open: caution, it covers the screen
+                selected: !!(system && system.keyboardVisible)
+                textColor: selected ? Theme.warn : Theme.text
+                borderColor: selected ? Theme.warn : Theme.borderStrong
                 onClicked: system.toggleKeyboard()
             }
             TouchButton { text: "Wi-Fi"; iconSource: "../icons/wifi.png"; compact: win.compact; onClicked: win.wifiOpen = true }
@@ -136,7 +139,7 @@ ApplicationWindow {
             }
             TouchButton {
                 text: "Settings"; iconSource: "../icons/settings.png"; compact: true
-                borderColor: win.settingsOpen ? Theme.focus : Theme.borderStrong
+                selected: win.settingsOpen; borderColor: selected ? Theme.accent : Theme.borderStrong
                 onClicked: { settings.refresh(); win.settingsOpen = true }
             }
         }
@@ -145,9 +148,9 @@ ApplicationWindow {
     // ---------------------------------------------------------------- body (2 columns, or stacked in portrait)
     GridLayout {
         anchors.fill: parent
-        anchors.margins: Theme.gap
+        anchors.margins: Theme.space2
         columns: win.portrait ? 1 : 2
-        rowSpacing: Theme.gap; columnSpacing: Theme.gap
+        rowSpacing: Theme.space4; columnSpacing: Theme.space4   // gap between panes
 
         // tiles pane
         ColumnLayout {
@@ -162,7 +165,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: 0
-                spacing: Theme.s(8)
+                spacing: Theme.space2
                 Repeater {
                     model: win.sectionCategories(win.section)
                     delegate: Item {   // category chip: 48px tall inside a touch-tall row
@@ -204,7 +207,7 @@ ApplicationWindow {
                     selected: win.tool !== null && win.tool.id === modelData.id
                     onTapped: win.selectTool(modelData)
                 }
-                ScrollBar.vertical: ScrollBar { width: Theme.s(18) }
+                ScrollBar.vertical: BpScrollBar {}
             }
         }
 
@@ -224,8 +227,8 @@ ApplicationWindow {
             ColumnLayout {
                 visible: !!win.tool
                 anchors.fill: parent
-                anchors.margins: Theme.s(14)
-                spacing: Theme.gap
+                anchors.margins: Theme.space4   // panel padding
+                spacing: Theme.space2
 
                 Text { font.family: Theme.fontSans; text: win.tool ? win.tool.name : ""; color: Theme.text; font.pixelSize: Theme.titleFont; font.bold: true; font.letterSpacing: Theme.titleFont * 0.02 }
                 Text { font.family: Theme.fontSans
@@ -237,7 +240,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
-                    spacing: Theme.s(8)
+                    spacing: Theme.space2
                     visible: win.tool && win.tool.commands.length > 1
                     Repeater {
                         model: win.tool ? win.tool.commands : []
@@ -245,8 +248,10 @@ ApplicationWindow {
                             required property int index
                             required property var modelData
                             text: modelData.label
-                            color: win.cmdIndex === index ? Theme.accent : Theme.panelAlt
-                            textColor: win.cmdIndex === index ? Theme.inkOnAccent : Theme.text
+                            // the chosen action: 2px accent border and accent label; Run stays the one primary
+                            selected: win.cmdIndex === index
+                            textColor: selected ? Theme.accent : Theme.text
+                            borderColor: selected ? Theme.accent : Theme.borderStrong
                             onClicked: win.cmdIndex = index
                         }
                     }
@@ -282,11 +287,12 @@ ApplicationWindow {
                         text: "RUNS AS ROOT"; color: Theme.warn; font.pixelSize: Theme.labelFont; font.bold: true; font.letterSpacing: Theme.labelFont * 0.14
                     }
                 }
-                Text {
+                Text {   // status strip: micro caps, ink-muted; errors in signal
                     id: status
                     Layout.fillWidth: true
-                    color: text.indexOf("error:") === 0 ? Theme.danger : Theme.muted
-                    font.pixelSize: Theme.smallFont; font.family: Theme.fontMono; elide: Text.ElideMiddle
+                    color: text.indexOf("ERROR") === 0 ? Theme.danger : Theme.muted
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+                    font.letterSpacing: Theme.microFont * 0.16; font.capitalization: Font.AllUppercase; elide: Text.ElideRight
                 }
                 Item { visible: win.appMode; Layout.fillHeight: true }
                 OutputPane {
@@ -301,68 +307,32 @@ ApplicationWindow {
     }
 
     // ---------------------------------------------------------------- overlays
+    // Sheets live in the window overlay so the scrim covers the top bar as well.
     WifiOverlay {
+        parent: Overlay.overlay
         visible: win.wifiOpen
         anchors.fill: parent
         onClosed: { win.wifiOpen = false; system.hideKeyboard() }
     }
 
     SysMonitorSheet {
+        parent: Overlay.overlay
         visible: win.monitorOpen
         anchors.fill: parent
         onClosed: win.monitorOpen = false
     }
 
     SettingsSheet {
+        id: settingsSheet
+        parent: Overlay.overlay
         visible: win.settingsOpen
         anchors.fill: parent
         onClosed: win.settingsOpen = false
-        onConfirm: function (action) { confirmAction = action }
-    }
-
-    Rectangle {
-        visible: confirmAction !== ""
-        anchors.fill: parent
-        color: Theme.scrim
-        MouseArea { anchors.fill: parent; onClicked: confirmAction = "" }
-        Chamfer {   // centred on whole pixels
-            x: Math.round((parent.width - width) / 2); y: Math.round((parent.height - height) / 2)
-            width: Math.min(Theme.s(560), parent.width - 40); height: Math.ceil(confirmCol.implicitHeight) + Theme.s(48)
-            cut: Theme.cutLg
-            color: Theme.panel; borderColor: Theme.borderStrong
-            MouseArea { anchors.fill: parent }   // swallow clicks
-            ColumnLayout {
-                id: confirmCol
-                anchors.fill: parent; anchors.margins: Theme.s(24); spacing: Theme.s(20)
-                Text { font.family: Theme.fontSans
-                    Layout.fillWidth: true
-                    text: confirmAction === "reboot" ? "Reboot the machine?"
-                        : confirmAction === "cli" ? "Switch to CLI Mode?" : "Shut down the machine?"
-                    color: Theme.text; font.pixelSize: Theme.titleFont; horizontalAlignment: Text.AlignHCenter
-                }
-                Text { font.family: Theme.fontSans
-                    Layout.fillWidth: true
-                    visible: confirmAction === "cli"
-                    text: "GUI Mode closes, along with any running tools and terminals, and you get a text login on the console. Reboot to come back to GUI Mode."
-                    color: Theme.muted; font.pixelSize: Theme.smallFont; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter
-                }
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: Theme.s(20)
-                    TouchButton { text: "Cancel"; onClicked: confirmAction = "" }
-                    TouchButton {
-                        text: confirmAction === "reboot" ? "Reboot" : confirmAction === "cli" ? "Switch" : "Shut down"
-                        color: confirmAction === "cli" ? Theme.warn : Theme.dangerFill
-                        textColor: Theme.inkOnDanger
-                        onClicked: {
-                            var a = confirmAction; confirmAction = ""; win.settingsOpen = false
-                            if (a === "reboot") system.reboot()
-                            else if (a === "cli") settings.switchToCli()
-                            else system.poweroff()
-                        }
-                    }
-                }
-            }
+        onAct: function (action) {
+            win.settingsOpen = false
+            if (action === "reboot") system.reboot()
+            else if (action === "cli") settings.switchToCli()
+            else system.poweroff()
         }
     }
 
@@ -375,6 +345,6 @@ ApplicationWindow {
     Timer { id: runTimer; interval: 1500; onTriggered: runCurrent() }
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
     Timer { running: demoMonitor; interval: 4000; onTriggered: win.monitorOpen = true }
-    Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true } }
+    Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true; if (demoAsk !== "") settingsSheet.ask = demoAsk } }
     Component.onCompleted: if (demoSection !== "") selectSection(demoSection)
 }

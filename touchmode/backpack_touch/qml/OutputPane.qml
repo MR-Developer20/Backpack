@@ -10,7 +10,7 @@ Chamfer {
 
     function append(s) {
         area.text += s
-        if (area.text.length > 200000) area.text = area.text.slice(-150000)
+        if (area.text.length > 150000) area.text = area.text.slice(-150000)   // keeps the last 150,000 characters
         flick.contentY = Math.max(0, area.height - flick.height)
     }
     function clear() { area.text = "" }
@@ -24,7 +24,7 @@ Chamfer {
         boundsBehavior: Flickable.StopAtBounds
         TextEdit {
             id: area
-            width: flick.width
+            width: flick.width - (sb.visible ? sb.width : 0)
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.WrapAnywhere
@@ -33,6 +33,6 @@ Chamfer {
             font.pixelSize: Theme.smallFont
             text: ""
         }
-        ScrollBar.vertical: ScrollBar { width: Theme.s(18); policy: ScrollBar.AsNeeded }
+        ScrollBar.vertical: BpScrollBar { id: sb }
     }
 }

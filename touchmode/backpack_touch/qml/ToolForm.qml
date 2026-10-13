@@ -7,7 +7,7 @@ ColumnLayout {
     id: form
     property var command
     property var fieldItems: []
-    spacing: Theme.s(10)
+    spacing: Theme.space2
 
     function values() {
         var v = {}
@@ -27,7 +27,7 @@ ColumnLayout {
             property string argName: modelData.name
             property var value: modelData.type === "flag" ? (modelData.default === true) : String(modelData.default)
             Layout.fillWidth: true
-            spacing: Theme.s(12)
+            spacing: Theme.space3
 
             Text { font.family: Theme.fontSans
                 text: modelData.name + (modelData.required ? " *" : "")
@@ -49,10 +49,10 @@ ColumnLayout {
         id: textC
         Chamfer {
             property var row
-            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong
+            cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: input.activeFocus ? 2 : 1
             TextInput {
                 id: input
-                anchors.fill: parent; anchors.margins: Theme.s(12)
+                anchors.fill: parent; anchors.margins: Theme.space3
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
                 font.pixelSize: Theme.fontSize
@@ -97,14 +97,15 @@ ColumnLayout {
         id: choiceC
         Flow {
             property var row
-            spacing: Theme.s(8)
+            spacing: Theme.space2
             Repeater {
                 model: row ? row.modelData.options : []
                 delegate: TouchButton {
                     required property var modelData
                     text: modelData
-                    color: row && row.value === modelData ? Theme.accent : Theme.panelAlt
-                    textColor: row && row.value === modelData ? Theme.inkOnAccent : Theme.text
+                    selected: row && row.value === modelData   // 2px accent border, not a second primary
+                    textColor: selected ? Theme.accent : Theme.text
+                    borderColor: selected ? Theme.accent : Theme.borderStrong
                     onClicked: row.value = modelData
                 }
             }

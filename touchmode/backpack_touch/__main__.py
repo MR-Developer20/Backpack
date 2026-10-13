@@ -66,6 +66,7 @@ def main():
     ctx.setContextProperty("demoSettings", bool(os.environ.get("BACKPACK_DEMO_SETTINGS")))
     ctx.setContextProperty("demoSection", os.environ.get("BACKPACK_DEMO_SECTION", ""))
     ctx.setContextProperty("demoMonitor", bool(os.environ.get("BACKPACK_DEMO_MONITOR")))
+    ctx.setContextProperty("demoAsk", os.environ.get("BACKPACK_DEMO_ASK", ""))   # reboot|poweroff|cli
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
