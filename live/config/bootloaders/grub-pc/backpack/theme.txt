@@ -1,0 +1,42 @@
+# Field Terminal GRUB theme (UEFI boot menu). Artwork: tools/assets/gen-bootmenu.sh.
+# Designed at 1024x768; positions are percentages so other modes still line up with background.png.
+title-text: ""
+desktop-image: "background.png"
+desktop-image-scale-method: "stretch"
+desktop-color: "#161616"
+message-font: "Backpack Text Regular 16"
+message-color: "#bbbbbb"
+terminal-font: "Backpack Text Regular 16"
+terminal-box: "select_*.png"
+
++ boot_menu {
+	left = 9%
+	top = 33%
+	width = 54%
+	height = 48%
+	item_font = "Backpack Text Regular 24"
+	selected_item_font = "Backpack Text Bold Regular 24"
+	item_color = "#ececec"
+	selected_item_color = "#161616"
+	item_height = 40
+	item_padding = 12
+	item_spacing = 16
+	icon_width = 0
+	icon_height = 0
+	item_icon_space = 0
+	selected_item_pixmap_style = "select_*.png"
+	scrollbar = false
+}
+
+# timeout: a neon-green bar under the menu that runs down to the automatic boot
++ progress_bar {
+	id = "__timeout__"
+	left = 8%
+	top = 85%
+	width = 56%
+	height = 6
+	show_text = false
+	fg_color = "#99ff45"
+	bg_color = "#333333"
+	border_color = "#333333"
+}
