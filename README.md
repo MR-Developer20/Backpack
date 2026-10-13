@@ -30,21 +30,25 @@ USB stick can be removed after boot; the boot splash shows a progress bar while 
 
 ## Screenshots
 
-| Boot splash | GUI Mode |
+| Boot menu (UEFI) | Boot splash |
 |---|---|
-| ![boot splash](docs/screenshots/boot-splash.png) | ![gui mode](docs/screenshots/touch-mode-v2.png) |
+| ![boot menu](docs/screenshots/boot-menu-uefi.png) | ![boot splash](docs/screenshots/boot-splash.png) |
 
-| GUI Mode — tool running | eDEX-UI |
+| GUI Mode — Network tab | Tool running |
 |---|---|
-| ![gui run](docs/screenshots/touch-mode-run.png) | ![edex](docs/screenshots/edex-ui.png) |
+| ![network tab](docs/screenshots/gui-network.png) | ![tool running](docs/screenshots/gui-tool-running.png) |
 
-| On-screen keyboard | Wi-Fi overlay |
+| Data tab | Settings |
 |---|---|
-| ![keyboard](docs/screenshots/touch-mode-keyboard.png) | ![wifi](docs/screenshots/touch-mode-wifi.png) |
+| ![data tab](docs/screenshots/gui-data.png) | ![settings](docs/screenshots/gui-settings.png) |
 
-| Portrait | Copy-to-RAM progress |
+| Wi-Fi | System monitor |
 |---|---|
-| ![portrait](docs/screenshots/touch-mode-portrait.png) | ![toram](docs/screenshots/copy-to-ram-progress.png) |
+| ![wifi](docs/screenshots/gui-wifi.png) | ![system monitor](docs/screenshots/gui-monitor.png) |
+
+| Portrait | eDEX-UI (Extra tab) |
+|---|---|
+| ![portrait](docs/screenshots/gui-portrait.png) | ![edex](docs/screenshots/edex-ui.png) |
 
 ## Tools
 
