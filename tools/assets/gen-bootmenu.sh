@@ -45,6 +45,8 @@ cp "$OUT/splash.png" $BL/isolinux/splash.png
 cp "$OUT/splash.png" $GRUB/splash.png   # plain-background fallback in grub.cfg
 
 # ---------------------------------------------------------------- UEFI: GRUB theme, 1024x768 design
+# background.png is placed unscaled at the screen centre by theme.txt (not as desktop-image, which
+# stretches to the screen): portrait panels such as the GPD Pocket 3 (1200x1920) show it centred on void.
 mkdir -p "$THEME"
 # amber block with void hazard stripes (Marathon caution marking), as on the design system cover
 convert -size 104x32 xc:"$AMBER" -fill "$VOID" \
@@ -63,7 +65,6 @@ convert -size 1024x768 xc:"$VOID" \
   -fill "$INK" -font "$XBOLD" -pointsize 56 -kerning 4.5 -annotate +76+164 'BACKPACK//LIVE' -kerning 0 \
   -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 2 -annotate +80+198 'BOOT // 4 MODES // 10 S TO AUTO BOOT' -kerning 0 \
   -stroke "$GRID" -strokewidth 1 -draw "line 80,216 943,216" \
-  -fill "$HULL" -stroke "$GRID" -draw "$(cut 80 236 655 628 20)" \
   -fill "$HULL" -stroke "$GRID" -draw "$(cut 688 236 943 640 20)" \
   -stroke none -fill "$MUTED" -font "$BOLD" -pointsize 13 -kerning 1.8 -annotate +708+272 'MODES' \
   -fill "$INK" -font "$REG" -pointsize 15 -kerning 0 \
@@ -76,7 +77,22 @@ convert -size 1024x768 xc:"$VOID" \
   -annotate +708+544 'Enter' -annotate +708+568 'E' -annotate +708+592 'C' -annotate +776+544 'boot' -annotate +776+568 'edit' -annotate +776+592 'console' \
   -fill "$MUTED" -font "$REG" -pointsize 15 -kerning 0 -annotate +80+706 'Boots the highlighted mode when the bar runs out.' \
   -font "$BOLD" -pointsize 11 -kerning 1.8 -annotate +80+738 'DEBIAN 13 // NETWORK // DATA // FIELD TOOLS' \
-  -depth 8 PNG24:"$THEME/background.png"
+  -depth 8 PNG24:"$OUT/full.png"
+
+# GRUB stretches desktop-image to the screen, so the design is instead cut into fixed-size pieces that
+# theme.txt places from the screen centre ("50%-440"): a portrait panel (GPD Pocket 3, 1200x1920) or a
+# wide one shows the same block centred on void. The pieces must not overlap the menu (GRUB then
+# skips drawing it), so the menu panel is a 9-slice (panel_*.png) that boot_menu draws itself; its
+# borders (24 at the sides and bottom, 29 at the top) inset the items where the old background had them.
+rm -f "$THEME/background.png"
+convert "$OUT/full.png" -crop 872x170+72+50 +repage PNG24:"$THEME/header.png"
+convert "$OUT/full.png" -crop 258x407+687+235 +repage PNG24:"$THEME/info.png"
+convert "$OUT/full.png" -crop 600x60+72+688 +repage PNG24:"$THEME/footer.png"
+convert -size 49x54 xc:"$VOID" -fill "$HULL" -stroke "$GRID" -strokewidth 1 -draw "$(cut 0 0 48 53 20)" "$OUT/panel.png"
+for p in nw:24x29+0+0 n:1x29+24+0 ne:24x29+25+0 w:24x1+0+29 c:1x1+24+29 e:24x1+25+29 \
+         sw:24x24+0+30 s:1x24+24+30 se:24x24+25+30; do
+  convert "$OUT/panel.png" -crop "${p#*:}" +repage PNG24:"$THEME/panel_${p%%:*}.png"
+done
 
 # GRUB reads only 8-bit-per-channel RGB(A) PNGs (no palette, no 16-bit: colour fringes), hence PNG24:/PNG32:.
 # selection box: acid fill chamfered top-right and bottom-left, as GRUB 9-slice pieces (select_*.png)
