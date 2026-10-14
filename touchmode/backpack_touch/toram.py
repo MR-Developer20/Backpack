@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 LOOP_CHANGE_FD = 0x4C06
+SYS_BLOCK = "/sys/block"
 RAM_DIR = "/run/backpack-ram"
 MEDIUM = "/run/live/medium"
 HEADROOM = 512 * 1024 * 1024   # keep this much RAM free after the copy
@@ -30,11 +31,22 @@ def _out(*args):
 
 
 def find_image():
-    """(loop device, backing file) of the live root squashfs, or (None, None)."""
-    for line in _out("losetup", "-l", "-n", "--raw", "-O", "NAME,BACK-FILE").splitlines():
-        parts = line.split(None, 1)
-        if len(parts) == 2 and parts[1].endswith(".squashfs"):
-            return parts[0], parts[1].strip()
+    """(loop device, backing file) of the live root squashfs, or (None, None).
+
+    Reads sysfs rather than running losetup: losetup lives in /usr/sbin, which is not on the
+    live user's PATH, so the unprivileged status check never found the image."""
+    try:
+        names = sorted(n for n in os.listdir(SYS_BLOCK) if n.startswith("loop"))
+    except OSError:
+        return None, None
+    for name in names:
+        try:
+            with open(os.path.join(SYS_BLOCK, name, "loop", "backing_file")) as f:
+                back = f.read().strip()
+        except OSError:
+            continue
+        if back.endswith(".squashfs"):
+            return f"/dev/{name}", back
     return None, None
 
 
