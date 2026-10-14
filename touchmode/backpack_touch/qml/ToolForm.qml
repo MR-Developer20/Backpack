@@ -42,7 +42,8 @@ ColumnLayout {
             Loader {   // as tall as its control: a choice row wraps when the options do not fit
                 Layout.fillWidth: true
                 Layout.preferredHeight: item ? Math.max(Theme.touch, Math.ceil(item.implicitHeight)) : Theme.touch
-                sourceComponent: modelData.type === "flag" ? flagC : (modelData.type === "choice" ? choiceC : textC)
+                sourceComponent: modelData.type === "flag" ? flagC : (modelData.type === "choice" ? choiceC
+                                 : (modelData.type === "interface" ? ifaceC : textC))
                 onLoaded: item.row = row
             }
         }
@@ -112,6 +113,130 @@ ColumnLayout {
                     text: modelData
                     selected: row && row.value === modelData
                     onClicked: { row.value = modelData; form.changed() }
+                }
+            }
+        }
+    }
+    Component {
+        id: ifaceC
+        // An interface field: the machine's interfaces as a list that drops down under the field,
+        // read again each time it opens (USB adapters come and go, monitor mode renames them).
+        AbstractButton {
+            id: pick
+            objectName: "interfacePicker"
+            property var row
+            // [{name, tag}]: manifest options first (e.g. "any"), "Auto" when the field may be empty
+            property var entries: []
+            function refresh() {
+                if (!row) return
+                var a = row.modelData, list = []
+                if (!a.required) list.push({ name: "", tag: "THE TOOL CHOOSES" })
+                for (var i = 0; i < a.options.length; i++) list.push({ name: a.options[i], tag: a.options[i] === "any" ? "ALL INTERFACES" : "" })
+                var found = manifest.interfaces(a.kind)
+                for (var j = 0; j < found.length; j++) {
+                    var f = found[j]
+                    list.push({ name: f.name, tag: ({ wifi: "WI-FI", monitor: "WI-FI // MONITOR", wired: "WIRED", other: "VIRTUAL" })[f.kind] + (f.up ? " // UP" : " // DOWN") })
+                }
+                entries = list
+            }
+            function tagOf(v) {
+                for (var i = 0; i < entries.length; i++) if (entries[i].name === v) return entries[i].tag
+                return ""
+            }
+            function choose(v) { if (row) { row.value = v; form.changed() } }
+            onRowChanged: {
+                refresh()
+                if (!row) return
+                var d = String(row.modelData.default), have = entries.some(function (e) { return e.name === d })
+                // the manifest default when it exists here, else the first real interface (up ones are listed first)
+                var hw = entries.filter(function (e) { return e.name !== "" && row.modelData.options.indexOf(e.name) < 0 })
+                choose(have ? d : (hw.length ? hw[0].name : (entries.length ? entries[0].name : "")))
+            }
+            onClicked: { refresh(); popup.open() }
+            padding: 0
+            activeFocusOnTab: true
+            Accessible.role: Accessible.ComboBox
+            Accessible.name: (row ? row.modelData.label : "") + ": " + (row && row.value !== "" ? row.value : "auto")
+            Keys.onReturnPressed: clicked()
+            Keys.onEnterPressed: clicked()
+            background: Item {
+                Chamfer {   // focus ring
+                    visible: pick.visualFocus
+                    anchors.fill: parent; anchors.margins: -Theme.s(4)
+                    cut: Theme.cutSm + Theme.s(4)
+                    color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+                }
+                Chamfer {
+                    anchors.fill: parent
+                    cut: Theme.cutSm; color: pick.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
+                    borderColor: popup.visible ? Theme.accent : Theme.borderStrong; borderWidth: popup.visible ? 2 : 1
+                }
+            }
+            contentItem: RowLayout {
+                spacing: Theme.space3
+                Text {
+                    readonly property bool none: !pick.row || (pick.row.value === "" && pick.row.modelData.required)
+                    text: none ? (pick.row && pick.row.modelData.kind === "wired" ? "No wired interface found"
+                                  : (pick.row && (pick.row.modelData.kind === "wifi" || pick.row.modelData.kind === "monitor")
+                                     ? "No Wi-Fi interface found" : "No interface found"))
+                          : (pick.row.value === "" ? "Auto" : pick.row.value)
+                    color: none ? Theme.muted : Theme.text
+                    font.family: Theme.fontMono; font.pixelSize: Theme.fontSize
+                    elide: Text.ElideRight; Layout.fillWidth: true; Layout.leftMargin: Theme.space3
+                }
+                Text {   // what the chosen entry is, in the micro strip type
+                    text: pick.row ? pick.tagOf(pick.row.value) : ""
+                    color: Theme.muted
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                }
+                Text {
+                    text: "CHANGE"; color: Theme.accent
+                    font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                    Layout.rightMargin: Theme.space3
+                }
+            }
+
+            Popup {
+                id: popup
+                y: pick.height + Theme.space1
+                width: pick.width
+                margins: Theme.space2   // stays inside the window; moves up when there is no room below
+                padding: Theme.space2
+                height: Math.min(implicitHeight, Theme.touch * 5 + Theme.space2 * 6)
+                background: Chamfer { cut: Theme.cutMd; color: Theme.panel; borderColor: Theme.borderStrong }
+                contentItem: ListView {
+                    id: list
+                    clip: true
+                    implicitHeight: contentHeight
+                    spacing: Theme.space2
+                    model: pick.entries
+                    ScrollBar.vertical: BpScrollBar {}
+                    delegate: AbstractButton {
+                        id: opt
+                        required property var modelData
+                        readonly property bool on: pick.row && pick.row.value === modelData.name
+                        width: list.width - (list.contentHeight > list.height ? Theme.s(18) : 0); height: Theme.touch   // clear of the scroll bar
+                        padding: 0
+                        background: Chamfer {
+                            cut: Theme.cutSm; color: opt.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
+                            borderColor: opt.on ? Theme.accent : Theme.borderStrong; borderWidth: opt.on ? 2 : 1
+                        }
+                        contentItem: RowLayout {
+                            spacing: Theme.space3
+                            Text {
+                                text: opt.modelData.name === "" ? "Auto" : opt.modelData.name
+                                color: opt.on ? Theme.accent : Theme.text
+                                font.family: Theme.fontMono; font.pixelSize: Theme.fontSize
+                                elide: Text.ElideRight; Layout.fillWidth: true; Layout.leftMargin: Theme.space3
+                            }
+                            Text {
+                                text: opt.modelData.tag; color: Theme.muted
+                                font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium; font.letterSpacing: Theme.microFont * 0.16
+                                Layout.rightMargin: Theme.space3
+                            }
+                        }
+                        onClicked: { pick.choose(modelData.name); popup.close() }
+                    }
                 }
             }
         }

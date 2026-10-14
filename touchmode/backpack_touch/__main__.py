@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Property, QTimer, QUrl
+from PySide6.QtCore import QObject, Property, QTimer, QUrl, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow  # noqa: F401  (makes rootObjects() return QQuickWindow)
@@ -31,6 +31,11 @@ class Manifest(QObject):
     @Property("QVariantList", constant=True)
     def sections(self):
         return self._sections
+
+    @Slot(str, result="QVariantList")
+    def interfaces(self, kind):
+        """Read again each time an interface list opens: adapters come and go (USB, monitor mode)."""
+        return manifest.interfaces(kind)
 
 
 def demo_tool():

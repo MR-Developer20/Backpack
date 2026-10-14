@@ -19,6 +19,8 @@ CATEGORY_LABELS = {
     "extra": "Apps",
 }
 DEFAULT_PATH = "/etc/backpack/tools.yaml"
+NET_DIR = "/sys/class/net"
+INTERFACE_KINDS = ("any", "wifi", "monitor", "wired")
 
 
 def manifest_path():
@@ -46,6 +48,8 @@ def load(path=None):
                 a.setdefault("sep", " ")
                 a.setdefault("options", [])
                 a.setdefault("label", a["name"].replace("_", " "))   # what a person recognises
+                if a["type"] == "interface":
+                    a.setdefault("kind", "any")
             c["template"] = template(c)
     return tools
 
@@ -88,6 +92,51 @@ def preview(command, values, placeholders=False):
     if command["needs_root"] and os.geteuid() != 0:
         parts.insert(0, "sudo -n")
     return " ".join(parts)
+
+
+def _read(path):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def interfaces(kind="any", net_dir=None):
+    """The network interfaces on this machine, for an `interface` field: [{name, kind, up}] with
+    kind wifi | monitor | wired | other (virtual: bridges, tunnels, containers). `kind` filters:
+    wifi = Wi-Fi adapters including ones in monitor mode, monitor = the same with monitor mode first,
+    wired = physical non-Wi-Fi adapters, any = everything but loopback. Up interfaces come first."""
+    net_dir = net_dir or os.environ.get("BACKPACK_NET_DIR", NET_DIR)   # test hook: a fake /sys/class/net
+    try:
+        names = sorted(os.listdir(net_dir))
+    except OSError:
+        return []
+    out = []
+    for n in names:
+        d = os.path.join(net_dir, n)
+        if n == "lo" or _read(os.path.join(d, "type")) == "772":   # loopback
+            continue
+        if _read(os.path.join(d, "type")) == "803":                 # ARPHRD_IEEE80211_RADIOTAP
+            k = "monitor"
+        elif os.path.exists(os.path.join(d, "wireless")) or os.path.exists(os.path.join(d, "phy80211")):
+            k = "wifi"
+        elif os.path.exists(os.path.join(d, "device")):
+            k = "wired"
+        else:
+            k = "other"
+        if kind in ("wifi", "monitor") and k not in ("wifi", "monitor"):
+            continue
+        if kind == "wired" and k != "wired":
+            continue
+        state = _read(os.path.join(d, "operstate"))
+        try:   # monitor-mode and some USB adapters report "unknown" while up: fall back to IFF_UP
+            admin_up = int(_read(os.path.join(d, "flags")) or "0", 16) & 1
+        except ValueError:
+            admin_up = 0
+        out.append({"name": n, "kind": k, "up": state == "up" or (state == "unknown" and bool(admin_up))})
+    out.sort(key=lambda i: (kind == "monitor" and i["kind"] != "monitor", not i["up"]))   # stable: names stay sorted
+    return out
 
 
 def categories(tools):

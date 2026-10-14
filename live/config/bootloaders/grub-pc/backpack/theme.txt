@@ -1,25 +1,53 @@
 # Backpack Field Terminal GRUB theme (UEFI boot menu). Artwork: tools/assets/gen-bootmenu.sh.
-# Designed at 1024x768; positions are percentages so other modes still line up with background.png.
+# Designed at 1024x768. Every piece has a fixed size and is placed from the screen centre, so no
+# screen shape stretches it: a portrait panel (GPD Pocket 3, 1200x1920) or a wide one shows the same
+# block centred on void. Pieces must not overlap boot_menu or GRUB does not draw the menu.
 title-text: ""
-desktop-image: "background.png"
-desktop-image-scale-method: "stretch"
 desktop-color: "#07090a"
 message-font: "Backpack Mono Regular 16"
 message-color: "#8d9c96"
 terminal-font: "Backpack Mono Regular 16"
 terminal-box: "select_*.png"
 
+# wordmark, colour bands, subtitle and rule
++ image {
+	left = 50%-440
+	top = 50%-334
+	width = 872
+	height = 170
+	file = "header.png"
+}
+
+# MODES / COPY TO RAM / KEYS card
++ image {
+	left = 50%+175
+	top = 50%-149
+	width = 258
+	height = 407
+	file = "info.png"
+}
+
++ image {
+	left = 50%-440
+	top = 50%+304
+	width = 600
+	height = 60
+	file = "footer.png"
+}
+
+# the menu draws its own panel (panel_*.png 9-slice)
 + boot_menu {
-	left = 9%
-	top = 33%
-	width = 54%
-	height = 48%
+	left = 50%-432
+	top = 50%-148
+	width = 576
+	height = 393
+	menu_pixmap_style = "panel_*.png"
 	item_font = "Backpack Mono Regular 22"
 	selected_item_font = "Backpack Mono Bold Regular 22"
 	item_color = "#e6ede8"
 	selected_item_color = "#07090a"
 	item_height = 40
-	item_padding = 12
+	item_padding = 0
 	item_spacing = 16
 	icon_width = 0
 	icon_height = 0
@@ -31,9 +59,9 @@ terminal-box: "select_*.png"
 # timeout: an acid bar under the menu that runs down to the automatic boot
 + progress_bar {
 	id = "__timeout__"
-	left = 8%
-	top = 85%
-	width = 56%
+	left = 50%-430
+	top = 50%+269
+	width = 573
 	height = 6
 	show_text = false
 	fg_color = "#c6ff1a"
