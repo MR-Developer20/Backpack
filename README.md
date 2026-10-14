@@ -13,15 +13,19 @@ Two ways to use it, chosen from the boot menu:
   (discovery, connectivity, capture, wireless, throughput, DNS/HTTP), **Data** (disks, recovery,
   files, transfer) and **Extra** (other software, such as the optional
   [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when
-  something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (0.75–1.6×,
-  applies as you drag, remembered across boots with persistence), **Load to RAM** (moves the running
-  system into memory so the stick can be unplugged, no reboot), **Switch to CLI Mode**, Reboot and
-  Shut down; the last three ask once more inside the sheet before acting.
+  something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (0.5–1.6×,
+  applies as you drag, remembered across boots with persistence), the display **Orientation**
+  (rotate 90°, 180° or 270°, touch input follows; also remembered), the **Wi-Fi** scan/connect sheet,
+  the phone-style on-screen **Keyboard** and a full-screen **Terminal**, then **Load to RAM** (moves the
+  running system into memory so the stick can be unplugged, no reboot), **Switch to CLI Mode**,
+  Reboot and Shut down; the last three ask once more inside the sheet before acting.
+  The on-screen keyboard also opens by itself when a text field is tapped with a finger or pen
+  (not when it is clicked with a mouse or touchpad).
   A CPU/RAM meter in the top bar opens a system monitor with live graphs plus the CPU model,
-  core count, RAM capacity and installed memory modules.
-  Top bar: full-screen terminal, split view
-  (one terminal beside the launcher, or below it in portrait; the button becomes "Exit split"),
-  a phone-style on-screen keyboard and a Wi-Fi scan/connect overlay. When the launcher is narrow
+  core count, RAM capacity and installed memory modules. The local IPv4 address sits in tiny type
+  in the top-right corner.
+  Top bar: the section tabs, split view (one terminal beside the launcher, or below it in portrait;
+  the button becomes "Exit split"), the meter and Settings. When the launcher is narrow
   (split view, portrait, or a large UI size) the top bar collapses to icons.
 - **CLI Mode** — boots to a multi-user console, no display server.
 

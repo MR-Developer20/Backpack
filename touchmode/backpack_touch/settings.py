@@ -1,6 +1,8 @@
-"""GUI Mode settings popup: UI size (saved per user), Load to RAM, Switch to CLI Mode."""
+"""GUI Mode settings popup: UI size and display rotation (saved per user), Load to RAM, Switch to CLI Mode."""
 import json
 import os
+import shlex
+import subprocess
 import sys
 from pathlib import Path
 
@@ -8,7 +10,10 @@ from PySide6.QtCore import QObject, QProcess, Property, Signal, Slot
 
 from . import toram
 
-SCALE_MIN, SCALE_MAX = 0.75, 1.6   # design tokens ui-scale-min / ui-scale-max
+SCALE_MIN, SCALE_MAX = 0.5, 1.6   # design token ui-scale-max; below 0.75 (ui-scale-min) at Marc's request
+# sway output transforms offered by the Orientation dropdown; relative to the panel's own
+# orientation (a GPD Pocket 3's panel is natively portrait, so "90" makes it landscape there)
+ROTATIONS = [("normal", "Normal"), ("90", "Rotate 90°"), ("180", "Rotate 180°"), ("270", "Rotate 270°")]
 
 
 def config_path():
@@ -24,8 +29,32 @@ def _clamp_scale(v):
     return round(min(SCALE_MAX, max(SCALE_MIN, v)), 2)
 
 
+def sway_output():
+    """Name of the output the launcher is on (the focused one, else the first), or "" outside sway."""
+    try:
+        outs = json.loads(subprocess.run(["swaymsg", "-t", "get_outputs", "-r"], capture_output=True,
+                                         text=True, timeout=2).stdout or "[]")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return ""
+    outs = [o for o in outs if o.get("active", True)]
+    for o in outs:
+        if o.get("focused"):
+            return o.get("name", "")
+    return outs[0].get("name", "") if outs else ""
+
+
+def rotation_commands(output, rotation):
+    """The swaymsg lines that turn `output` to `rotation` and keep touch and pen input on it
+    (map_to_output makes wlroots apply the same transform to touch coordinates)."""
+    out = shlex.quote(output) if output else "<output>"
+    return [f"swaymsg output {out} transform {rotation}",
+            f"swaymsg input type:touch map_to_output {out}",
+            f"swaymsg input type:tablet_tool map_to_output {out}"]
+
+
 class Settings(QObject):
     uiScaleChanged = Signal()
+    rotationChanged = Signal()
     ramChanged = Signal()
 
     def __init__(self, parent=None):
@@ -37,6 +66,12 @@ class Settings(QObject):
             pass
         env = os.environ.get("BACKPACK_UI_SCALE")   # test hook
         self._scale = _clamp_scale(env if env else self._cfg.get("uiScale", 1.0))
+        self._rotation = self._cfg.get("rotation", "normal")
+        if self._rotation not in dict(ROTATIONS):
+            self._rotation = "normal"
+        self._output = sway_output()
+        if self._rotation != "normal":   # restore the saved orientation when the session starts
+            self._apply_rotation()
         self._ram = toram.status()
         self._ram_busy = False
         self._ram_progress = 0
@@ -64,6 +99,31 @@ class Settings(QObject):
         self._save("uiScale", v)
 
     uiScale = Property(float, _get_scale, _set_scale, notify=uiScaleChanged)
+
+    # ------------------------------------------------------------ display orientation
+    @Property("QVariantList", constant=True)
+    def rotations(self):
+        """[{value, label, command}] for the Orientation dropdown; command = what choosing it runs."""
+        return [{"value": v, "label": l, "command": rotation_commands(self._output, v)[0]} for v, l in ROTATIONS]
+
+    def _get_rotation(self):
+        return self._rotation
+
+    def _set_rotation(self, v):
+        if v not in dict(ROTATIONS) or v == self._rotation:
+            return
+        self._rotation = v
+        self.rotationChanged.emit()
+        self._save("rotation", v)
+        self._apply_rotation()
+
+    rotation = Property(str, _get_rotation, _set_rotation, notify=rotationChanged)
+
+    def _apply_rotation(self):
+        if not self._output:
+            self._output = sway_output()
+        if self._output:
+            QProcess.startDetached("sh", ["-c", "; ".join(rotation_commands(self._output, self._rotation))])
 
     def _save(self, key, value):
         self._cfg[key] = value

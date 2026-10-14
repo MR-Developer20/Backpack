@@ -1,5 +1,7 @@
 """CPU / RAM usage for the GUI Mode tab-bar module and its popup (graphs + hardware details)."""
 import os
+import socket
+import subprocess
 
 from PySide6.QtCore import QObject, QProcess, QTimer, Property, Signal, Slot
 
@@ -80,6 +82,27 @@ def parse_dmidecode_memory(text):
     return out
 
 
+def local_ipv4():
+    """The address this machine would send from (the default route's source), else the first global
+    IPv4 address on any interface, else "". The UDP connect sends no packet."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 9))   # TEST-NET-1: only picks the route
+            return s.getsockname()[0]
+    except OSError:
+        pass
+    try:
+        out = subprocess.run(["ip", "-4", "-o", "addr", "show", "scope", "global"],
+                             capture_output=True, text=True, timeout=2).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    for line in out.splitlines():   # "2: eth0    inet 192.168.1.20/24 brd ... scope global eth0"
+        parts = line.split()
+        if "inet" in parts:
+            return parts[parts.index("inet") + 1].split("/")[0]
+    return ""
+
+
 def fmt_bytes(n):
     return f"{n / 2**30:.1f} GB"
 
@@ -87,6 +110,7 @@ def fmt_bytes(n):
 class SysMonitor(QObject):
     changed = Signal()
     hardwareChanged = Signal()
+    ipv4Changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -102,6 +126,23 @@ class SysMonitor(QObject):
         self._timer.start()
         self._sample()
         QTimer.singleShot(500, self.readModules)
+        self._ipv4 = os.environ.get("BACKPACK_DEMO_IPV4") or local_ipv4()   # test hook: a fixed address
+        self._ip_timer = QTimer(self)
+        self._ip_timer.setInterval(3000)
+        self._ip_timer.timeout.connect(self._sample_ip)
+        if not os.environ.get("BACKPACK_DEMO_IPV4"):
+            self._ip_timer.start()
+
+    def _sample_ip(self):
+        ip = local_ipv4()
+        if ip != self._ipv4:
+            self._ipv4 = ip
+            self.ipv4Changed.emit()
+
+    @Property(str, notify=ipv4Changed)
+    def ipv4(self):
+        """The local IPv4 address shown in the top bar's corner ("" when there is none)."""
+        return self._ipv4
 
     def _sample(self):
         try:

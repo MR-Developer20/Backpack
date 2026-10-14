@@ -3,13 +3,16 @@
 USE_DOCKER ?= 1
 DOCKER     ?= docker
 IMAGE      ?= backpack-build
+# EDEX=1 (default) builds the eDEX-UI deb for the Extra tab during `make build`; EDEX=0 skips it.
+# A failed eDEX build only warns: the ISO still builds and the Extra tab lists the other apps.
+EDEX       ?= 1
 ISO        := build/backpack.iso
 DEV        ?=
 SIZE       ?= 5G
 LB_RUN      = $(if $(filter 1,$(USE_DOCKER)),$(DOCKER) run --rm --privileged -v $(CURDIR):/work -w /work/live $(IMAGE),cd live && sudo)
 
 .PHONY: all check-manifest manifest fetch docker-image build clean distclean \
-        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui usb-writer usb-writer-app release check-tools touch-deb test-touch ventoy
+        test-bios test-uefi test-persist test-usb-img mkusb mkusb-gui usb-writer usb-writer-app release check-tools touch-deb test-touch ventoy edex-deb
 
 all: build
 
@@ -32,7 +35,13 @@ docker-image:
 touch-deb:
 	scripts/build-touchmode-deb.sh
 
+edex-deb: ## eDEX-UI (Extra tab) -> live/config/packages.chroot/edex-ui_*.deb, in the backpack-edex container
+	$(DOCKER) build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
+	$(DOCKER) run --rm -v $(CURDIR):/work -w /work/touchmode/edex backpack-edex sh /work/scripts/build-edex.sh
+	scripts/build-edex-deb.sh
+
 build: manifest fetch touch-deb docker-image
+	$(if $(filter 1,$(EDEX)),$(MAKE) edex-deb || echo "WARNING: eDEX-UI was not built; the Extra tab will not list it (EDEX=0 skips this step)")
 	mkdir -p build/logs
 	$(LB_RUN) lb config 2>&1 | tail -n 5
 	$(LB_RUN) lb build > $(CURDIR)/build/logs/build.log 2>&1 || { tail -n 40 $(CURDIR)/build/logs/build.log; exit 1; }
