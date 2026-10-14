@@ -6,6 +6,7 @@ binwalk
 bmon
 coreutils
 curl
+epiphany-browser
 ethtool
 fping
 gddrescue
@@ -15,6 +16,7 @@ iperf3
 kismet
 libimage-exiftool-perl
 lldpd
+ltris
 mtr-tiny
 ncdu
 netcat-openbsd
