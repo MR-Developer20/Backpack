@@ -118,7 +118,10 @@ def run():
         _say("ERROR", f"Not enough free memory: need {need // 2**20} MiB, have {st['memAvailable'] // 2**20} MiB.")
         return 1
     os.makedirs(RAM_DIR, exist_ok=True)
-    if fstype(RAM_DIR) != "tmpfs":
+    # Our own tmpfs, sized for the image. Checking the fstype would not do: /run is itself a
+    # tmpfs (10% of RAM from initramfs-tools), so RAM_DIR always looked like one and the copy
+    # landed in /run and ran out of space on machines with less than ~10x the image in RAM.
+    if not os.path.ismount(RAM_DIR):
         size_mib = st["size"] // 2**20 + 16
         r = subprocess.run(["mount", "-t", "tmpfs", "-o", f"size={size_mib}m,mode=0755", "backpack-ram", RAM_DIR],
                            capture_output=True, text=True)
