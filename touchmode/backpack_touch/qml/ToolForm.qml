@@ -64,7 +64,7 @@ ColumnLayout {
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
                 onTextChanged: if (row) { row.value = text; form.changed() }
-                onActiveFocusChanged: if (activeFocus) system.showKeyboard()
+                onActiveFocusChanged: if (activeFocus) system.fieldFocused()   // the on-screen keyboard only for a finger or pen
             }
         }
     }

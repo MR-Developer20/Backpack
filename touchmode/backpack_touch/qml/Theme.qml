@@ -55,7 +55,10 @@ QtObject {
     readonly property int smallFont: s(15)
     readonly property int labelFont: s(13)      // uppercase, tracked 0.14em
     readonly property int microFont: s(11)      // uppercase, tracked 0.16em
-    readonly property int commandFont: s(12)    // the command a button runs: regular, no tracking, never uppercased
+    readonly property int commandFont: s(12)
+    // the IPv4 address in the top-right corner: as small as the type stays legible (asked for at
+    // 4px, which JetBrains Mono cannot draw as readable digits), never below 8px at small UI sizes
+    readonly property int ipFont: Math.max(8, s(8))    // the command a button runs: regular, no tracking, never uppercased
     // line heights of the type scale (body 19/26, small 15/21, label 13/16, micro 11/14, command 12/16), for wrapped text
     readonly property int bodyLine: s(26)
     readonly property int smallLine: s(21)

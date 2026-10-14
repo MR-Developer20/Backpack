@@ -324,3 +324,23 @@ make release
   write the stick is unmounted again and powered off (udisksctl power-off, else eject), like macOS ejects. ISO
   downloads go to XDG_DOWNLOAD_DIR (user-dirs.dirs) when set. CI writes a loop device as root (TestLoopDevice,
   BACKPACK_TEST_LOOP; `allowLoop` lets openDisk take a loop device in tests only).
+- (launcher fixes, 2026-10-14) Terminal / Keyboard / Wi-Fi left the top bar for a SESSION group in
+  SettingsSheet.qml (act("terminal"|"keyboard"|"wifi") closes the sheet first); the bar is now tabs + Split +
+  meter + gear, so portrait 800px keeps the CPU/RAM meter (tier sums in Main.qml count 2 icon buttons).
+  UI size range 0.5–1.6 (settings.SCALE_MIN; the design token ui-scale-min is still 0.75). Orientation =
+  Dropdown.qml (styled ComboBox, options show their command) bound to settings.rotation, saved in gui.json and
+  applied at launcher start: `swaymsg output <name> transform normal|90|180|270` + `input type:touch|tablet_tool
+  map_to_output <name>` (wlroots then rotates touch coordinates too). Sheet.qml pins the Flickable's
+  contentWidth to its width: before, a row whose buttons wanted more (Wi-Fi's Rescan command line was sized
+  from its own row) widened the whole ColumnLayout and everything on the right was clipped; rows of buttons
+  in sheets are Flows with commandMaxWidth from Sheet.contentWidth. Wi-Fi: the password field has its own
+  line (it shared a row with Show/Connect/Forget and their command lines and was squeezed to 0 px, so Connect
+  stayed disabled); saved profiles (`nmcli -t -f NAME,TYPE con show`) show SAVED and connect without a password
+  via `nmcli con up id SSID`. On-screen keyboard: System.watchInput installs an event filter on the window;
+  text fields call system.fieldFocused(), which shows wvkbd only if the last press was TouchBegin/TabletPress
+  or a mouse press whose device is a touchscreen/pen (runner.pressed_by_touch). IPv4 label: sysmon.ipv4
+  (UDP-connect source address, else `ip -4 -o addr show scope global`, every 3 s) at Theme.ipFont (8px floor:
+  4px was asked for but cannot be read) flush in the window's top-right corner. eDEX: `make edex-deb`
+  (Dockerfile.edex image + scripts/build-edex.sh + scripts/build-edex-deb.sh) now runs inside `make build`
+  (EDEX=0 skips; a failure only warns). Test hooks: BACKPACK_DEMO_WIFI_SELECT=<ssid>, BACKPACK_DEMO_IPV4=<addr>.
+  None of this is booted on the ISO yet.
