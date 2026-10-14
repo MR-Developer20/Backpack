@@ -201,7 +201,7 @@ make release
   check-tools.sh skip them. GUI tools now launch via `sh -c "swaymsg fullscreen disable; exec …"`
   like the terminal buttons.
   LTris (Debian `ltris`, GPL-2+, cmd `/usr/games/ltris` since /usr/games may be off the session PATH)
-  is a regular Extra tool, so the tab shows even when the eDEX deb was not built (make build and
+  and GNOME Web (Debian `epiphany-browser`, GPL-3+, WebKitGTK, Wayland-native) are regular Extra tools, so the tab shows even when the eDEX deb was not built (make build and
   release.yml don't build it).
 - (backpack field terminal look) GUI Mode is styled after Marc's "Backpack Field Terminal" design
   system (https://claude.ai/artifact/QBvYFJMqGGPx2XKYYL6tm2; the other "Field Terminal" system
