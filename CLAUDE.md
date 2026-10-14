@@ -324,3 +324,11 @@ make release
   write the stick is unmounted again and powered off (udisksctl power-off, else eject), like macOS ejects. ISO
   downloads go to XDG_DOWNLOAD_DIR (user-dirs.dirs) when set. CI writes a loop device as root (TestLoopDevice,
   BACKPACK_TEST_LOOP; `allowLoop` lets openDisk take a loop device in tests only).
+- (interface fields) Manifest arg `type: interface` (+ optional `kind: any|wifi|wired|monitor`, `options`
+  for fixed extras like `any`) replaces typed `wlan0`/`eth0` defaults, which never matched trixie's
+  predictable names (wlp2s0, enp3s0, wlx…). manifest.interfaces(kind) reads /sys/class/net (type 803 =
+  monitor, wireless/ or phy80211 = Wi-Fi, device link = wired, else virtual; up = operstate up, or
+  unknown + IFF_UP), up ones first; `Manifest.interfaces` (QML slot) re-reads it each time the list opens.
+  ToolForm's ifaceC is the dropdown: field shows the value + micro tag (WI-FI // UP), a Popup lists
+  the entries as touch rows; not-required fields get an "Auto" entry (argument left out). Default = the
+  manifest default if present, else the first real interface. Test hook: BACKPACK_NET_DIR=<fake sysfs>.
