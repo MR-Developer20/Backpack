@@ -11,6 +11,7 @@ from . import manifest
 from .runner import Runner, System, Wifi
 from .settings import Settings
 from .sysmon import SysMonitor
+from .windows import Windows
 
 
 class Manifest(QObject):
@@ -55,6 +56,7 @@ def main():
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
     app = QGuiApplication(sys.argv)
     app.setApplicationName("Backpack Touch")
+    app.setDesktopFileName("backpack-touch")   # the Wayland app_id sway.config tiles (not "python3")
     tools = manifest.load()
     engine = QQmlApplicationEngine()
     ctx = engine.rootContext()
@@ -76,6 +78,8 @@ def main():
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
         sys.exit(1)
+    windows = Windows(engine)   # frames app windows (WindowBar.qml); needs sway, so not in screenshot runs
+    ctx.setContextProperty("windows", windows)
     shot = os.environ.get("BACKPACK_SCREENSHOT")
     if shot:  # test hook: grab the window after the demo has run, then exit
         root = engine.rootObjects()[0]
@@ -86,6 +90,8 @@ def main():
             engine.rootObjects()[0].grabWindow().save(shot)
             app.quit()
         QTimer.singleShot(int(os.environ.get("BACKPACK_SCREENSHOT_DELAY", "6000")), grab)
+    else:
+        windows.start()
     sys.exit(app.exec())
 
 
