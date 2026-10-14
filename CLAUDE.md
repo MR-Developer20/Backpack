@@ -202,9 +202,7 @@ make release
   like the terminal buttons.
   LTris (Debian `ltris`, GPL-2+, cmd `/usr/games/ltris` since /usr/games may be off the session PATH)
   and GNOME Web (Debian `epiphany-browser`, GPL-3+, WebKitGTK, Wayland-native) are regular Extra tools, so the tab shows even when the eDEX deb was not built (make build and
-  release.yml don't build it). Both float and resize (sway.config for_window: LTris centred at its own
-  size by X11 class, GNOME Web app_id org.gnome.Epiphany filling the screen, floating not `fullscreen` so its address bar stays; a 6px acid/hull border to drag,
-  floating_modifier $mod normal); not yet checked on a booted ISO.
+  release.yml don't build it). Both are framed like every app window (see "app windows"; LTris opens at its own size); not yet checked on a booted ISO.
 - (backpack field terminal look) GUI Mode is styled after Marc's "Backpack Field Terminal" design
   system (https://claude.ai/artifact/QBvYFJMqGGPx2XKYYL6tm2; the other "Field Terminal" system
   and a Settings switch between looks were dropped at his request). Theme.qml holds its tokens:
@@ -332,3 +330,25 @@ make release
   ToolForm's ifaceC is the dropdown: field shows the value + micro tag (WI-FI // UP), a Popup lists
   the entries as touch rows; not-required fields get an "Auto" entry (argument left out). Default = the
   manifest default if present, else the first real interface. Test hook: BACKPACK_NET_DIR=<fake sysfs>.
+- (app windows) Every app window (GUI tools like Angry IP Scanner, Extra apps, a tty tool's foot) is framed by
+  touchmode/backpack_touch/windows.py, started from __main__ (not in BACKPACK_SCREENSHOT runs): it follows
+  `swaymsg -m -r -t subscribe '["window","output"]'` and, per app, creates a WindowBar.qml window (same engine, so
+  Theme/TouchButton) and nests bar + app in ONE floating sway container (`mark` app, `split vertical`, bar
+  `floating disable` + `move window to mark` + `move up`). The bar has `border normal 0`: its sway titlebar is the
+  5px drag strip (`font pango:JetBrains Mono 1` + `titlebar_padding 1 1` + `titlebar_border_thickness 0` = 5px;
+  a 3pt font gives 9px, `titlebar_padding 1 0` is a config ERROR that shows swaynag). Sway moves the floating
+  ancestor when a child's titlebar is dragged (touch on a titlebar is emulated as pointer); a client
+  startSystemMove() from the bar is ignored (the bar is not itself floating), and a drag driven by `move` commands
+  from QML overshot (stale surface-local coords during the grab), so only the strip drags. Buttons: Close
+  (`kill`), Maximize (max <-> the app's own size, centred, <= 90%), Split (asks Left/Right, Top/Bottom in portrait;
+  a split frame goes to its other side; when one other frame holds a side the new one takes the free side without
+  asking). Geometry = px from the focused workspace rect; output events re-apply (rotation). Bars are made one at a
+  time: a new window with our pid is the pending bar. Sway opens a new window NEXT TO THE FOCUSED ONE, even inside a
+  floating frame, and `floating enable|disable` on a frame's child acts on the whole frame: so sway.config floats
+  every window (`for_window [app_id=".*"] floating enable`; the launcher tiles by title "Backpack Live", app_id
+  `backpack-touch` via setDesktopFileName, shared with the bars), windows.py moves strays out of frames
+  (`move window to mark _bp_launcher`), and tiles the Split terminal itself. Another window of a framed app's pid
+  = a dialog: floated centred, unframed (60% of the screen when it opened inside the frame; re-sized after 400ms
+  since the first commit overrides). Tested in headless sway 1.9 (Ubuntu) with a wlr-virtual-pointer helper
+  (wlrctl's one-shot device is gone before Qt binds a pointer); not yet on a booted ISO (trixie sway 1.10).
+  BACKPACK_WINDOWS_DEBUG=1 logs every swaymsg; failed ones are always logged.

@@ -25,6 +25,10 @@ Item {
         split:     { snap: true, stroke: "M2 3 H10 V21 H2 Z M14 3 H22 V21 H14 Z", fill: "" },
         // one pane and an X
         exitsplit: { snap: true, stroke: "M2 3 H22 V21 H2 Z M8 8 L16 16 M16 8 L8 16", fill: "" },
+        // window bar (WindowBar.qml): an X; a window with its title rule; two staggered windows
+        close:     { snap: true, stroke: "M5 5 L19 19 M19 5 L5 19", fill: "" },
+        maximize:  { snap: true, stroke: "M3 4 H21 V20 H3 Z M3 8 H21", fill: "" },
+        restore:   { snap: true, stroke: "M8 7 V3 H21 V16 H17 M3 7 H17 V21 H3 Z M3 11 H17", fill: "" },
         // frame, two staggered rows of 2x2 keys and the space bar
         keyboard:  { snap: true, stroke: "M2 4 H22 V20 H2 Z",
                      fill: "M5 7 h2 v2 h-2 Z M9 7 h2 v2 h-2 Z M13 7 h2 v2 h-2 Z M17 7 h2 v2 h-2 Z "
