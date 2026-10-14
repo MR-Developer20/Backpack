@@ -11,6 +11,7 @@ Rectangle {
     property string title
     property string facts: ""
     property int sheetWidth: Theme.s(560)
+    readonly property real contentWidth: body.width   // what a row inside may take
     default property alias content: body.data
     color: Theme.scrim
     MouseArea { anchors.fill: parent; onClicked: sheet.closed() }
@@ -27,6 +28,10 @@ Rectangle {
             id: flick
             anchors.fill: parent
             anchors.margins: Theme.space6
+            // the content is exactly as wide as the sheet's padding box: left to itself the Flickable
+            // takes its children's implicit width, and a row that wants more (a long command line,
+            // a wide list) then pushed everything on its right past the sheet's edge, clipped
+            contentWidth: width
             contentHeight: body.implicitHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -37,7 +42,7 @@ Rectangle {
 
             ColumnLayout {
                 id: body
-                width: parent.width
+                width: flick.width
                 spacing: Theme.space2
 
                 RowLayout {

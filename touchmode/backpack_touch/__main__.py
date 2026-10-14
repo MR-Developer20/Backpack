@@ -72,10 +72,12 @@ def main():
     ctx.setContextProperty("demoSection", os.environ.get("BACKPACK_DEMO_SECTION", ""))
     ctx.setContextProperty("demoMonitor", bool(os.environ.get("BACKPACK_DEMO_MONITOR")))
     ctx.setContextProperty("demoAsk", os.environ.get("BACKPACK_DEMO_ASK", ""))   # reboot|poweroff|cli
+    ctx.setContextProperty("demoWifiSelect", os.environ.get("BACKPACK_DEMO_WIFI_SELECT", ""))   # an SSID to select
     app.aboutToQuit.connect(runner.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
         sys.exit(1)
+    system.watchInput(engine.rootObjects()[0])   # touch vs mouse, for the on-screen keyboard
     shot = os.environ.get("BACKPACK_SCREENSHOT")
     if shot:  # test hook: grab the window after the demo has run, then exit
         root = engine.rootObjects()[0]

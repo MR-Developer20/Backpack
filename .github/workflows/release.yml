@@ -40,7 +40,7 @@ jobs:
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.iso == 'true') }}
     runs-on: ubuntu-24.04
     # A normal build takes ~5-10 minutes; fail fast instead of sitting on a stuck mirror for hours.
-    timeout-minutes: 45
+    timeout-minutes: 60   # eDEX-UI (npm + electron-builder) is built inside make build
     steps:
       - uses: actions/checkout@v4
       - name: disk space

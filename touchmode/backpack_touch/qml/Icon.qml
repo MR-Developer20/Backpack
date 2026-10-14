@@ -9,7 +9,7 @@ import QtQuick.Shapes
 // instead of a 2.83px line with grey fringes. Diagonals and curves get plain analytic AA.
 // Curves are written as cubic Béziers (C) with exact junction points, never as SVG arcs (A): the
 // curve renderer misdraws an arc's joins at some window positions (verified over 64 positions).
-// Names: terminal, split, exitsplit, keyboard, wifi, settings.
+// Names: terminal, split, exitsplit, keyboard, wifi, settings, chevron (the Dropdown's open mark).
 Item {
     id: ic
     property string name: ""
@@ -36,6 +36,8 @@ Item {
                            + "M3.515 9.515 C8.201 4.828 15.799 4.828 20.485 9.515",
                      fill: "M13.5 18 C13.5 18.828 12.828 19.5 12 19.5 C11.172 19.5 10.5 18.828 10.5 18 "
                          + "C10.5 17.172 11.172 16.5 12 16.5 C12.828 16.5 13.5 17.172 13.5 18 Z" },
+        // a down-pointing chevron: the Dropdown's affordance
+        chevron:   { snap: false, stroke: "M5 9 L12 16 L19 9", fill: "" },
         // eight-tooth gear (tips r 10.6, roots r 8, so the mitred tips stay inside the grid) and its bore (r 3.5)
         settings:  { snap: false,
                      stroke: "M10.41 4.16 L10.71 1.48 L13.29 1.48 L13.59 4.16 L16.42 5.33 L18.53 3.65 L20.35 5.47 L18.67 7.58 "

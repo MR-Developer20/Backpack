@@ -2,7 +2,8 @@
 import os
 import shlex
 import subprocess
-from PySide6.QtCore import QObject, QProcess, QTimer, Property, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, QProcess, QTimer, Property, Signal, Slot
+from PySide6.QtGui import QInputDevice
 
 from . import manifest
 
@@ -113,9 +114,29 @@ def _pkill_signal(proc_name, sig):
         pass
 
 
+_TOUCH_DEVICES = (QInputDevice.DeviceType.TouchScreen, QInputDevice.DeviceType.Stylus,
+                  QInputDevice.DeviceType.Airbrush)
+_PRESSES = (QEvent.Type.TouchBegin, QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick,
+            QEvent.Type.TabletPress)
+
+
+def pressed_by_touch(event):
+    """True when this press came from a finger or pen, False for a mouse or touchpad, None if it
+    is not a press. Qt hands touchscreen input to the window as TouchBegin; a mouse press that Qt
+    synthesised from touch still names the touchscreen as its device."""
+    if event.type() not in _PRESSES:
+        return None
+    if event.type() in (QEvent.Type.TouchBegin, QEvent.Type.TabletPress):
+        return True
+    dev = event.device()
+    return dev is not None and dev.type() in _TOUCH_DEVICES
+
+
 class System(QObject):
     """Terminal / split / keyboard / power buttons. Split state is polled from the sway tree so the
-    button stays correct even if the user closes the terminal with `exit`."""
+    button stays correct even if the user closes the terminal with `exit`.
+    It also watches the window's presses (watchInput) so a text field opens the on-screen keyboard
+    only when it was tapped with a finger or pen, not clicked with a mouse or touchpad."""
     splitActiveChanged = Signal()
     keyboardVisibleChanged = Signal()
 
@@ -123,6 +144,7 @@ class System(QObject):
         super().__init__(parent)
         self._split = False
         self._kbd = False
+        self._touch = False   # was the last press a touch?
         self._poll = QTimer(self)
         self._poll.setInterval(1500)
         self._poll.timeout.connect(self._refresh)
@@ -161,6 +183,21 @@ class System(QObject):
         QProcess.startDetached("sh", ["-c",
             f"swaymsg fullscreen disable; swaymsg {direction}; swaymsg exec '{TERMINAL} --app-id {SPLIT_APP_ID}'"])
         QTimer.singleShot(800, self._refresh)
+
+    def watchInput(self, window):
+        window.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        t = pressed_by_touch(event)
+        if t is not None:
+            self._touch = t
+        return False
+
+    @Slot()
+    def fieldFocused(self):
+        """A text field took focus: show the on-screen keyboard if a finger or pen put it there."""
+        if self._touch:
+            self.showKeyboard()
 
     @Slot()
     def showKeyboard(self):
@@ -235,6 +272,7 @@ class Wifi(QObject):
         self._device = ""
         self._busy = False
         self._procs = []
+        self._known = set()   # SSIDs with a saved NetworkManager profile: Connect needs no password
 
     @Property("QVariantList", notify=networksChanged)
     def networks(self):
@@ -333,13 +371,22 @@ class Wifi(QObject):
                 if cur is None or sig > cur["signal"]:
                     best[ssid] = {"ssid": ssid, "signal": sig, "security": sec.strip() or "open",
                                   "secured": bool(sec.strip()) and sec.strip() != "--", "inUse": inuse.strip() == "*"}
+            for n in best.values():
+                n["known"] = n["ssid"] in self._known
             self._networks = sorted(best.values(), key=lambda n: (-int(n["inUse"]), -n["signal"]))
             self.networksChanged.emit()
             self._set_busy(False)
             if code != 0 and not self._networks:
                 self.message.emit(out.strip().splitlines()[-1] if out.strip() else "scan failed")
-        def do_scan(*_):
+        def done_known(code, out):
+            self._known = set()
+            for line in out.splitlines():
+                p = _nmcli_fields(line)
+                if len(p) >= 2 and p[1] == "802-11-wireless":
+                    self._known.add(p[0])
             self._run(["-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi", "list", "--rescan", "yes"], done)
+        def do_scan(*_):
+            self._run(["-t", "-f", "NAME,TYPE", "con", "show"], done_known)
         def done_radio(code, out):
             # A soft-blocked/disabled radio makes the adapter "unavailable" and the list empty.
             if out.strip() == "disabled":
@@ -358,9 +405,12 @@ class Wifi(QObject):
             return
         self._set_busy(True)
         self._set_status(f"Connecting to {ssid}…")
-        args = ["dev", "wifi", "connect", ssid]
-        if password:
-            args += ["password", password]
+        if not password and ssid in self._known:
+            args = ["con", "up", "id", ssid]   # saved profile: its stored password
+        else:
+            args = ["dev", "wifi", "connect", ssid]
+            if password:
+                args += ["password", password]
         def done(code, out):
             self._set_busy(False)
             msg = out.strip().splitlines()[-1] if out.strip() else ("connected" if code == 0 else "failed")
@@ -382,5 +432,9 @@ class Wifi(QObject):
     def forget(self, ssid):
         def done(code, out):
             self.message.emit(f"forgot {ssid}" if code == 0 else out.strip())
+            if code == 0:
+                self._known.discard(ssid)
+                self._networks = [dict(n, known=False) if n["ssid"] == ssid else n for n in self._networks]
+                self.networksChanged.emit()
             self.refreshStatus()
         self._run(["con", "delete", "id", ssid], done)

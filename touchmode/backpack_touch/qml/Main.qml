@@ -21,12 +21,13 @@ ApplicationWindow {
     // "//LIVE" half of the wordmark and the meter's percentages, in that order. Every term is an
     // implicit width that does not depend on the tier chosen, so there is no binding loop.
     readonly property bool portrait: height > width
-    // what the bar needs, tier by tier (each adds to the one before; 8 gaps between 9 items):
-    // tabs + five icon buttons + the compact meter; + the wordmark; + the four tool buttons with
-    // label and command; + the Settings label; + the meter's percentages
-    readonly property real barMeterOnly: Theme.gap * 2 + tabs.implicitWidth + Theme.touch * 5 + meter.compactWidth + Theme.gap * 7 + Theme.space4
+    // what the bar needs, tier by tier (each adds to the one before; 5 gaps between 6 items):
+    // tabs + two icon buttons (Split, Settings) + the compact meter; + the wordmark; + Split with
+    // its label and command; + the Settings label; + the meter's percentages. Terminal, Keyboard and
+    // Wi-Fi live in the Settings sheet, which leaves portrait room for the meter.
+    readonly property real barMeterOnly: Theme.gap * 2 + tabs.implicitWidth + Theme.touch * 2 + meter.compactWidth + Theme.gap * 4 + Theme.space4
     readonly property real barWordmark: barMeterOnly + wordmarkMetrics.advanceWidth + Theme.space2 * 2 + Theme.gap
-    readonly property real barLabels: barWordmark + termBtn.fullWidth + splitBtn.fullWidth + kbdBtn.fullWidth + wifiBtn.fullWidth - Theme.touch * 4
+    readonly property real barLabels: barWordmark + splitBtn.fullWidth - Theme.touch
     readonly property real barSettings: barLabels + gearBtn.fullWidth - Theme.touch
     readonly property real barMeter: barSettings + meter.fullWidth - meter.compactWidth
     readonly property bool compact: width < barLabels
@@ -50,7 +51,7 @@ ApplicationWindow {
     readonly property real barFloor: barMeterOnly - meter.compactWidth - Theme.gap
     readonly property real scaleWanted: settings ? settings.uiScale : 1.0
     function fitScale() {
-        var min = settings ? settings.uiScaleMin : 0.75
+        var min = settings ? settings.uiScaleMin : 0.5
         if (barFloor <= width || Theme.scale <= min + 0.001) return
         var fit = Math.floor(width / (barFloor / Theme.scale) * 20 + 0.001) / 20   // the bar grows ~linearly with the scale
         Theme.scale = Math.max(min, Math.min(Theme.scale - 0.05, fit))
@@ -100,6 +101,15 @@ ApplicationWindow {
         height: Theme.barH
         color: Theme.panel
         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.border }
+        Text {   // the local IPv4 address, flush with the window's top-right corner: no padding, no margin
+            z: 2
+            anchors.top: parent.top; anchors.right: parent.right
+            padding: 0
+            text: sysmon && sysmon.ipv4 !== "" ? sysmon.ipv4 : "NO IPV4"
+            color: Theme.muted
+            font.family: Theme.fontMono; font.pixelSize: Theme.ipFont; font.letterSpacing: 0
+            lineHeightMode: Text.FixedHeight; lineHeight: Theme.ipFont
+        }
         RowLayout {
             anchors.fill: parent
             anchors.margins: Theme.gap
@@ -159,12 +169,6 @@ ApplicationWindow {
             }
             Item { Layout.fillWidth: true }
             TouchButton {
-                id: termBtn
-                text: "Terminal"; icon.name: "terminal"; compact: win.compact
-                command: "foot --app-id backpack-term"
-                onClicked: system.openTerminal()
-            }
-            TouchButton {
                 id: splitBtn
                 text: (system && system.splitActive) ? "Exit split" : "Split"
                 icon.name: (system && system.splitActive) ? "exitsplit" : "split"
@@ -177,18 +181,6 @@ ApplicationWindow {
                 compact: win.compact
                 onClicked: system.toggleSplit(win.portrait)
             }
-            TouchButton {
-                id: kbdBtn
-                text: "Keyboard"; icon.name: "keyboard"; compact: win.compact
-                command: (system && system.keyboardVisible) ? "pkill -USR1 -x wvkbd-mobintl" : "pkill -USR2 -x wvkbd-mobintl"
-                altCommand: (system && system.keyboardVisible) ? "pkill -USR2 -x wvkbd-mobintl" : "pkill -USR1 -x wvkbd-mobintl"
-                // amber while the on-screen keyboard is open: caution, it covers the screen
-                selected: !!(system && system.keyboardVisible)
-                textColor: selected ? Theme.warn : Theme.text
-                borderColor: selected ? Theme.warn : Theme.borderStrong
-                onClicked: system.toggleKeyboard()
-            }
-            TouchButton { id: wifiBtn; text: "Wi-Fi"; icon.name: "wifi"; compact: win.compact; onClicked: win.wifiOpen = true }
             UsageMeter {   // percentages once everything else has its label; dropped entirely when narrow
                 id: meter
                 visible: win.width >= win.barMeterOnly
@@ -431,7 +423,10 @@ ApplicationWindow {
         onClosed: win.settingsOpen = false
         onAct: function (action) {
             win.settingsOpen = false
-            if (action === "reboot") system.reboot()
+            if (action === "wifi") win.wifiOpen = true
+            else if (action === "terminal") system.openTerminal()
+            else if (action === "keyboard") system.toggleKeyboard()
+            else if (action === "reboot") system.reboot()
             else if (action === "cli") settings.switchToCli()
             else system.poweroff()
         }
