@@ -203,7 +203,7 @@ make release
   LTris (Debian `ltris`, GPL-2+, cmd `/usr/games/ltris` since /usr/games may be off the session PATH)
   and GNOME Web (Debian `epiphany-browser`, GPL-3+, WebKitGTK, Wayland-native) are regular Extra tools, so the tab shows even when the eDEX deb was not built (make build and
   release.yml don't build it). Both float and resize (sway.config for_window: LTris centred at its own
-  size by X11 class, GNOME Web app_id org.gnome.Epiphany at 80% x 80%; a 6px acid/hull border to drag,
+  size by X11 class, GNOME Web app_id org.gnome.Epiphany filling the screen, floating not `fullscreen` so its address bar stays; a 6px acid/hull border to drag,
   floating_modifier $mod normal); not yet checked on a booted ISO.
 - (backpack field terminal look) GUI Mode is styled after Marc's "Backpack Field Terminal" design
   system (https://claude.ai/artifact/QBvYFJMqGGPx2XKYYL6tm2; the other "Field Terminal" system
