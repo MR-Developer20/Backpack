@@ -575,6 +575,17 @@ tools:
         needs_root: false
   # =================================================================== EXTRA
   # ------------------------------------------------------------------- extra
+  - id: ltris
+    name: LTris
+    description: Falling-blocks puzzle game, a free Tetris clone (GPL-2+). Play with the keyboard.
+    category: extra
+    packages: [ltris]
+    gui: true
+    commands:
+      - label: Open LTris
+        cmd: /usr/games/ltris   # Debian games live in /usr/games, not always on the session PATH
+        args: []
+        needs_root: false
   - id: edex-ui
     name: eDEX-UI
     description: Sci-fi full-screen terminal with live system, network and file panels.
