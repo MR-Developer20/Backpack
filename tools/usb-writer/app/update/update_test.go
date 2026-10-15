@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -132,5 +133,59 @@ func TestDownloadParallel(t *testing.T) {
 	}
 	if ranged < Parts+1 || !dropped {
 		t.Fatalf("ranged requests %d, dropped %v", ranged, dropped)
+	}
+}
+
+// GitHub's CDN speaks HTTP/2, where Go would multiplex every part onto one connection.
+func TestDownloadPartsUseOwnConnections(t *testing.T) {
+	defer func(m int64, c *http.Client) { parallelMin, client = m, c }(parallelMin, client)
+	parallelMin = 1
+	body := bytes.Repeat([]byte("backpack"), 1<<17)
+	sum := sha256.Sum256(body)
+	var mu sync.Mutex
+	conns, waiting, protos, allIn := 0, 0, map[string]bool{}, make(chan struct{})
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		protos[r.Proto] = true
+		mu.Unlock()
+		if r.URL.Path == "/SHA256SUMS" {
+			fmt.Fprintf(w, "%x  a.iso\n", sum)
+			return
+		}
+		// hold every part until all are in flight, so none can reuse a finished part's connection
+		mu.Lock()
+		if waiting++; waiting == Parts {
+			close(allIn)
+		}
+		mu.Unlock()
+		select {
+		case <-allIn:
+		case <-time.After(5 * time.Second):
+		}
+		http.ServeContent(w, r, "a.iso", time.Time{}, bytes.NewReader(body))
+	}))
+	srv.EnableHTTP2 = true
+	srv.Config.ConnState = func(_ net.Conn, s http.ConnState) {
+		if s == http.StateNew {
+			mu.Lock()
+			conns++
+			mu.Unlock()
+		}
+	}
+	srv.StartTLS()
+	defer srv.Close()
+	tr := client.Transport.(*http.Transport).Clone()
+	tr.TLSClientConfig = srv.Client().Transport.(*http.Transport).TLSClientConfig
+	client = &http.Client{Transport: tr}
+
+	r := &Release{Assets: []Asset{
+		{Name: "SHA256SUMS", URL: srv.URL + "/SHA256SUMS"},
+		{Name: "a.iso", URL: srv.URL + "/a", Size: int64(len(body))},
+	}}
+	if err := r.Download(context.Background(), &r.Assets[1], filepath.Join(t.TempDir(), "a.iso"), func(int64, int64) {}); err != nil {
+		t.Fatal(err)
+	}
+	if protos["HTTP/2.0"] || conns < Parts {
+		t.Fatalf("protocols %v over %d connections, want HTTP/1.1 over >= %d", protos, conns, Parts)
 	}
 }

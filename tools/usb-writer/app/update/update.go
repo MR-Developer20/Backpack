@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -36,7 +37,19 @@ type Release struct {
 	Assets []Asset `json:"assets"`
 }
 
-var client = &http.Client{Timeout: 0}
+var client = &http.Client{Transport: http1Transport()}
+
+// http1Transport keeps every request on its own TCP connection. Over HTTP/2 (which GitHub's
+// CDN speaks) Go multiplexes the parallel download parts onto ONE connection, so they share a
+// single connection's speed and flow-control window: no faster than one stream, and slower
+// than a browser on a high-latency line.
+func http1Transport() *http.Transport {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.ForceAttemptHTTP2 = false
+	t.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{} // non-nil: no HTTP/2
+	t.MaxIdleConnsPerHost = Parts
+	return t
+}
 
 func get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
