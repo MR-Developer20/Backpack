@@ -56,4 +56,14 @@ Chamfer {
         font.letterSpacing: Theme.microFont * 0.16
     }
     MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
+    // keyboard / Stream Deck: Space or Enter opens the tool; the acid ring sits 2px outside
+    activeFocusOnTab: true
+    Keys.onSpacePressed: tile.tapped()
+    Keys.onReturnPressed: tile.tapped()
+    Chamfer {
+        visible: tile.activeFocus
+        anchors.fill: parent; anchors.margins: -Theme.s(4)
+        cut: Theme.cutMd + Theme.s(4)
+        color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+    }
 }

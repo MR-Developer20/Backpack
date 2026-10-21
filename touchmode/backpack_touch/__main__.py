@@ -8,6 +8,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow  # noqa: F401  (makes rootObjects() return QQuickWindow)
 
 from . import manifest
+from .deck import Deck
 from .runner import Runner, System, Wifi
 from .settings import Settings
 from .sysmon import SysMonitor
@@ -66,6 +67,8 @@ def main():
     ctx.setContextProperty("system", system)
     ctx.setContextProperty("wifi", wifi)
     ctx.setContextProperty("settings", settings)
+    deck = Deck(tools, runner, system)   # a Stream Deck, when one is plugged in (deck.py)
+    ctx.setContextProperty("deck", deck)
     sysmon = SysMonitor()
     ctx.setContextProperty("sysmon", sysmon)
     ctx.setContextProperty("demoTool", demo_tool() or "")
@@ -76,13 +79,16 @@ def main():
     ctx.setContextProperty("demoAsk", os.environ.get("BACKPACK_DEMO_ASK", ""))   # reboot|poweroff|cli
     ctx.setContextProperty("demoWifiSelect", os.environ.get("BACKPACK_DEMO_WIFI_SELECT", ""))   # an SSID to select
     app.aboutToQuit.connect(runner.stop)
+    app.aboutToQuit.connect(deck.stop)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "qml" / "Main.qml")))
     if not engine.rootObjects():
         sys.exit(1)
     system.watchInput(engine.rootObjects()[0])   # touch vs mouse, for the on-screen keyboard
+    shot = os.environ.get("BACKPACK_SCREENSHOT")
+    if not shot or os.environ.get("BACKPACK_DECK"):
+        deck.attach(engine.rootObjects()[0])
     windows = Windows(engine)   # frames app windows (WindowBar.qml); needs sway, so not in screenshot runs
     ctx.setContextProperty("windows", windows)
-    shot = os.environ.get("BACKPACK_SCREENSHOT")
     if shot:  # test hook: grab the window after the demo has run, then exit
         root = engine.rootObjects()[0]
         root.setVisibility(QQuickWindow.Windowed)

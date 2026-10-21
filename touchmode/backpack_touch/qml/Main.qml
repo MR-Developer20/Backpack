@@ -163,6 +163,15 @@ ApplicationWindow {
                                 color: tab.on ? tab.tabAccent : "transparent"
                             }
                             MouseArea { anchors.fill: parent; onClicked: win.selectSection(tab.modelData.id) }
+                            // keyboard / Stream Deck focus: Space or Enter opens the tab, the acid ring shows where focus is
+                            activeFocusOnTab: true
+                            Keys.onSpacePressed: win.selectSection(tab.modelData.id)
+                            Keys.onReturnPressed: win.selectSection(tab.modelData.id)
+                            Chamfer {
+                                visible: tab.activeFocus
+                                anchors.fill: parent; anchors.topMargin: Theme.s(2); anchors.bottomMargin: Theme.s(6)
+                                cut: Theme.cutSm; color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+                            }
                         }
                     }
                 }
@@ -241,6 +250,15 @@ ApplicationWindow {
                             }
                         }
                         MouseArea { anchors.fill: parent; onClicked: win.category = chip.modelData.id }
+                        activeFocusOnTab: true
+                        Keys.onSpacePressed: win.category = chip.modelData.id
+                        Keys.onReturnPressed: win.category = chip.modelData.id
+                        Chamfer {   // focus ring, as Chip.qml draws it
+                            visible: chip.activeFocus
+                            anchors.centerIn: parent; width: parent.width + Theme.s(8); height: Theme.chipH + Theme.s(8)
+                            cut: Theme.cutSm + Theme.s(4)
+                            color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+                        }
                     }
                 }
             }
@@ -265,6 +283,7 @@ ApplicationWindow {
         // tool pane
         Chamfer {
             id: toolPane
+            objectName: "toolPane"   // the deck focuses the first control in here when it opens a tool
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: 0
@@ -432,6 +451,41 @@ ApplicationWindow {
         }
     }
 
+    // ---------------------------------------------------------------- Stream Deck (deck.py)
+    // The deck follows the open tool, tab and sheet; its Home, Settings, Run, app and tab keys come
+    // back here as requests. Its arrows and Select move and press keyboard focus directly.
+    readonly property string openSheet: settingsOpen ? "settings" : (wifiOpen ? "wifi" : (monitorOpen ? "monitor" : ""))
+    function deckSync() { if (deck) deck.setLauncher(tool ? tool.id : "", section, openSheet) }
+    onToolChanged: deckSync()
+    onSectionChanged: deckSync()
+    onOpenSheetChanged: deckSync()
+    Connections {
+        target: deck
+        function onRequest(action, arg) {
+            if (action === "tool") {
+                var t = win.toolById(arg)
+                if (t) { win.settingsOpen = win.wifiOpen = win.monitorOpen = false; win.selectSection(t.section); win.category = t.category; win.selectTool(t) }
+            } else if (action === "home") {
+                win.settingsOpen = win.wifiOpen = win.monitorOpen = false
+                win.tool = null
+                if (system.keyboardVisible) system.hideKeyboard()
+            } else if (action === "settings") {
+                win.wifiOpen = win.monitorOpen = false
+                settings.refresh(); win.settingsOpen = true
+            } else if (action === "section") win.selectSection(arg)
+            else if (action === "run") { if (win.tool && !(runner && runner.running)) win.runCurrent() }
+            else if (action === "stop") runner.stop()
+            else if (action === "keyboard") system.toggleKeyboard()
+            else if (action === "back") {   // the innermost thing open closes
+                if (win.settingsOpen && settingsSheet.ask !== "") settingsSheet.ask = ""
+                else if (win.settingsOpen) win.settingsOpen = false
+                else if (win.wifiOpen) { win.wifiOpen = false; system.hideKeyboard() }
+                else if (win.monitorOpen) win.monitorOpen = false
+                else win.tool = null
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- demo / screenshot automation
     Timer {
         running: demoTool !== ""
@@ -442,5 +496,5 @@ ApplicationWindow {
     Timer { running: demoWifi; interval: 1200; onTriggered: win.wifiOpen = true }
     Timer { running: demoMonitor; interval: 4000; onTriggered: win.monitorOpen = true }
     Timer { running: demoSettings; interval: 1200; onTriggered: { settings.refresh(); win.settingsOpen = true; if (demoAsk !== "") settingsSheet.ask = demoAsk } }
-    Component.onCompleted: { refitScale(); if (demoSection !== "") selectSection(demoSection) }
+    Component.onCompleted: { refitScale(); if (demoSection !== "") selectSection(demoSection); deckSync() }
 }

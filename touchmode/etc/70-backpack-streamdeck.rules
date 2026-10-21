@@ -1,0 +1,5 @@
+# Elgato Stream Deck (USB vendor 0fd9): the logged-in user may open it, so GUI Mode can drive it
+# (backpack_touch/deck.py through libhidapi-libusb). uaccess = the user of the active seat session
+# (LightDM's autologin); plugdev covers a session without a seat.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", TAG+="uaccess", GROUP="plugdev", MODE="0660"
+KERNEL=="hidraw*", ATTRS{idVendor}=="0fd9", TAG+="uaccess", GROUP="plugdev", MODE="0660"

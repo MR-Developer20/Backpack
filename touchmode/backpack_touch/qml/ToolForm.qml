@@ -56,6 +56,17 @@ ColumnLayout {
             cut: Theme.cutSm; color: Theme.panelAlt; borderColor: input.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: input.activeFocus ? 2 : 1
             TextInput {
                 id: input
+                // the Stream Deck shows a 0-9 . / keypad for numbers and addresses ("ip"), and offers the
+                // on-screen keyboard for anything else: an address is a default made of digits, dots and
+                // slashes, or an empty field named like one
+                readonly property string deckRole: {
+                    if (!row) return "text"
+                    var a = row.modelData, d = String(a.default)
+                    if (a.type === "int" || /^[0-9.\/]+$/.test(d)) return "ip"
+                    return d === "" && /^(target|host|range|ip|address|cidr|subnet|gateway)$/.test(a.name) ? "ip" : "text"
+                }
+                activeFocusOnTab: true
+                selectionColor: Theme.accent; selectedTextColor: Theme.inkOnAccent   // the text the keypad's first digit replaces
                 anchors.fill: parent; anchors.margins: Theme.space3
                 text: row ? String(row.modelData.default) : ""
                 color: Theme.text
@@ -85,6 +96,12 @@ ColumnLayout {
                     cut: Theme.cutSm
                     color: sw.checked ? Theme.accent : Theme.panelAlt
                     borderColor: sw.checked ? Theme.accent : Theme.borderStrong
+                    Chamfer {   // focus ring
+                        visible: sw.visualFocus
+                        anchors.fill: parent; anchors.margins: -Theme.s(4)
+                        cut: Theme.cutSm + Theme.s(4)
+                        color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+                    }
                     Rectangle {
                         x: sw.checked ? parent.width - width - Theme.s(4) : Theme.s(4)
                         y: Theme.s(4); width: Theme.s(36); height: Theme.s(36); color: sw.checked ? Theme.bg : Theme.text
@@ -144,6 +161,11 @@ ColumnLayout {
                 return ""
             }
             function choose(v) { if (row) { row.value = v; form.changed() } }
+            // Stream Deck: a dropdown opens as soon as the deck moves focus onto it; then the list
+            // has focus, so Up/Down move through it and Enter or Space picks
+            readonly property string deckRole: "dropdown"
+            readonly property bool deckListOpen: popup.visible
+            function deckOpenList() { refresh(); popup.open() }
             onRowChanged: {
                 refresh()
                 if (!row) return
@@ -152,7 +174,7 @@ ColumnLayout {
                 var hw = entries.filter(function (e) { return e.name !== "" && row.modelData.options.indexOf(e.name) < 0 })
                 choose(have ? d : (hw.length ? hw[0].name : (entries.length ? entries[0].name : "")))
             }
-            onClicked: { refresh(); popup.open() }
+            onClicked: deckOpenList()
             padding: 0
             activeFocusOnTab: true
             Accessible.role: Accessible.ComboBox
@@ -202,24 +224,50 @@ ColumnLayout {
                 width: pick.width
                 margins: Theme.space2   // stays inside the window; moves up when there is no room below
                 padding: Theme.space2
+                focus: true             // keys go to the list while it is open; Escape closes it
+                onOpened: {
+                    var i = 0
+                    for (var k = 0; k < pick.entries.length; k++) if (pick.row && pick.entries[k].name === pick.row.value) i = k
+                    list.currentIndex = i
+                    list.forceActiveFocus()
+                }
                 height: Math.min(implicitHeight, Theme.touch * 5 + Theme.space2 * 6)
                 background: Chamfer { cut: Theme.cutMd; color: Theme.panel; borderColor: Theme.borderStrong }
                 contentItem: ListView {
                     id: list
+                    readonly property string deckRole: "list"
                     clip: true
                     implicitHeight: contentHeight
                     spacing: Theme.space2
                     model: pick.entries
+                    focus: true
+                    keyNavigationWraps: false
+                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                    function pickCurrent() { if (currentIndex >= 0 && currentIndex < pick.entries.length) { pick.choose(pick.entries[currentIndex].name); popup.close() } }
+                    Keys.onReturnPressed: pickCurrent()
+                    Keys.onEnterPressed: pickCurrent()
+                    Keys.onSpacePressed: pickCurrent()
                     ScrollBar.vertical: BpScrollBar {}
                     delegate: AbstractButton {
                         id: opt
                         required property var modelData
+                        required property int index
                         readonly property bool on: pick.row && pick.row.value === modelData.name
+                        focusPolicy: Qt.NoFocus   // the list keeps focus; the current row shows the ring
                         width: list.width - (list.contentHeight > list.height ? Theme.s(18) : 0); height: Theme.touch   // clear of the scroll bar
                         padding: 0
-                        background: Chamfer {
-                            cut: Theme.cutSm; color: opt.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
-                            borderColor: opt.on ? Theme.accent : Theme.borderStrong; borderWidth: opt.on ? 2 : 1
+                        background: Item {
+                            Chamfer {   // the row Up/Down is on: the focus ring, inside the list's spacing
+                                visible: list.activeFocus && list.currentIndex === opt.index
+                                anchors.fill: parent; anchors.margins: -Theme.s(3)
+                                cut: Theme.cutSm + Theme.s(3)
+                                color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+                            }
+                            Chamfer {
+                                anchors.fill: parent
+                                cut: Theme.cutSm; color: opt.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
+                                borderColor: opt.on ? Theme.accent : Theme.borderStrong; borderWidth: opt.on ? 2 : 1
+                            }
                         }
                         contentItem: RowLayout {
                             spacing: Theme.space3
