@@ -17,6 +17,12 @@ jobs:
         run: |
           for f in scripts/*.sh tools/*/*.sh live/auto/* live/config/hooks/normal/*.chroot; do [ -f "$f" ] || continue; sh -n "$f" || bash -n "$f"; done
           python3 -m py_compile touchmode/backpack_touch/*.py scripts/*.py
+      - name: Stream Deck support (dummy deck, offscreen Qt)
+        run: |
+          sudo apt-get install -y -q libegl1 libxkbcommon0 >/dev/null
+          pip install -q PySide6==6.8.2 pyyaml
+          QT_QPA_PLATFORM=offscreen BACKPACK_MANIFEST=manifest/tools.yaml PYTHONPATH=touchmode \
+            python3 -m unittest discover -s touchmode/tests -v
       - name: touch-mode deb builds
         run: scripts/build-touchmode-deb.sh && dpkg-deb -I live/config/packages.chroot/backpack-touch_*.deb | head -5
       - name: usb-writer deb builds

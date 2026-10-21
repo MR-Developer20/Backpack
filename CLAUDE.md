@@ -354,3 +354,14 @@ make release
   since the first commit overrides). Tested in headless sway 1.9 (Ubuntu) with a wlr-virtual-pointer helper
   (wlrctl's one-shot device is gone before Qt binds a pointer); not yet on a booted ISO (trixie sway 1.10).
   BACKPACK_WINDOWS_DEBUG=1 logs every swaymsg; failed ones are always logged.
+- (stream deck) touchmode/backpack_touch/deck.py drives GUI Mode from an Elgato Stream Deck through the
+  vendored python-elgato-streamdeck 0.9.8 (`_vendor/StreamDeck`, ImageHelpers dropped: key faces are
+  QPainter images from deckkeys.py, checked pixel-identical to the library's PILHelper for every model).
+  Needs `libhidapi-libusb0` + udev rule `70-backpack-streamdeck.rules` (uaccess + plugdev). Screens:
+  apps / nav / list / keypad, picked from the launcher's focus item: QML items carry `deckRole`
+  ("ip" | "text" | "dropdown" | "list"), dropdowns expose `deckListOpen` + `deckOpenList()`. Arrows do
+  geometric focus moves over items with `activeFocusOnTab` (inside the topmost open sheet) and
+  forceActiveFocus(TabFocusReason) so the acid rings show; Select sends Space. Layouts per key count
+  (6, 8, 15, 32) are strings in deck.py LAYOUTS. Test without hardware: BACKPACK_DECK=dummy-15|dummy-6|
+  dummy-32|dummy-plus|dummy-neo (+ BACKPACK_DECK_SHOT=file.png), and `python3 -m unittest discover -s
+  touchmode/tests` (CI). Not yet tried on a real deck or a booted ISO.

@@ -132,6 +132,14 @@ Sheet {
         }
     }
 
+    Text {   // a Stream Deck the launcher is driving (deck.py)
+        visible: !!(deck && deck.connected)
+        Layout.fillWidth: true
+        text: "STREAM DECK // " + (deck ? deck.name : "") + " // CONNECTED"
+        color: Theme.muted; font.family: Theme.fontSans; font.pixelSize: Theme.microFont; font.weight: Font.Medium
+        font.letterSpacing: Theme.microFont * 0.16; font.capitalization: Font.AllUppercase; elide: Text.ElideRight
+    }
+
     // ------------------------------------------------ system
     SheetHeading { text: "System"; Layout.topMargin: Theme.space4 }
     Flow {

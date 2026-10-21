@@ -157,6 +157,25 @@ Without a checkout, you can also install the GTK **Backpack USB Writer** from a 
 AppImage (`chmod +x` and run). Both use the system's GTK 4, so the AppImage needs `python3-gi`
 and `gir1.2-gtk-4.0` (stock on Ubuntu 24.04+ / Debian trixie desktops).
 
+## Stream Deck
+
+GUI Mode can be driven from an Elgato **Stream Deck** (15-key Original/MK.2, Mini, XL, Stream
+Deck + and Neo). Plug it in at any time; the keys follow what the launcher is doing:
+
+- **Apps**: the open tab's tools as keys, plus Home, Settings, the tab (press for the next one)
+  and page arrows when a tab has more tools than keys.
+- **A tool or sheet is open**: arrow keys move the keyboard focus (the acid ring) between the
+  controls on screen, **Select** presses the focused one (toggles a switch, picks a chip, presses a
+  button), plus Run, Stop, Back, the on-screen keyboard, Home and Settings.
+- **A dropdown** opens as soon as focus reaches it: up/down move through the list and Select picks.
+- **An address or number field** (a target, host or range) turns the deck into a keypad: 0-9, `.`,
+  `/`, Delete (hold to clear) and Done. The first digit replaces the field's default.
+
+Smaller decks page their keypad (the arrow key flips pages). On the Stream Deck +, the dials move
+focus (turn) and select or go back (press), and the touch strip labels them. The deck works
+through the bundled python-elgato-streamdeck library and a udev rule that gives the logged-in
+user the device; without a deck nothing changes.
+
 ## Ventoy
 
 Ventoy's normal and grub2 modes cannot load this image's kernel (`error: cannot load image`);
@@ -212,7 +231,9 @@ See [`CLAUDE.md`](CLAUDE.md) for the repository layout, build internals, and not
 
 This repository's own scripts, configuration, GUI Mode app and USB writer are licensed under the
 GNU General Public License v3.0 (see [`LICENSE`](LICENSE)).
-The vendored eDEX-UI fork in `touchmode/edex/` is GPL-3.0 (its `LICENSE` file). The bundled
+The vendored eDEX-UI fork in `touchmode/edex/` is GPL-3.0 (its `LICENSE` file). The vendored
+python-elgato-streamdeck in `touchmode/backpack_touch/_vendor/StreamDeck/` is under its own
+permissive licence (its `LICENSE` file). The bundled
 JetBrains Mono and Fira fonts are under the SIL Open Font License 1.1 (`OFL.txt` next to them).
 The built image packages Debian and third-party software under their respective licenses; their
 license texts are in `/usr/share/doc/<package>/copyright` on the live system, and the source for

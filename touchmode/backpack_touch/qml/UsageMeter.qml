@@ -42,4 +42,13 @@ Chamfer {
         Row1 { Layout.fillWidth: true; label: "RAM"; value: sysmon ? sysmon.mem : 0; barColor: Theme.cyan }
     }
     MouseArea { id: area; anchors.fill: parent; onClicked: meter.tapped() }
+    activeFocusOnTab: true
+    Keys.onSpacePressed: meter.tapped()
+    Keys.onReturnPressed: meter.tapped()
+    Chamfer {   // focus ring
+        visible: meter.activeFocus
+        anchors.fill: parent; anchors.margins: -Theme.s(4)
+        cut: Theme.cutSm + Theme.s(4)
+        color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+    }
 }

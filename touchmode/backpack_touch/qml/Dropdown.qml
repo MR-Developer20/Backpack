@@ -14,6 +14,10 @@ ComboBox {
     font.family: Theme.fontSans
     font.pixelSize: Theme.fontSize
     readonly property var current: currentIndex >= 0 && model && currentIndex < model.length ? model[currentIndex] : null
+    // Stream Deck (deck.py): opens when the deck moves focus here; Up/Down then Enter pick
+    readonly property string deckRole: "dropdown"
+    readonly property bool deckListOpen: popup.visible
+    function deckOpenList() { popup.open() }
 
     component OptionText: Column {
         property var option
@@ -64,11 +68,20 @@ ComboBox {
         width: ListView.view ? ListView.view.width : box.width
         height: Theme.touch
         padding: 0
-        background: Chamfer {
-            cut: Theme.cutSm
-            color: opt.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
-            borderColor: opt.on ? Theme.acid : Theme.borderStrong
-            borderWidth: opt.on ? 2 : 1
+        background: Item {
+            Chamfer {   // the row Up/Down is on (keyboard, Stream Deck): the focus ring
+                visible: box.visualFocus && box.highlightedIndex === opt.index
+                anchors.fill: parent; anchors.margins: -Theme.s(2)
+                cut: Theme.cutSm + Theme.s(2)
+                color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+            }
+            Chamfer {
+                anchors.fill: parent
+                cut: Theme.cutSm
+                color: opt.down ? Qt.lighter(Theme.panelAlt, 1.6) : Theme.panelAlt
+                borderColor: opt.on ? Theme.acid : Theme.borderStrong
+                borderWidth: opt.on ? 2 : 1
+            }
         }
         contentItem: Item {
             OptionText {

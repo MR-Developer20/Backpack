@@ -64,6 +64,15 @@ Sheet {
             readonly property bool on: overlay.selectedSsid === modelData.ssid
             width: list.width - Theme.s(24)
             height: Theme.touch
+            activeFocusOnTab: true   // keyboard / Stream Deck: Space or Enter selects the network
+            Keys.onSpacePressed: overlay.select(row.modelData)
+            Keys.onReturnPressed: overlay.select(row.modelData)
+            Chamfer {   // focus ring
+                visible: row.activeFocus
+                anchors.fill: parent; anchors.margins: -Theme.s(3)
+                cut: Theme.cutSm + Theme.s(3)
+                color: "transparent"; borderColor: Theme.focus; borderWidth: 2
+            }
             Chamfer {
                 anchors.fill: parent
                 cut: Theme.cutSm
@@ -131,6 +140,8 @@ Sheet {
                 borderColor: pw.activeFocus ? Theme.focus : Theme.borderStrong; borderWidth: pw.activeFocus ? 2 : 1
                 TextInput {
                     id: pw
+                    readonly property string deckRole: "text"   // the deck's Select brings up the on-screen keyboard
+                    activeFocusOnTab: true
                     anchors.fill: parent; anchors.margins: Theme.space3
                     color: Theme.text; font.family: Theme.fontMono; font.pixelSize: Theme.fontSize
                     echoMode: overlay.showPw ? TextInput.Normal : TextInput.Password
