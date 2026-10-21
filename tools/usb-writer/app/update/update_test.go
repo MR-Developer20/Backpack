@@ -71,10 +71,17 @@ func TestISOAsset(t *testing.T) {
 	r := Release{Assets: []Asset{
 		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64"},
 		{Name: "Backpack_USB_Writer-v1.0-linux-x86_64.iso"},
+		{Name: "backpack-extras-v1.0-amd64.iso"},
 		{Name: "backpack-live-v1.0-amd64.iso"},
 	}}
-	if a := r.ISOAsset(); a == nil || a.Name != "backpack-live-v1.0-amd64.iso" {
-		t.Fatalf("ISOAsset = %+v", a)
+	if a := r.ISOAsset(false); a == nil || a.Name != "backpack-live-v1.0-amd64.iso" {
+		t.Fatalf("ISOAsset(false) = %+v", a)
+	}
+	if a := r.ISOAsset(true); a == nil || a.Name != "backpack-extras-v1.0-amd64.iso" {
+		t.Fatalf("ISOAsset(true) = %+v", a)
+	}
+	if a := (&Release{Assets: r.Assets[3:]}).ISOAsset(true); a != nil {
+		t.Fatalf("a release without the extras edition: ISOAsset(true) = %+v", a)
 	}
 }
 

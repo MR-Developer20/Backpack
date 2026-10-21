@@ -22,6 +22,7 @@ Usage:
   backpack-usb-writer --list                   list USB drives
   backpack-usb-writer --update                 update this program from the newest release
   backpack-usb-writer --download-iso           download the newest release's ISO into Downloads
+  backpack-usb-writer --download-iso --extras  the same, + extras edition (with the Extra tab's apps)
   backpack-usb-writer [options] DEVICE         write from the command line (needs root / Administrator)
 
 DEVICE is /dev/sdX (Linux), /dev/diskN (macOS) or \\.\PhysicalDriveN (Windows), or a disk image file.
@@ -43,6 +44,7 @@ func cli(args []string) int {
 	ver := fs.Bool("version", false, "print the version and exit")
 	upd := fs.Bool("update", false, "replace this program with the newest release and exit")
 	getISO := fs.Bool("download-iso", false, "download the newest release's ISO into Downloads and exit")
+	extras := fs.Bool("extras", false, "with --download-iso: the + extras edition (adds the Extra tab's apps)")
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), usage, version)
 		fs.PrintDefaults()
@@ -57,7 +59,7 @@ func cli(args []string) int {
 	case *upd:
 		return cliUpdate()
 	case *getISO:
-		return cliDownloadISO()
+		return cliDownloadISO(*extras)
 	case *list:
 		drives, err := flash.ListDrives()
 		if err != nil {
@@ -197,8 +199,8 @@ func cliUpdate() int {
 	return 0
 }
 
-func cliDownloadISO() int {
-	path, err := downloadISO(context.Background(), cliProgress)
+func cliDownloadISO(extras bool) int {
+	path, err := downloadISO(context.Background(), extras, cliProgress)
 	fmt.Println()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

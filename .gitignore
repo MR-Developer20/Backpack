@@ -47,3 +47,5 @@ live/config/hooks/live/*
 live/config/hooks/normal/[1-9][0-9][0-9][0-9]-*.hook.chroot
 # written by `lb build` next to the other per-build lists
 live/*.modified_timestamps
+live/config/package-lists/extras.list.chroot
+live/config/includes.chroot/etc/backpack/edition

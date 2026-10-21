@@ -113,11 +113,16 @@ func (r *Release) AppAsset() *Asset {
 	})
 }
 
-// ISOAsset is the live image.
-func (r *Release) ISOAsset() *Asset {
+// ISOAsset is the live image: the normal edition (backpack-live-*.iso), or with extras the
+// + extras edition (backpack-extras-*.iso), which adds the Extra tab's apps.
+func (r *Release) ISOAsset(extras bool) *Asset {
+	prefix := "backpack-live-"
+	if extras {
+		prefix = "backpack-extras-"
+	}
 	return r.find(func(n string) bool {
 		n = strings.ToLower(n)
-		return strings.HasPrefix(n, "backpack-live-") && strings.HasSuffix(n, ".iso")
+		return strings.HasPrefix(n, prefix) && strings.HasSuffix(n, ".iso")
 	})
 }
 
