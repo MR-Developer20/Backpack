@@ -40,6 +40,7 @@ build/                         ignored: ISO, logs, cache, test images
 make manifest      # regenerate package list + /etc/backpack/tools.yaml include
 make fetch         # download/verify upstream debs + keys
 make build         # full ISO → build/backpack.iso (log: build/logs/build.log)
+make build EDITION=extras   # + extras edition → build/backpack-extras.iso; make build-all = both
 make test-bios / test-uefi / test-persist
 make mkusb DEV=/dev/sdX [SIZE=5G]   # sudo; refuses disks > 256G without --force
 make test-usb-img                  # build/test-usb.img (8G sparse) with persistence partition
@@ -305,7 +306,7 @@ make release
   The writer judges an image by content, never by extension: InspectISO (also called by flash.Run, so the
   CLI too) names ELF/PE/Mach-O/zip files ("a Linux program, not an ISO") because people pick the
   extension-less Linux writer asset off the release page; the picker offers "All files"; update.ISOAsset
-  only matches `backpack-live-*.iso`. Downloads (update/fetch.go) use 8 ranged connections for files >= 64 MB
+  matches `backpack-live-*.iso` (normal) or `backpack-extras-*.iso` (see ISO editions). Downloads (update/fetch.go) use 8 ranged connections for files >= 64 MB
   (GitHub's CDN caps each connection), resume a dropped part, fall back to one stream on a 200.
   The update client is HTTP/1.1 only (http1Transport): over HTTP/2, which GitHub's CDN speaks, Go multiplexes all
   parts onto ONE connection, so "8 connections" were one (slower than a browser on Marc's line; TestDownloadPartsUseOwnConnections).
@@ -354,3 +355,17 @@ make release
   since the first commit overrides). Tested in headless sway 1.9 (Ubuntu) with a wlr-virtual-pointer helper
   (wlrctl's one-shot device is gone before Qt binds a pointer); not yet on a booted ISO (trixie sway 1.10).
   BACKPACK_WINDOWS_DEBUG=1 logs every swaymsg; failed ones are always logged.
+- (ISO editions) Two editions: `normal` (Makefile default, Network + Data tabs) and `extras` (adds the
+  manifest's `extra` category: LTris, GNOME Web, OBS Studio, eDEX-UI). gen-package-list.py always writes
+  backpack.list.chroot WITHOUT extra tools (tracked, so CI's diff is edition-independent) and, for extras
+  only, the gitignored extras.list.chroot (removed for normal). `--manifest-out` writes the ISO's
+  /etc/backpack/tools.yaml: a copy for extras, a filtered dump for normal (so the Extra tab is empty and
+  hidden); /etc/backpack/edition holds the name. Normal deletes any staged edex-ui deb. `make build`
+  runs `make clean` itself when live/.build exists and build/.edition names the other edition.
+  Release assets: `backpack-live-<v>-amd64.iso` (normal) and `backpack-extras-<v>-amd64.iso` (NOT
+  backpack-live-*, so writers released before editions still download the normal one); release.yml's
+  iso job is a matrix over editions (artifacts iso-<edition>, build-log-<edition>; publish downloads only
+  iso-* and usb-writer*, so build.log is no longer a release asset). Writer: ISOAsset(extras),
+  DownloadISO(extras), `--download-iso --extras`, second "Download + Extras" button only when the release
+  has an extras ISO. OBS screen capture: pipewire + xdg-desktop-portal-wlr + dbus-user-session in its
+  packages, sway.config exports WAYLAND_DISPLAY/XDG_CURRENT_DESKTOP to the user bus. Not yet ISO-boot tested.

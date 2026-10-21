@@ -11,9 +11,9 @@ Two ways to use it, chosen from the boot menu:
   that builds a form for each tool and streams its output. Every button shows the command it
   runs, and the line above the output is exactly what Run executes. Tools sit in tabs: **Network**
   (discovery, connectivity, capture, wireless, throughput, DNS/HTTP), **Data** (disks, recovery,
-  files, transfer) and **Extra** (other software, such as the optional
-  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; the tab only appears when
-  something in it is installed). The **Settings** button (gear, top right) holds a UI size slider (0.5–1.6×,
+  files, transfer) and **Extra** (other software: LTris, GNOME Web, OBS Studio and the optional
+  [eDEX-UI](https://github.com/GitSquared/edex-ui) sci-fi terminal; only in the **+ extras** edition,
+  see below). The **Settings** button (gear, top right) holds a UI size slider (0.5–1.6×,
   applies as you drag, remembered across boots with persistence), the display **Orientation**
   (rotate 90°, 180° or 270°, touch input follows; also remembered), the **Wi-Fi** scan/connect sheet,
   the phone-style on-screen **Keyboard** and a full-screen **Terminal**, then **Load to RAM** (moves the
@@ -69,12 +69,17 @@ Default login: user **`user`**, password **`live`**, passwordless `sudo`.
 The build runs `live-build` inside a privileged `debian:trixie` Docker container (the default),
 so it works on any host with Docker. QEMU and OVMF are used from the host for testing.
 
+There are two editions of the ISO. **Normal** has the Network and Data tools only; **+ extras**
+also has the Extra tab's apps (manifest category `extra`), so it is bigger.
+
 ```bash
-make build          # -> build/backpack.iso   (full log: build/logs/build.log)
+make build          # normal  -> build/backpack.iso   (full log: build/logs/build.log)
+make build EDITION=extras    # + extras -> build/backpack-extras.iso
+make build-all      # both
 make test-bios      # boot the ISO in QEMU (BIOS) and wait for the in-guest self-test
 make test-uefi      # same, UEFI (OVMF)
 make test-persist   # persistence matrix (BIOS/UEFI x normal/toram)
-make release        # staged ISO + SHA256SUMS in build/release/
+make release        # staged ISO + SHA256SUMS in build/release/ (EDITION=extras for the other one)
 ```
 
 Build on a native Debian/Ubuntu host without Docker by passing `USE_DOCKER=0` (needs
@@ -86,8 +91,8 @@ package cache.
 ### eDEX-UI (optional)
 
 The eDEX-UI tile in GUI Mode's Extra tab needs the `edex-ui` Debian package, built from the vendored and
-modernized fork in `touchmode/edex/` (Electron 37). It is not built by `make build`; build it
-once and it is picked up by the next `make build`:
+modernized fork in `touchmode/edex/` (Electron 37). `make build EDITION=extras` builds it (`EDEX=0`
+skips it); by hand:
 
 ```bash
 docker build -t backpack-edex -f tools/docker/Dockerfile.edex tools/docker
@@ -99,15 +104,15 @@ Without it the image still builds; the tile (and the Extra tab, while eDEX-UI is
 ### Releases
 
 Pushing a version tag builds everything on GitHub Actions (`.github/workflows/release.yml`) and
-publishes a GitHub release with the ISO, the USB writer (`.deb` + AppImage) and `SHA256SUMS`:
+publishes a GitHub release with both ISOs (`backpack-live-<tag>-amd64.iso` and
+`backpack-extras-<tag>-amd64.iso`), the USB writer (`.deb` + AppImage) and `SHA256SUMS`:
 
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
 Running the workflow by hand (Actions → release → Run workflow) builds the same files as
-workflow artifacts without publishing. The release ISO is a plain `make build`, so it has no
-eDEX-UI.
+workflow artifacts without publishing.
 
 ## Write to a USB stick
 
@@ -147,8 +152,9 @@ backpack-usb-writer.exe --iso backpack.iso --size 8G \\.\PhysicalDrive2         
 
 It checks GitHub for a newer release when it opens. **Update to vX** downloads the writer for
 your system, checks it against the release's `SHA256SUMS` and replaces the program (then
-**Restart to finish**); **Download vX ISO** saves the release's ISO into Downloads and selects it.
-From a terminal: `backpack-usb-writer --update` and `backpack-usb-writer --download-iso`.
+**Restart to finish**); **Download vX** saves the release's normal ISO into Downloads and selects it,
+**Download + Extras** the + extras one. From a terminal: `backpack-usb-writer --update` and
+`backpack-usb-writer --download-iso [--extras]`.
 
 Build it with `make usb-writer-app` (needs Go and, on Linux, `libgtk-3-dev libwebkit2gtk-4.1-dev`).
 

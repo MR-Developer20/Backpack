@@ -1,5 +1,5 @@
 name: release
-# Pushing a tag like v1.2.0 builds the ISO, the GTK USB writer (.deb + AppImage) and the
+# Pushing a tag like v1.2.0 builds both ISO editions (normal, and + extras with the Extra tab's apps), the GTK USB writer (.deb + AppImage) and the
 # standalone USB writer for Linux, Windows and macOS (tools/usb-writer/app), and publishes them
 # as a GitHub release. A manual run (Actions -> release -> Run workflow) builds the same files as
 # workflow artifacts only, without creating a release; so does a pull request that changes this
@@ -38,6 +38,10 @@ jobs:
   iso:
     needs: changes
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.iso == 'true') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [normal, extras]   # Makefile EDITION
     runs-on: ubuntu-24.04
     # A normal build takes ~5-10 minutes; fail fast instead of sitting on a stuck mirror for hours.
     timeout-minutes: 60   # eDEX-UI (npm + electron-builder) is built inside make build
@@ -57,29 +61,30 @@ jobs:
           path: |
             live/cache/packages.bootstrap
             live/cache/packages.chroot
-          key: lb-packages-${{ env.MONTH }}-${{ github.run_id }}
-          restore-keys: lb-packages-${{ env.MONTH }}-
-      - name: build ISO (live-build in a privileged debian:trixie container)
+          key: lb-packages-${{ matrix.edition }}-${{ env.MONTH }}-${{ github.run_id }}
+          restore-keys: lb-packages-${{ matrix.edition }}-${{ env.MONTH }}-
+      - name: build ${{ matrix.edition }} ISO (live-build in a privileged debian:trixie container)
         # make build writes live-build's output to build/logs/build.log; follow it so progress
         # shows up live in the Actions log.
         run: |
           mkdir -p build/logs && : > build/logs/build.log
-          make build & pid=$!
+          make build EDITION=${{ matrix.edition }} & pid=$!
           tail -n +1 -F build/logs/build.log --pid=$pid 2>/dev/null &
           wait $pid
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build-log
+          name: build-log-${{ matrix.edition }}
           path: build/logs/build.log
           retention-days: 7
       - name: stage release ISO
         env:
           VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          EDITION: ${{ matrix.edition }}
         run: scripts/release.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: iso
+          name: iso-${{ matrix.edition }}
           path: build/release/*.iso
           compression-level: 0
           retention-days: 7
@@ -156,9 +161,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      # the release files only: the build-log-* artifacts stay on the run
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: iso-*
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: usb-writer*
           merge-multiple: true
       - name: checksums
         working-directory: dist

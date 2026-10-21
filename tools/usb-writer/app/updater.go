@@ -21,8 +21,11 @@ type UpdateInfo struct {
 	Latest  string `json:"latest"` // tag, "" when there is no release yet
 	Page    string `json:"page"`
 	Newer   bool   `json:"newer"`   // a newer writer for this system exists
-	ISOName string `json:"isoName"` // the release's ISO, if any
+	ISOName string `json:"isoName"` // the release's ISO (normal edition), if any
 	ISOSize int64  `json:"isoSize"`
+	// the + extras edition (Extra tab apps), if the release has one
+	ExtrasName string `json:"extrasName"`
+	ExtrasSize int64  `json:"extrasSize"`
 }
 
 // UpdateEvent reports a download ("app" or "iso") on the "update" event.
@@ -64,8 +67,11 @@ func (a *App) CheckUpdate() (UpdateInfo, error) {
 	}
 	info.Latest, info.Page = r.Tag, r.Page
 	info.Newer = update.Newer(version, r.Tag) && r.AppAsset() != nil
-	if iso := r.ISOAsset(); iso != nil {
+	if iso := r.ISOAsset(false); iso != nil {
 		info.ISOName, info.ISOSize = iso.Name, iso.Size
+	}
+	if iso := r.ISOAsset(true); iso != nil {
+		info.ExtrasName, info.ExtrasSize = iso.Name, iso.Size
 	}
 	return info, nil
 }
@@ -124,10 +130,11 @@ func (a *App) RestartApp() error {
 	return nil
 }
 
-// DownloadISO saves the release's ISO into Downloads and makes it the chosen image.
-func (a *App) DownloadISO() error {
+// DownloadISO saves the release's ISO (with extras: the + extras edition) into Downloads and
+// makes it the chosen image.
+func (a *App) DownloadISO(extras bool) error {
 	return a.start("iso", func(p func(d, t int64)) (UpdateEvent, error) {
-		path, err := downloadISO(a.ctx, p)
+		path, err := downloadISO(a.ctx, extras, p)
 		if err != nil {
 			return UpdateEvent{}, err
 		}
@@ -136,19 +143,22 @@ func (a *App) DownloadISO() error {
 	})
 }
 
-func downloadISO(ctx context.Context, p func(d, t int64)) (string, error) {
+func downloadISO(ctx context.Context, extras bool, p func(d, t int64)) (string, error) {
 	r, err := latest(ctx)
 	if err != nil {
 		return "", err
 	}
-	if r == nil || r.ISOAsset() == nil {
+	if r == nil || r.ISOAsset(extras) == nil {
+		if extras {
+			return "", errors.New("the newest release has no + extras ISO")
+		}
 		return "", errors.New("no released ISO found")
 	}
 	dir := downloadsDir()
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
-	a := r.ISOAsset()
+	a := r.ISOAsset(extras)
 	dst := filepath.Join(dir, a.Name)
 	return dst, r.Download(ctx, a, dst, p)
 }
