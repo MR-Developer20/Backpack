@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Validate manifest/tools.yaml and generate the live-build package list.
 
-Usage: gen-package-list.py [--check] [--manifest FILE] [--out FILE] [--print-cmds]
+Usage: gen-package-list.py [--check] [--edition normal|extras] [--manifest FILE] [--out FILE]
+                           [--manifest-out FILE] [--print-cmds]
+
+Editions: `normal` ships the Network and Data tabs only; `extras` also ships the Extra tab's apps.
 """
-import argparse, re, sys
+import argparse, os, re, shutil, sys
 import yaml
 
 CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", "dns-http",
@@ -11,6 +14,8 @@ CATEGORIES = {"discovery", "connectivity", "capture", "wireless", "throughput", 
 ARG_TYPES = {"string", "int", "flag", "choice", "interface"}
 INTERFACE_KINDS = {"any", "wifi", "monitor", "wired"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
+EDITIONS = ("normal", "extras")
+EXTRA_CATEGORIES = {"extra"}   # only in the extras edition
 
 
 def fail(msg):
@@ -85,10 +90,39 @@ def validate(doc):
     return tools
 
 
+def is_extra(tool):
+    return tool["category"] in EXTRA_CATEGORIES
+
+
+def write_list(path, tools, what):
+    pkgs = sorted({p for t in tools for p in t["packages"]})
+    with open(path, "w") as f:
+        f.write(f"# GENERATED from manifest/tools.yaml by scripts/gen-package-list.py ({what}) — do not edit\n")
+        f.write("\n".join(pkgs) + "\n")
+    print(f"wrote {path}: {len(pkgs)} packages from {len(tools)} tools")
+
+
+def write_manifest(src, doc, tools, edition, out):
+    """The manifest the ISO ships (/etc/backpack/tools.yaml): the whole file for extras, without
+    the Extra tab's tools for normal, so GUI Mode hides that tab."""
+    if edition == "extras":
+        shutil.copyfile(src, out)
+        return
+    with open(out, "w") as f:
+        f.write(f"# GENERATED from {src} for the {edition} edition by scripts/gen-package-list.py\n")
+        yaml.safe_dump({**doc, "tools": [t for t in tools if not is_extra(t)]}, f,
+                       sort_keys=False, allow_unicode=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--manifest", default="manifest/tools.yaml")
-    ap.add_argument("--out", default="live/config/package-lists/backpack.list.chroot")
+    ap.add_argument("--out", default="live/config/package-lists/backpack.list.chroot",
+                    help="package list of the Network + Data tools (every edition)")
+    ap.add_argument("--extras-out", default="live/config/package-lists/extras.list.chroot",
+                    help="package list of the Extra tab's apps: written for extras, removed for normal")
+    ap.add_argument("--edition", choices=EDITIONS, default="normal")
+    ap.add_argument("--manifest-out", help="also write the edition's manifest here")
     ap.add_argument("--check", action="store_true", help="validate only")
     ap.add_argument("--print-cmds", action="store_true", help="print 'id cmd' pairs")
     args = ap.parse_args()
@@ -97,7 +131,7 @@ def main():
         doc = yaml.safe_load(f)
     tools = validate(doc)
 
-    if args.print_cmds:
+    if args.print_cmds:   # every tool in the given manifest (the ISO's own is already per edition)
         for t in tools:
             if t.get("optional"):   # installed separately; GUI Mode hides it when absent
                 continue
@@ -108,11 +142,14 @@ def main():
         print(f"manifest ok: {len(tools)} tools")
         return
 
-    pkgs = sorted({p for t in tools for p in t["packages"]})
-    with open(args.out, "w") as f:
-        f.write("# GENERATED from manifest/tools.yaml by scripts/gen-package-list.py — do not edit\n")
-        f.write("\n".join(pkgs) + "\n")
-    print(f"wrote {args.out}: {len(pkgs)} packages from {len(tools)} tools")
+    write_list(args.out, [t for t in tools if not is_extra(t)], "every edition")
+    if args.edition == "extras":
+        write_list(args.extras_out, [t for t in tools if is_extra(t)], "extras edition")
+    elif os.path.exists(args.extras_out):
+        os.remove(args.extras_out)
+    if args.manifest_out:
+        write_manifest(args.manifest, doc, tools, args.edition, args.manifest_out)
+    print(f"edition: {args.edition}")
 
 
 if __name__ == "__main__":

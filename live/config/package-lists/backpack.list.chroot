@@ -1,4 +1,4 @@
-# GENERATED from manifest/tools.yaml by scripts/gen-package-list.py — do not edit
+# GENERATED from manifest/tools.yaml by scripts/gen-package-list.py (every edition) — do not edit
 aircrack-ng
 arp-scan
 bind9-dnsutils
@@ -6,7 +6,6 @@ binwalk
 bmon
 coreutils
 curl
-epiphany-browser
 ethtool
 fping
 gddrescue
@@ -16,7 +15,6 @@ iperf3
 kismet
 libimage-exiftool-perl
 lldpd
-ltris
 mtr-tiny
 ncdu
 netcat-openbsd

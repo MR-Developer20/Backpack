@@ -7,7 +7,7 @@
 #   description one plain-English sentence
 #   category    Network tab: discovery | connectivity | capture | wireless | throughput | dns-http
 #               Data tab:    disks | recovery | files | transfer
-#               Extra tab:   extra (other software; usually `optional: true`)
+#               Extra tab:   extra (other software; only in the `extras` ISO edition, see Makefile EDITION)
 #   packages    Debian package names (required; for upstream sources = extra deps)
 #   source      optional: {type: upstream, url, sha256, apt_repo, apt_key_url, apt_key_sha256}
 #   gui         optional bool; GUI Mode launches GUI tools detached instead of streaming output
@@ -595,6 +595,18 @@ tools:
     commands:
       - label: Open GNOME Web
         cmd: epiphany-browser
+        args: []
+        needs_root: false
+  - id: obs-studio
+    name: OBS Studio
+    description: Records or streams the screen, a webcam and audio (GPL-2+).
+    category: extra
+    # screen capture on sway goes through PipeWire and the wlroots desktop portal on the user's D-Bus
+    packages: [obs-studio, obs-plugins, pipewire, wireplumber, xdg-desktop-portal, xdg-desktop-portal-wlr, dbus-user-session]
+    gui: true
+    commands:
+      - label: Open OBS Studio
+        cmd: obs
         args: []
         needs_root: false
   - id: edex-ui

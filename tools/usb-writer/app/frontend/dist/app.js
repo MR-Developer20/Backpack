@@ -341,8 +341,14 @@ async function checkUpdate() {
   }
   if (u.isoName) {
     $("release").hidden = false;
-    $("iso-dl-lbl").textContent = `Download ${u.latest} ISO`;
+    $("iso-dl-lbl").textContent = `Download ${u.latest}`;
     $("rel-facts").textContent = `LATEST RELEASE // ${u.latest} // ${human(u.isoSize)}`;
+  }
+  // the + extras edition (the Extra tab's apps), on releases that have one
+  if (u.isoName && u.extrasName) {
+    $("iso-dl-x").hidden = false;
+    $("iso-dl-x-lbl").textContent = "Download + Extras";
+    $("rel-facts").textContent = `LATEST RELEASE // ${u.latest} // ${human(u.isoSize)} // + EXTRAS ${human(u.extrasSize)}`;
   }
 }
 
@@ -373,11 +379,11 @@ function onUpdate(e) {
     const s = document.createElement("span");
     s.className = "err-text"; s.textContent = "Download failed: " + e.error;
     $("rel-facts").append(s);
-    $("iso-dl").disabled = false;
+    $("iso-dl").disabled = $("iso-dl-x").disabled = false;
   } else if (e.ready) {
     m.firstElementChild.style.width = "100%";
     $("rel-facts").textContent = `SAVED TO DOWNLOADS // ${state.rel.latest}`;
-    $("iso-dl").disabled = false;
+    $("iso-dl").disabled = $("iso-dl-x").disabled = false;
     if (e.iso && !state.running) setISO(e.iso);
   } else if (e.total) {
     m.hidden = false;
@@ -436,7 +442,9 @@ async function boot() {
   window.runtime.EventsOn("job", onJob);
   window.runtime.EventsOn("update", onUpdate);
   $("upd").onclick = () => { $("upd").disabled = true; $("upd-lbl").textContent = "Updating…"; api().InstallUpdate(); };
-  $("iso-dl").onclick = () => { $("iso-dl").disabled = true; $("dl-meter").hidden = false; api().DownloadISO(); };
+  const download = (extras) => { $("iso-dl").disabled = $("iso-dl-x").disabled = true; $("dl-meter").hidden = false; api().DownloadISO(extras); };
+  $("iso-dl").onclick = () => download(false);
+  $("iso-dl-x").onclick = () => download(true);
   if (window.runtime.OnFileDrop) {
     window.runtime.OnFileDrop(async (_x, _y, paths) => {
       const p = (paths || []).find((q) => q.toLowerCase().endsWith(".iso")) || (paths || [])[0];
